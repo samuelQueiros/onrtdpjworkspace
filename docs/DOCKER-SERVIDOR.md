@@ -146,7 +146,7 @@ BACKEND_PORT=8000
 Importante:
 
 - `VITE_API_URL` precisa ser acessivel pelo navegador dos usuarios.
-- Nao use `localhost` em producao, a menos que o sistema seja acessado apenas na propria maquina.
+- Nao use `chat-server` em producao, a menos que o sistema seja acessado apenas na propria maquina.
 - Se alterar `VITE_API_URL`, e necessario rebuildar o frontend.
 
 ## Subir o Sistema

@@ -260,10 +260,10 @@ npm install
 Opcionalmente crie um arquivo `.env` no frontend para trocar a URL da API:
 
 ```env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=http://chat-server:8000
 ```
 
-Se esse arquivo nao existir, o frontend usa `http://localhost:8000`.
+Se esse arquivo nao existir, o frontend usa `http://chat-server:8000`.
 
 ## Execucao
 

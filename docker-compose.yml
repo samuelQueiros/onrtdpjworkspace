@@ -7,7 +7,7 @@ services:
     environment:
       SECRET_KEY: ${SECRET_KEY:-troque-esta-chave-em-producao}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      FRONTEND_URL: ${FRONTEND_URL:-http://chat-server}
       DATABASE_PATH: /app/data/ferias.db
     volumes:
       - ferias_data:/app/data
@@ -18,7 +18,7 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+        VITE_API_URL: ${VITE_API_URL:-http://chat-server:8000}
     container_name: ferias-frontend
     restart: unless-stopped
     depends_on:
