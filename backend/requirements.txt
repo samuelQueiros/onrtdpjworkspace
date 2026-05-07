@@ -6,3 +6,4 @@ python-jose[cryptography]
 bcrypt
 python-dotenv
 pydantic[email]
+openpyxl

@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
 from datetime import date, timedelta
 from typing import List
 
@@ -8,64 +7,113 @@ from app.database import get_db
 from app.models.user import User
 from app.models.ferias import Ferias
 from app.models.log import Log
-from app.schemas.ferias import FeriasCreate, FeriasUpdate
-from app.core.security import get_current_user
+from app.models.departamento import Departamento
+from app.schemas.ferias import FeriasCreate, FeriasUpdate, FeriasAprovar
+from app.core.security import get_current_user, require_admin
 
 router = APIRouter(prefix="/ferias", tags=["Férias"])
 
-LIMITE_SIMULTANEO = 2  # máximo de colaboradores em férias ao mesmo tempo
+LIMITE_SIMULTANEO_GLOBAL = 2  # fallback quando sem departamento
 
+
+# ── Utilitários ──────────────────────────────────────────────────────────────
 
 def calcular_dias(data_inicio: date, data_fim: date) -> int:
-    # Contagem inclusiva: início e fim contam como dias de férias
     return (data_fim - data_inicio).days + 1
 
 
-def verificar_sobreposicao(db: Session, data_inicio: date, data_fim: date, excluir_ferias_id: int = None, excluir_user_id: int = None):
+def get_ciclo_atual(data_admissao) -> tuple:
+    """Retorna (ciclo_inicio, ciclo_fim) baseado na data de admissão."""
+    today = date.today()
+
+    if not data_admissao:
+        return date(today.year, 1, 1), date(today.year, 12, 31)
+
+    ano = today.year
+    try:
+        ciclo_inicio = data_admissao.replace(year=ano)
+    except ValueError:
+        ciclo_inicio = data_admissao.replace(year=ano, day=28)
+
+    if ciclo_inicio > today:
+        try:
+            ciclo_inicio = data_admissao.replace(year=ano - 1)
+        except ValueError:
+            ciclo_inicio = data_admissao.replace(year=ano - 1, day=28)
+
+    try:
+        ciclo_fim = data_admissao.replace(year=ciclo_inicio.year + 1) - timedelta(days=1)
+    except ValueError:
+        ciclo_fim = data_admissao.replace(year=ciclo_inicio.year + 1, day=28) - timedelta(days=1)
+
+    return ciclo_inicio, ciclo_fim
+
+
+def get_limite_departamento(user: User, db: Session) -> int:
+    if user.departamento_id:
+        dep = db.query(Departamento).filter(Departamento.id == user.departamento_id).first()
+        if dep:
+            return dep.limite_simultaneo
+    return LIMITE_SIMULTANEO_GLOBAL
+
+
+def verificar_sobreposicao_departamento(
+    db: Session,
+    user: User,
+    data_inicio: date,
+    data_fim: date,
+    excluir_ferias_id: int = None,
+) -> bool:
     """
-    Regra de negócio 1: máximo de LIMITE_SIMULTANEO colaboradores em férias simultaneamente.
-    Busca registros de outros usuários cujo período se sobreponha ao solicitado.
-    Dois períodos se sobrepõem quando: início_A <= fim_B AND fim_A >= início_B
+    Verifica se o limite simultâneo do departamento (ou global) seria excedido.
+    Conta apenas férias APROVADAS de outros usuários do mesmo departamento (ou todos, se sem depto).
     """
+    limite = get_limite_departamento(user, db)
+
     query = db.query(Ferias).filter(
         Ferias.data_inicio <= data_fim,
         Ferias.data_fim >= data_inicio,
+        Ferias.status == "aprovada",
+        Ferias.user_id != user.id,
     )
 
     if excluir_ferias_id:
         query = query.filter(Ferias.id != excluir_ferias_id)
 
-    if excluir_user_id:
-        query = query.filter(Ferias.user_id != excluir_user_id)
+    # Filtrar pelo mesmo departamento quando houver
+    if user.departamento_id:
+        colegas_ids = [
+            u.id for u in db.query(User).filter(User.departamento_id == user.departamento_id).all()
+        ]
+        query = query.filter(Ferias.user_id.in_(colegas_ids))
 
     conflitos = query.all()
 
-    # Encontrar o pico de sobreposição dia a dia seria custoso; usamos a abordagem
-    # conservadora: se há LIMITE_SIMULTANEO ou mais registros que se sobrepõem ao período,
-    # verificamos se algum subperíodo viola o limite (checagem por dia único mais simples
-    # de entender e segura para calendários pequenos).
-    if len(conflitos) >= LIMITE_SIMULTANEO:
-        # Verificação mais precisa: há algum dia dentro do período solicitado
-        # onde LIMITE_SIMULTANEO ou mais outros colaboradores estão em férias?
+    if len(conflitos) >= limite:
         current = data_inicio
         while current <= data_fim:
-            count = sum(
-                1 for f in conflitos
-                if f.data_inicio <= current <= f.data_fim
-            )
-            if count >= LIMITE_SIMULTANEO:
+            count = sum(1 for f in conflitos if f.data_inicio <= current <= f.data_fim)
+            if count >= limite:
                 return True
             current += timedelta(days=1)
 
     return False
 
 
-def verificar_saldo(db: Session, user: User, dias_solicitados: int, excluir_ferias_id: int = None) -> int:
+def calcular_saldo(db: Session, user: User, excluir_ferias_id: int = None) -> int:
     """
-    Regra de negócio 2: usuário deve ter saldo suficiente de dias.
-    Retorna os dias restantes após descontar os já usados.
+    Retorna saldo restante no ciclo atual.
+    Férias por acordo não contam. Apenas férias aprovadas e pendentes no ciclo.
     """
-    query = db.query(Ferias).filter(Ferias.user_id == user.id)
+    ciclo_inicio, ciclo_fim = get_ciclo_atual(user.data_admissao)
+
+    query = db.query(Ferias).filter(
+        Ferias.user_id == user.id,
+        Ferias.ferias_acordo == False,  # noqa: E712
+        Ferias.status.in_(["aprovada", "pendente"]),
+        Ferias.data_inicio >= ciclo_inicio,
+        Ferias.data_inicio <= ciclo_fim,
+    )
     if excluir_ferias_id:
         query = query.filter(Ferias.id != excluir_ferias_id)
 
@@ -73,27 +121,64 @@ def verificar_saldo(db: Session, user: User, dias_solicitados: int, excluir_feri
     return user.dias_totais - total_usado
 
 
+def _fmt_ferias(f: Ferias) -> dict:
+    return {
+        "id": f.id,
+        "user_id": f.user_id,
+        "nome_usuario": f.usuario.nome if f.usuario else None,
+        "data_inicio": f.data_inicio,
+        "data_fim": f.data_fim,
+        "dias_usados": f.dias_usados,
+        "status": f.status,
+        "ferias_acordo": f.ferias_acordo,
+        "motivo_rejeicao": f.motivo_rejeicao,
+        "criado_em": f.criado_em,
+    }
+
+
+# ── Endpoints ────────────────────────────────────────────────────────────────
+
 @router.get("/me")
 def minhas_ferias(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    ferias = db.query(Ferias).filter(Ferias.user_id == current_user.id).all()
-    return [
-        {
-            "id": f.id,
-            "user_id": f.user_id,
-            "data_inicio": f.data_inicio,
-            "data_fim": f.data_fim,
-            "dias_usados": f.dias_usados,
-            "criado_em": f.criado_em,
-        }
-        for f in ferias
-    ]
+    ferias = db.query(Ferias).filter(Ferias.user_id == current_user.id).order_by(Ferias.criado_em.desc()).all()
+    ciclo_inicio, ciclo_fim = get_ciclo_atual(current_user.data_admissao)
+    saldo = calcular_saldo(db, current_user)
+    return {
+        "ferias": [_fmt_ferias(f) for f in ferias],
+        "saldo": saldo,
+        "ciclo_inicio": ciclo_inicio,
+        "ciclo_fim": ciclo_fim,
+    }
+
+
+@router.get("/pendentes")
+def ferias_pendentes(db: Session = Depends(get_db), _=Depends(require_admin)):
+    pendentes = (
+        db.query(Ferias)
+        .filter(Ferias.status == "pendente")
+        .order_by(Ferias.criado_em.asc())
+        .all()
+    )
+    return [_fmt_ferias(f) for f in pendentes]
+
+
+@router.get("/todas")
+def todas_ferias(db: Session = Depends(get_db), _=Depends(require_admin)):
+    todas = db.query(Ferias).order_by(Ferias.criado_em.desc()).all()
+    return [_fmt_ferias(f) for f in todas]
 
 
 @router.get("/disponibilidade")
-def disponibilidade(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    todas_ferias = db.query(Ferias).order_by(Ferias.data_inicio).all()
+def disponibilidade(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    todas_ferias = (
+        db.query(Ferias)
+        .filter(Ferias.status == "aprovada")
+        .order_by(Ferias.data_inicio)
+        .all()
+    )
     user_ids = {f.user_id for f in todas_ferias}
     users_by_id = {u.id: u for u in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
+
     ferias_marcadas = [
         {
             "id": f.id,
@@ -102,6 +187,7 @@ def disponibilidade(db: Session = Depends(get_db), _=Depends(get_current_user)):
             "data_inicio": f.data_inicio,
             "data_fim": f.data_fim,
             "dias_usados": f.dias_usados,
+            "ferias_acordo": f.ferias_acordo,
         }
         for f in todas_ferias
     ]
@@ -109,21 +195,33 @@ def disponibilidade(db: Session = Depends(get_db), _=Depends(get_current_user)):
     if not todas_ferias:
         return {"periodos_bloqueados": [], "ferias_marcadas": []}
 
-    # Encontrar o range completo de datas
+    # Determinar limite relevante para o usuário atual
+    limite = get_limite_departamento(current_user, db)
+
     data_min = min(f.data_inicio for f in todas_ferias)
     data_max = max(f.data_fim for f in todas_ferias)
 
-    # Percorrer dia a dia e identificar dias bloqueados
     bloqueados = []
-    current = data_min
-    while current <= data_max:
-        count = sum(1 for f in todas_ferias if f.data_inicio <= current <= f.data_fim)
-        if count >= LIMITE_SIMULTANEO:
-            bloqueados.append(current)
-        current += timedelta(days=1)
+    current_day = data_min
+    while current_day <= data_max:
+        # Considera apenas férias do mesmo departamento (ou todas) para bloqueio
+        if current_user.departamento_id:
+            colegas_ids = {
+                u.id for u in db.query(User).filter(User.departamento_id == current_user.departamento_id).all()
+            }
+        else:
+            colegas_ids = None
 
-    # Agrupar dias consecutivos em períodos
-    periodos = []
+        count = sum(
+            1 for f in todas_ferias
+            if f.data_inicio <= current_day <= f.data_fim
+            and (colegas_ids is None or f.user_id in colegas_ids)
+        )
+        if count >= limite:
+            bloqueados.append(current_day)
+        current_day += timedelta(days=1)
+
+    periodos: list[dict] = []
     if bloqueados:
         inicio = bloqueados[0]
         anterior = bloqueados[0]
@@ -147,48 +245,114 @@ def registrar_ferias(
 ):
     dias_solicitados = calcular_dias(payload.data_inicio, payload.data_fim)
 
-    # Regra 1: verificar limite de colaboradores simultâneos
-    if verificar_sobreposicao(db, payload.data_inicio, payload.data_fim, excluir_user_id=current_user.id):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Já existem {LIMITE_SIMULTANEO} colaboradores em férias no período solicitado. Escolha outras datas.",
-        )
+    # Férias por acordo: não passa pelas regras de saldo/limite, vai direto como pendente
+    if not payload.ferias_acordo:
+        if verificar_sobreposicao_departamento(db, current_user, payload.data_inicio, payload.data_fim):
+            limite = get_limite_departamento(current_user, db)
+            raise HTTPException(
+                status_code=400,
+                detail=f"Limite de {limite} colaborador(es) simultâneo(s) no departamento já atingido no período solicitado.",
+            )
 
-    # Regra 2: verificar saldo disponível
-    saldo = verificar_saldo(db, current_user, dias_solicitados)
-    if saldo < dias_solicitados:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Saldo insuficiente. Você possui {saldo} dia(s) disponível(is), mas solicitou {dias_solicitados}.",
-        )
+        saldo = calcular_saldo(db, current_user)
+        if saldo < dias_solicitados:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Saldo insuficiente. Você possui {saldo} dia(s) disponível(is) no ciclo atual, mas solicitou {dias_solicitados}.",
+            )
 
-    # Regra 3: calcular dias_usados automaticamente
+    # Admin cria direto como aprovada; usuário comum cria como pendente
+    novo_status = "aprovada" if current_user.role == "admin" else "pendente"
+
     nova_ferias = Ferias(
         user_id=current_user.id,
         data_inicio=payload.data_inicio,
         data_fim=payload.data_fim,
         dias_usados=dias_solicitados,
+        status=novo_status,
+        ferias_acordo=payload.ferias_acordo,
     )
     db.add(nova_ferias)
     db.flush()
 
+    acao = "FERIAS_REGISTRADA" if novo_status == "aprovada" else "FERIAS_SOLICITADA"
     log = Log(
         user_id=current_user.id,
-        acao="FERIAS_REGISTRADA",
-        detalhes=f"Período: {payload.data_inicio} a {payload.data_fim} ({dias_solicitados} dias)",
+        acao=acao,
+        detalhes=f"Período: {payload.data_inicio} a {payload.data_fim} ({dias_solicitados} dias) — status: {novo_status}",
     )
     db.add(log)
     db.commit()
     db.refresh(nova_ferias)
 
-    return {
-        "id": nova_ferias.id,
-        "user_id": nova_ferias.user_id,
-        "data_inicio": nova_ferias.data_inicio,
-        "data_fim": nova_ferias.data_fim,
-        "dias_usados": nova_ferias.dias_usados,
-        "criado_em": nova_ferias.criado_em,
-    }
+    return _fmt_ferias(nova_ferias)
+
+
+@router.put("/{ferias_id}/aprovar")
+def aprovar_ferias(
+    ferias_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    ferias = db.query(Ferias).filter(Ferias.id == ferias_id).first()
+    if not ferias:
+        raise HTTPException(status_code=404, detail="Férias não encontradas")
+    if ferias.status != "pendente":
+        raise HTTPException(status_code=400, detail=f"Solicitação não está pendente (status atual: {ferias.status})")
+
+    owner = db.query(User).filter(User.id == ferias.user_id).first()
+
+    if not ferias.ferias_acordo:
+        if verificar_sobreposicao_departamento(db, owner, ferias.data_inicio, ferias.data_fim, excluir_ferias_id=ferias_id):
+            limite = get_limite_departamento(owner, db)
+            raise HTTPException(
+                status_code=400,
+                detail=f"Não é possível aprovar: limite de {limite} simultâneo(s) no departamento seria excedido.",
+            )
+
+    ferias.status = "aprovada"
+    ferias.motivo_rejeicao = None
+
+    log = Log(
+        user_id=current_user.id,
+        acao="FERIAS_APROVADA",
+        detalhes=f"Férias #{ferias_id} de {owner.nome} aprovadas ({ferias.data_inicio} a {ferias.data_fim})",
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(ferias)
+
+    return _fmt_ferias(ferias)
+
+
+@router.put("/{ferias_id}/rejeitar")
+def rejeitar_ferias(
+    ferias_id: int,
+    payload: FeriasAprovar,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    ferias = db.query(Ferias).filter(Ferias.id == ferias_id).first()
+    if not ferias:
+        raise HTTPException(status_code=404, detail="Férias não encontradas")
+    if ferias.status != "pendente":
+        raise HTTPException(status_code=400, detail=f"Solicitação não está pendente (status atual: {ferias.status})")
+
+    owner = db.query(User).filter(User.id == ferias.user_id).first()
+
+    ferias.status = "rejeitada"
+    ferias.motivo_rejeicao = payload.motivo_rejeicao
+
+    log = Log(
+        user_id=current_user.id,
+        acao="FERIAS_REJEITADA",
+        detalhes=f"Férias #{ferias_id} de {owner.nome} rejeitadas. Motivo: {payload.motivo_rejeicao or 'não informado'}",
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(ferias)
+
+    return _fmt_ferias(ferias)
 
 
 @router.put("/{ferias_id}")
@@ -202,52 +366,59 @@ def editar_ferias(
     if not ferias:
         raise HTTPException(status_code=404, detail="Férias não encontradas")
 
-    # Usuário comum só pode editar as próprias férias
-    if current_user.role != "admin" and ferias.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Sem permissão para editar férias de outro usuário")
-
-    nova_inicio = payload.data_inicio or ferias.data_inicio
-    nova_fim = payload.data_fim or ferias.data_fim
-    dias_solicitados = calcular_dias(nova_inicio, nova_fim)
+    # Usuário comum só edita as próprias, apenas se pendentes
+    if current_user.role != "admin":
+        if ferias.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Sem permissão para editar férias de outro usuário")
+        if ferias.status not in ("pendente",):
+            raise HTTPException(status_code=403, detail="Apenas férias pendentes podem ser editadas pelo colaborador")
 
     owner = db.query(User).filter(User.id == ferias.user_id).first()
+    nova_inicio = payload.data_inicio if payload.data_inicio is not None else ferias.data_inicio
+    nova_fim = payload.data_fim if payload.data_fim is not None else ferias.data_fim
+    dias_solicitados = calcular_dias(nova_inicio, nova_fim)
 
-    # Regra 1: verificar conflito com outros usuários (excluindo este registro)
-    if verificar_sobreposicao(db, nova_inicio, nova_fim, excluir_ferias_id=ferias_id, excluir_user_id=ferias.user_id):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Já existem {LIMITE_SIMULTANEO} colaboradores em férias no período solicitado. Escolha outras datas.",
-        )
+    novo_acordo = payload.ferias_acordo if payload.ferias_acordo is not None else ferias.ferias_acordo
 
-    # Regra 2: verificar saldo (excluindo os dias deste registro)
-    saldo = verificar_saldo(db, owner, dias_solicitados, excluir_ferias_id=ferias_id)
-    if saldo < dias_solicitados:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Saldo insuficiente. Disponível: {saldo} dia(s), solicitado: {dias_solicitados}.",
-        )
+    if not novo_acordo:
+        if verificar_sobreposicao_departamento(db, owner, nova_inicio, nova_fim, excluir_ferias_id=ferias_id):
+            limite = get_limite_departamento(owner, db)
+            raise HTTPException(
+                status_code=400,
+                detail=f"Limite de {limite} simultâneo(s) no departamento seria excedido.",
+            )
+
+        saldo = calcular_saldo(db, owner, excluir_ferias_id=ferias_id)
+        if saldo < dias_solicitados:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Saldo insuficiente. Disponível: {saldo} dia(s), solicitado: {dias_solicitados}.",
+            )
 
     ferias.data_inicio = nova_inicio
     ferias.data_fim = nova_fim
     ferias.dias_usados = dias_solicitados
+    ferias.ferias_acordo = novo_acordo
+
+    # Apenas admin pode alterar status diretamente
+    if current_user.role == "admin":
+        if payload.status is not None:
+            if payload.status not in ("pendente", "aprovada", "rejeitada"):
+                raise HTTPException(status_code=400, detail="Status inválido")
+            ferias.status = payload.status
+        if payload.motivo_rejeicao is not None:
+            ferias.motivo_rejeicao = payload.motivo_rejeicao
 
     log = Log(
         user_id=current_user.id,
         acao="FERIAS_EDITADA",
-        detalhes=f"Férias #{ferias_id} alteradas para {nova_inicio} a {nova_fim} ({dias_solicitados} dias)",
+        detalhes=f"Férias #{ferias_id} de {owner.nome} alteradas para {nova_inicio} a {nova_fim} ({dias_solicitados} dias)",
     )
     db.add(log)
     db.commit()
     db.refresh(ferias)
 
-    return {
-        "id": ferias.id,
-        "user_id": ferias.user_id,
-        "data_inicio": ferias.data_inicio,
-        "data_fim": ferias.data_fim,
-        "dias_usados": ferias.dias_usados,
-        "criado_em": ferias.criado_em,
-    }
+    return _fmt_ferias(ferias)
 
 
 @router.delete("/{ferias_id}", status_code=status.HTTP_200_OK)
@@ -263,7 +434,8 @@ def cancelar_ferias(
     if current_user.role != "admin" and ferias.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Sem permissão para cancelar férias de outro usuário")
 
-    detalhes = f"Férias #{ferias_id} de {ferias.data_inicio} a {ferias.data_fim} canceladas"
+    owner = db.query(User).filter(User.id == ferias.user_id).first()
+    detalhes = f"Férias #{ferias_id} de {owner.nome if owner else '?'} ({ferias.data_inicio} a {ferias.data_fim}) canceladas"
     db.delete(ferias)
 
     log = Log(user_id=current_user.id, acao="FERIAS_CANCELADA", detalhes=detalhes)

@@ -6,6 +6,7 @@ from datetime import date, datetime
 class FeriasCreate(BaseModel):
     data_inicio: date
     data_fim: date
+    ferias_acordo: bool = False
 
     @model_validator(mode="after")
     def validar_datas(self):
@@ -17,6 +18,9 @@ class FeriasCreate(BaseModel):
 class FeriasUpdate(BaseModel):
     data_inicio: Optional[date] = None
     data_fim: Optional[date] = None
+    ferias_acordo: Optional[bool] = None
+    status: Optional[str] = None          # apenas admin: "aprovada" | "rejeitada"
+    motivo_rejeicao: Optional[str] = None  # apenas admin
 
     @model_validator(mode="after")
     def validar_datas(self):
@@ -26,12 +30,19 @@ class FeriasUpdate(BaseModel):
         return self
 
 
+class FeriasAprovar(BaseModel):
+    motivo_rejeicao: Optional[str] = None  # preenchido quando rejeitar
+
+
 class FeriasOut(BaseModel):
     id: int
     user_id: int
     data_inicio: date
     data_fim: date
     dias_usados: int
+    status: str
+    ferias_acordo: bool
+    motivo_rejeicao: Optional[str]
     criado_em: datetime
 
     class Config:
