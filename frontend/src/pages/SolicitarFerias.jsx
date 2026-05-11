@@ -97,12 +97,12 @@ export default function SolicitarFerias() {
 
             <div className="form-group">
               <label className="checkbox-label">
-                <input
+                <input hidden
                   type="checkbox"
                   checked={feriasAcordo}
                   onChange={e => setFeriasAcordo(e.target.checked)}
                 />
-                <span>Férias por acordo (não desconta saldo)</span>
+                <span hidden>Férias por acordo (não desconta saldo)</span>
               </label>
             </div>
 
