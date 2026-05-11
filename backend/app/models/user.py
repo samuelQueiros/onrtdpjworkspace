@@ -15,6 +15,7 @@ class User(Base):
     dias_totais = Column(Integer, default=30)
     departamento_id = Column(Integer, ForeignKey("departamentos.id"), nullable=True)
     data_admissao = Column(Date, nullable=True)
+    data_aniversario = Column(Date, nullable=True)
     criado_em = Column(DateTime, default=datetime.utcnow)
 
     ferias = relationship("Ferias", back_populates="usuario", cascade="all, delete-orphan")

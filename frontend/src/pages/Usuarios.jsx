@@ -3,7 +3,7 @@ import { api } from '../api'
 import { LoadingCard, PageHeader, StatusBadge, formatDate } from './_helpers'
 import { useAuth } from '../context/AuthContext'
 
-const blank = { nome: '', email: '', senha: '', role: 'user', dias_totais: 30, departamento_id: '', data_admissao: '' }
+const blank = { nome: '', email: '', senha: '', role: 'user', dias_totais: 30, departamento_id: '', data_admissao: '', data_aniversario: '' }
 
 export default function Usuarios() {
   const { user: currentUser } = useAuth()
@@ -33,6 +33,7 @@ export default function Usuarios() {
         dias_totais: Number(form.dias_totais),
         departamento_id: form.departamento_id ? Number(form.departamento_id) : null,
         data_admissao: form.data_admissao || null,
+        data_aniversario: form.data_aniversario || null,
       }
       if (editing) {
         if (form.senha) payload.senha = form.senha
@@ -62,6 +63,7 @@ export default function Usuarios() {
       dias_totais: user.dias_totais,
       departamento_id: user.departamento_id || '',
       data_admissao: user.data_admissao || '',
+      data_aniversario: user.data_aniversario || '',
     })
     setError('')
     setSuccess('')
@@ -96,6 +98,7 @@ export default function Usuarios() {
                   <th>E-mail</th>
                   <th>Perfil</th>
                   <th>Departamento</th>
+                  <th>Aniversário</th>
                   <th>Saldo</th>
                   <th>Total</th>
                   <th></th>
@@ -112,6 +115,7 @@ export default function Usuarios() {
                       </StatusBadge>
                     </td>
                     <td>{user.departamento?.nome || <span className="muted">—</span>}</td>
+                    <td>{user.data_aniversario ? formatDate(user.data_aniversario) : <span className="muted">—</span>}</td>
                     <td>{user.dias_restantes}</td>
                     <td>{user.dias_totais}</td>
                     <td className="actions-cell">
@@ -142,6 +146,7 @@ export default function Usuarios() {
             <div className="form-group">
               <label>Nome</label>
               <input
+                type="text"
                 value={form.nome}
                 onChange={e => setForm({ ...form, nome: e.target.value })}
                 required
@@ -205,6 +210,14 @@ export default function Usuarios() {
                   onChange={e => setForm({ ...form, data_admissao: e.target.value })}
                 />
               </div>
+              <div className="form-group">
+                <label>Data de aniversário</label>
+                <input
+                  type="date"
+                  value={form.data_aniversario}
+                  onChange={e => setForm({ ...form, data_aniversario: e.target.value })}
+                />
+              </div>
             </div>
 
             <div className="button-row">
@@ -227,3 +240,4 @@ export default function Usuarios() {
     </>
   )
 }
+

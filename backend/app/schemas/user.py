@@ -11,6 +11,7 @@ class UserCreate(BaseModel):
     dias_totais: Optional[int] = 30
     departamento_id: Optional[int] = None
     data_admissao: Optional[date] = None
+    data_aniversario: Optional[date] = None
 
 
 class UserUpdate(BaseModel):
@@ -19,6 +20,7 @@ class UserUpdate(BaseModel):
     dias_totais: Optional[int] = None
     departamento_id: Optional[int] = None
     data_admissao: Optional[date] = None
+    data_aniversario: Optional[date] = None
     senha: Optional[str] = None
 
 

@@ -52,6 +52,7 @@ def _run_migrations():
             ("ferias", "motivo_rejeicao", "TEXT"),
             ("users", "departamento_id", "INTEGER"),
             ("users", "data_admissao", "DATE"),
+            ("users", "data_aniversario", "DATE"),
         ]
 
         for tabela, coluna, definicao in alteracoes:

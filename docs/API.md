@@ -3,13 +3,13 @@
 Base URL local:
 
 ```text
-http://127.0.0.1:8000
+http://chat-server:8000
 ```
 
 Documentacao interativa:
 
 ```text
-http://127.0.0.1:8000/docs
+http://chat-server:8000/docs
 ```
 
 ## Autenticacao
@@ -58,7 +58,7 @@ Exemplo:
 
 ```powershell
 Invoke-RestMethod -Method Post `
-  -Uri http://127.0.0.1:8000/auth/login `
+  -Uri http://chat-server:8000/auth/login `
   -Body @{username='admin@sistema.com';password='admin123'}
 ```
 

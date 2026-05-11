@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from datetime import date
 
 from app.database import get_db
 from app.models.user import User
@@ -33,6 +34,7 @@ def _fmt_user(user: User, db: Session) -> dict:
         "departamento_id": user.departamento_id,
         "departamento": dep,
         "data_admissao": user.data_admissao,
+        "data_aniversario": user.data_aniversario,
         "criado_em": user.criado_em,
     }
 
@@ -64,6 +66,7 @@ def criar_usuario(
         dias_totais=payload.dias_totais,
         departamento_id=payload.departamento_id,
         data_admissao=payload.data_admissao,
+        data_aniversario=payload.data_aniversario,
     )
     db.add(novo_user)
     db.flush()
@@ -108,6 +111,8 @@ def editar_usuario(
             user.departamento_id = payload.departamento_id
     if payload.data_admissao is not None:
         user.data_admissao = payload.data_admissao
+    if payload.data_aniversario is not None:
+        user.data_aniversario = payload.data_aniversario
     if payload.senha is not None and payload.senha.strip():
         user.senha_hash = hash_senha(payload.senha)
 
@@ -121,6 +126,29 @@ def editar_usuario(
     db.refresh(user)
 
     return _fmt_user(user, db)
+
+
+@router.get("/users/aniversariantes")
+def listar_aniversariantes(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    hoje = date.today()
+    aniversariantes = (
+        db.query(User)
+        .filter(User.data_aniversario.isnot(None))
+        .order_by(User.data_aniversario)
+        .all()
+    )
+    resultados = [
+        {
+            "nome": u.nome,
+            "data_aniversario": u.data_aniversario,
+        }
+        for u in aniversariantes
+        if u.data_aniversario and u.data_aniversario.month == hoje.month
+    ]
+    return resultados
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_200_OK)

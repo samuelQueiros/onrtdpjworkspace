@@ -1001,3 +1001,9 @@ textarea { resize: vertical; min-height: 80px; }
 /* ── Alert com link ──────────────────────── */
 .alert a { color: inherit; font-weight: 600; text-decoration: underline; }
 .alert a:hover { opacity: .8; }
+
+.birthday-list {
+  list-style: none;
+  padding-left: 0;
+  margin-left: 0;
+}

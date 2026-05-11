@@ -34,6 +34,7 @@ export default function Mural() {
   const isAdmin = user?.role === 'admin'
 
   const [avisos, setAvisos] = useState([])
+  const [aniversariantes, setAniversariantes] = useState([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState(blank)
   const [editing, setEditing] = useState(null)
@@ -43,7 +44,12 @@ export default function Mural() {
 
   const load = () => {
     const fn = isAdmin ? api.listarTodosAvisos : api.listarAvisos
-    return fn().then(setAvisos).finally(() => setLoading(false))
+    return Promise.all([fn(), api.listarAniversariantes().catch(() => [])])
+      .then(([avisos, aniversariantes]) => {
+        setAvisos(avisos)
+        setAniversariantes(aniversariantes)
+      })
+      .finally(() => setLoading(false))
   }
 
   useEffect(() => { load() }, [])
@@ -123,6 +129,24 @@ export default function Mural() {
         <div className={`alert spaced ${error ? 'alert-error' : 'alert-success'}`}>
           {error || success}
         </div>
+      )}
+
+      {aniversariantes.length > 0 && (
+        <section className="card spaced">
+          <div className="card-header">
+            <h2 className="card-title">Aniversariantes do mês</h2>
+          </div>
+          <div className="card-body">
+            {/* <p>Parabéns aos colaboradores que aniversariam neste mês:</p> */}
+            <ul className="birthday-list">
+              {aniversariantes.map((item, index) => (
+                <li key={index}>
+                  <strong>{item.nome}</strong> — {formatDate(item.data_aniversario)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
       )}
 
       {isAdmin && showForm && (

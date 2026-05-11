@@ -278,13 +278,13 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 API:
 
 ```text
-http://127.0.0.1:8000
+http://chat-server:8000
 ```
 
 Documentacao interativa do FastAPI:
 
 ```text
-http://127.0.0.1:8000/docs
+http://chat-server:8000/docs
 ```
 
 ### Executar frontend
@@ -598,7 +598,7 @@ allow_origins=["https://seu-front-end.com"]
 Confirme se o backend esta rodando:
 
 ```text
-http://127.0.0.1:8000
+http://chat-server:8000
 ```
 
 Confirme `VITE_API_URL` ou o valor padrao em:
