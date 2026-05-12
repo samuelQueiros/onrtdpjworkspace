@@ -102,7 +102,7 @@ export default function Documentos() {
 
   const baixar = async id => {
     try {
-      const BASE = import.meta.env.VITE_API_URL || 'http://chat-server:8000'
+      const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
       const token = localStorage.getItem('token')
       const res = await fetch(`${BASE}/documentos/${id}/download`, {
         headers: { Authorization: `Bearer ${token}` },

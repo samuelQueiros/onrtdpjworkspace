@@ -5,6 +5,31 @@ import { useAuth } from '../context/AuthContext'
 
 const blank = { titulo: '', conteudo: '', fixado: false, data_expiracao: '' }
 
+const AVATAR_COLORS = [
+  '#4f86c6', '#e07b54', '#5aab7f', '#a06bbf',
+  '#c4a93e', '#d9534f', '#5bc0de', '#3d8b6e',
+]
+
+function getInitials(nome) {
+  const parts = nome.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0][0].toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
+function avatarColor(nome) {
+  let hash = 0
+  for (const c of nome) hash = (hash * 31 + c.charCodeAt(0)) & 0xffff
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length]
+}
+
+function BirthdayAvatar({ nome }) {
+  return (
+    <div className="birthday-avatar" style={{ background: avatarColor(nome) }}>
+      {getInitials(nome)}
+    </div>
+  )
+}
+
 function AvisoItem({ aviso, isAdmin, onEdit, onDelete }) {
   return (
     <div className={`aviso-card${aviso.fixado ? ' aviso-fixado' : ''}`}>
@@ -137,14 +162,15 @@ export default function Mural() {
             <h2 className="card-title">Aniversariantes do mês</h2>
           </div>
           <div className="card-body">
-            {/* <p>Parabéns aos colaboradores que aniversariam neste mês:</p> */}
-            <ul className="birthday-list">
+            <div className="birthday-grid">
               {aniversariantes.map((item, index) => (
-                <li key={index}>
-                  <strong>{item.nome}</strong> — {formatDate(item.data_aniversario)}
-                </li>
+                <div key={index} className="birthday-card">
+                  <BirthdayAvatar nome={item.nome} />
+                  <strong className="birthday-nome">{item.nome}</strong>
+                  <span className="birthday-data">🎂 {formatDate(item.data_aniversario)}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </section>
       )}
@@ -159,6 +185,7 @@ export default function Mural() {
               <div className="form-group">
                 <label>Título</label>
                 <input
+                  type="text"
                   value={form.titulo}
                   onChange={e => setForm({ ...form, titulo: e.target.value })}
                   placeholder="Título do aviso"

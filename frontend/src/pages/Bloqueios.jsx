@@ -192,7 +192,7 @@ export default function Bloqueios() {
 
             {form.tipo === 'bloqueio' && (
               <div className="alert alert-info">
-                Colaboradores <strong>não poderão</strong> solicitar férias neste período. Uma mensagem amigável será exibida ao tentar.
+                <p>Colaboradores <strong>não poderão</strong> solicitar férias neste período. Uma mensagem amigável será exibida ao tentar.</p>
               </div>
             )}
             {form.tipo === 'recesso' && (

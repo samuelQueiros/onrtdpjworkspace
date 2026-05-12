@@ -44,12 +44,20 @@ function LinkItem({ to, end, icon, children, badge }) {
   )
 }
 
+function isBirthdayToday(dataAniversario) {
+  if (!dataAniversario) return false
+  const today = new Date()
+  const [, month, day] = dataAniversario.split('-').map(Number)
+  return today.getMonth() + 1 === month && today.getDate() === day
+}
+
 export default function Layout({ children }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [dropOpen, setDropOpen] = useState(false)
   const [pendentes, setPendentes] = useState(0)
+  const [showBirthday, setShowBirthday] = useState(false)
   const dropRef = useRef(null)
 
   useEffect(() => {
@@ -67,6 +75,15 @@ export default function Layout({ children }) {
       })
     }
   }, [user, location.pathname])
+
+  useEffect(() => {
+    if (!user) return
+    const key = `birthday-shown-${user.id}-${new Date().toDateString()}`
+    if (isBirthdayToday(user.data_aniversario) && !sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, '1')
+      setShowBirthday(true)
+    }
+  }, [user])
 
   const handleLogout = () => {
     logout()
@@ -146,6 +163,22 @@ export default function Layout({ children }) {
 
         <main className="content">{children}</main>
       </div>
+
+      {showBirthday && (
+        <div className="bday-overlay" onClick={() => setShowBirthday(false)}>
+          <div className="bday-card" onClick={e => e.stopPropagation()}>
+            <div className="bday-emoji">🎂</div>
+            <h2 className="bday-title">Feliz Aniversário!</h2>
+            <p className="bday-msg">
+              Parabéns, <strong>{user.nome.split(' ')[0]}</strong>!<br />
+              A equipe do ONRTDPJ deseja a você um dia incrível e cheio de alegrias!
+            </p>
+            <button className="btn btn-primary bday-btn" onClick={() => setShowBirthday(false)}>
+              Obrigado! 🎉
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

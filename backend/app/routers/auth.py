@@ -31,6 +31,7 @@ def _fmt_user(user: User, db: Session) -> dict:
         "dias_restantes": calcular_dias_restantes(user, db),
         "departamento": dep,
         "data_admissao": str(user.data_admissao) if user.data_admissao else None,
+        "data_aniversario": str(user.data_aniversario) if user.data_aniversario else None,
     }
 
 
