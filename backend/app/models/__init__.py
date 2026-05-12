@@ -4,3 +4,5 @@ from .ferias import Ferias
 from .log import Log
 from .aviso import Aviso
 from .documento import Documento
+from .bloqueio import BloqueioData
+from .alerta import Alerta

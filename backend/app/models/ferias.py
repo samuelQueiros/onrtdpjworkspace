@@ -18,4 +18,12 @@ class Ferias(Base):
     motivo_rejeicao = Column(String, nullable=True)
     criado_em = Column(DateTime, default=datetime.utcnow)
 
-    usuario = relationship("User", back_populates="ferias")
+    # Histórico de aprovação/rejeição
+    aprovado_por_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    aprovado_em = Column(DateTime, nullable=True)
+    rejeitado_por_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    rejeitado_em = Column(DateTime, nullable=True)
+
+    usuario = relationship("User", back_populates="ferias", foreign_keys=[user_id])
+    aprovado_por = relationship("User", foreign_keys=[aprovado_por_id])
+    rejeitado_por = relationship("User", foreign_keys=[rejeitado_por_id])

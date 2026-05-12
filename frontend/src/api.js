@@ -89,9 +89,21 @@ export const api = {
 
   // Relatórios e Logs
   relatorios: () => req('GET', '/relatorios'),
+  dashboard: () => req('GET', '/dashboard'),
   logs: () => req('GET', '/logs'),
 
   // Importação Excel
   importarFerias: formData => upload('/importacao/ferias', formData),
   importarLogs: formData => upload('/importacao/logs', formData),
+
+  // Bloqueios de datas
+  listarBloqueios: () => req('GET', '/bloqueios'),
+  criarBloqueio: body => req('POST', '/bloqueios', body),
+  editarBloqueio: (id, body) => req('PUT', `/bloqueios/${id}`, body),
+  excluirBloqueio: id => req('DELETE', `/bloqueios/${id}`),
+
+  // Alertas
+  listarAlertas: () => req('GET', '/alertas'),
+  marcarAlertaLido: id => req('PUT', `/alertas/${id}/lido`),
+  marcarTodosAlertasLidos: () => req('PUT', '/alertas/marcar-todos-lidos'),
 }

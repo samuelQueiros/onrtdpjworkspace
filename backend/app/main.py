@@ -5,16 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from app.database import engine, SessionLocal
-from app.models import User, Ferias, Log, Departamento, Aviso, Documento
+from app.models import User, Ferias, Log, Departamento, Aviso, Documento, BloqueioData, Alerta
 from app.database import Base
 from app.routers import auth, users, ferias, relatorios
-from app.routers import departamentos, avisos, documentos, importacao
+from app.routers import departamentos, avisos, documentos, importacao, bloqueios, alertas
 from app.core.security import hash_senha
 
 load_dotenv()
 
 app = FastAPI(
-    title="Sistema de Gestão de Férias",
+    title="Gestão RH",
     description="API para gerenciamento de férias e RH de colaboradores",
     version="2.0.0",
 )
@@ -36,6 +36,8 @@ app.include_router(departamentos.router)
 app.include_router(avisos.router)
 app.include_router(documentos.router)
 app.include_router(importacao.router)
+app.include_router(bloqueios.router)
+app.include_router(alertas.router)
 
 
 def _run_migrations():
@@ -50,9 +52,14 @@ def _run_migrations():
             ("ferias", "status", "TEXT DEFAULT 'aprovada'"),
             ("ferias", "ferias_acordo", "INTEGER DEFAULT 0"),
             ("ferias", "motivo_rejeicao", "TEXT"),
+            ("ferias", "aprovado_por_id", "INTEGER"),
+            ("ferias", "aprovado_em", "DATETIME"),
+            ("ferias", "rejeitado_por_id", "INTEGER"),
+            ("ferias", "rejeitado_em", "DATETIME"),
             ("users", "departamento_id", "INTEGER"),
             ("users", "data_admissao", "DATE"),
             ("users", "data_aniversario", "DATE"),
+            ("users", "cor", "TEXT"),
         ]
 
         for tabela, coluna, definicao in alteracoes:
@@ -100,4 +107,4 @@ def startup():
 
 @app.get("/", tags=["Health"])
 def root():
-    return {"status": "ok", "message": "API de Gestão de Férias e RH — v2.0"}
+    return {"status": "ok", "message": "API de Gestão RH — v2.0"}

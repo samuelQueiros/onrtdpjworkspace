@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from typing import List
 
 from app.database import get_db
@@ -8,6 +8,7 @@ from app.models.user import User
 from app.models.ferias import Ferias
 from app.models.log import Log
 from app.models.departamento import Departamento
+from app.models.bloqueio import BloqueioData
 from app.schemas.ferias import FeriasCreate, FeriasUpdate, FeriasAprovar
 from app.core.security import get_current_user, require_admin
 
@@ -126,6 +127,7 @@ def _fmt_ferias(f: Ferias) -> dict:
         "id": f.id,
         "user_id": f.user_id,
         "nome_usuario": f.usuario.nome if f.usuario else None,
+        "cor_usuario": f.usuario.cor if f.usuario else None,
         "data_inicio": f.data_inicio,
         "data_fim": f.data_fim,
         "dias_usados": f.dias_usados,
@@ -133,7 +135,28 @@ def _fmt_ferias(f: Ferias) -> dict:
         "ferias_acordo": f.ferias_acordo,
         "motivo_rejeicao": f.motivo_rejeicao,
         "criado_em": f.criado_em,
+        "aprovado_por_id": f.aprovado_por_id,
+        "aprovado_por_nome": f.aprovado_por.nome if f.aprovado_por else None,
+        "aprovado_em": f.aprovado_em,
+        "rejeitado_por_id": f.rejeitado_por_id,
+        "rejeitado_por_nome": f.rejeitado_por.nome if f.rejeitado_por else None,
+        "rejeitado_em": f.rejeitado_em,
     }
+
+
+def verificar_bloqueio_datas(db: Session, data_inicio: date, data_fim: date) -> None:
+    """Levanta HTTPException se o período sobrepõe algum bloqueio/recesso."""
+    bloqueio = db.query(BloqueioData).filter(
+        BloqueioData.data_inicio <= data_fim,
+        BloqueioData.data_fim >= data_inicio,
+    ).first()
+    if bloqueio:
+        tipo_label = "recesso" if bloqueio.tipo == "recesso" else "bloqueio"
+        raise HTTPException(
+            status_code=400,
+            detail=f"O período solicitado está dentro de um {tipo_label}: '{bloqueio.motivo}' "
+                   f"({bloqueio.data_inicio} a {bloqueio.data_fim}).",
+        )
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
@@ -184,6 +207,7 @@ def disponibilidade(db: Session = Depends(get_db), current_user: User = Depends(
             "id": f.id,
             "user_id": f.user_id,
             "nome": users_by_id.get(f.user_id).nome if users_by_id.get(f.user_id) else "Colaborador",
+            "cor": users_by_id.get(f.user_id).cor if users_by_id.get(f.user_id) else None,
             "data_inicio": f.data_inicio,
             "data_fim": f.data_fim,
             "dias_usados": f.dias_usados,
@@ -192,8 +216,21 @@ def disponibilidade(db: Session = Depends(get_db), current_user: User = Depends(
         for f in todas_ferias
     ]
 
+    # Bloqueios manuais (bloqueio e recesso)
+    bloqueios_manuais = db.query(BloqueioData).order_by(BloqueioData.data_inicio).all()
+    bloqueios_fmt = [
+        {
+            "id": b.id,
+            "data_inicio": b.data_inicio,
+            "data_fim": b.data_fim,
+            "motivo": b.motivo,
+            "tipo": b.tipo,
+        }
+        for b in bloqueios_manuais
+    ]
+
     if not todas_ferias:
-        return {"periodos_bloqueados": [], "ferias_marcadas": []}
+        return {"periodos_bloqueados": [], "ferias_marcadas": [], "bloqueios_manuais": bloqueios_fmt}
 
     # Determinar limite relevante para o usuário atual
     limite = get_limite_departamento(current_user, db)
@@ -234,7 +271,7 @@ def disponibilidade(db: Session = Depends(get_db), current_user: User = Depends(
                 anterior = dia
         periodos.append({"data_inicio": inicio, "data_fim": anterior})
 
-    return {"periodos_bloqueados": periodos, "ferias_marcadas": ferias_marcadas}
+    return {"periodos_bloqueados": periodos, "ferias_marcadas": ferias_marcadas, "bloqueios_manuais": bloqueios_fmt}
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -244,6 +281,9 @@ def registrar_ferias(
     current_user: User = Depends(get_current_user),
 ):
     dias_solicitados = calcular_dias(payload.data_inicio, payload.data_fim)
+
+    # Verificar bloqueio de datas para qualquer tipo de férias
+    verificar_bloqueio_datas(db, payload.data_inicio, payload.data_fim)
 
     # Férias por acordo: não passa pelas regras de saldo/limite, vai direto como pendente
     if not payload.ferias_acordo:
@@ -312,6 +352,10 @@ def aprovar_ferias(
 
     ferias.status = "aprovada"
     ferias.motivo_rejeicao = None
+    ferias.aprovado_por_id = current_user.id
+    ferias.aprovado_em = datetime.utcnow()
+    ferias.rejeitado_por_id = None
+    ferias.rejeitado_em = None
 
     log = Log(
         user_id=current_user.id,
@@ -342,6 +386,10 @@ def rejeitar_ferias(
 
     ferias.status = "rejeitada"
     ferias.motivo_rejeicao = payload.motivo_rejeicao
+    ferias.rejeitado_por_id = current_user.id
+    ferias.rejeitado_em = datetime.utcnow()
+    ferias.aprovado_por_id = None
+    ferias.aprovado_em = None
 
     log = Log(
         user_id=current_user.id,

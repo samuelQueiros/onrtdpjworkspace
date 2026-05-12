@@ -12,6 +12,7 @@ class UserCreate(BaseModel):
     departamento_id: Optional[int] = None
     data_admissao: Optional[date] = None
     data_aniversario: Optional[date] = None
+    cor: Optional[str] = None
 
 
 class UserUpdate(BaseModel):
@@ -22,6 +23,7 @@ class UserUpdate(BaseModel):
     data_admissao: Optional[date] = None
     data_aniversario: Optional[date] = None
     senha: Optional[str] = None
+    cor: Optional[str] = None
 
 
 class UserConfigUpdate(BaseModel):

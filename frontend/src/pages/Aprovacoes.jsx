@@ -1,6 +1,31 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { EmptyState, LoadingCard, PageHeader, StatusBadge, formatDate } from './_helpers'
+import { EmptyState, LoadingCard, PageHeader, StatusBadge, formatDate, formatDateTime } from './_helpers'
+
+const STATUS_LABELS = {
+  pendente: { label: 'Pendente', tone: 'amber' },
+  aprovada: { label: 'Aprovada', tone: 'green' },
+  rejeitada: { label: 'Rejeitada', tone: 'red' },
+}
+
+function UserDot({ cor, nome }) {
+  const bg = cor || '#64748b'
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        width: 10,
+        height: 10,
+        borderRadius: '50%',
+        background: bg,
+        marginRight: 6,
+        flexShrink: 0,
+        verticalAlign: 'middle',
+      }}
+      title={nome}
+    />
+  )
+}
 
 function RejeitarModal({ ferias, onClose, onRejeitado }) {
   const [motivo, setMotivo] = useState('')
@@ -58,13 +83,17 @@ function RejeitarModal({ ferias, onClose, onRejeitado }) {
 }
 
 export default function Aprovacoes() {
-  const [pendentes, setPendentes] = useState([])
+  const [todas, setTodas] = useState([])
   const [loading, setLoading] = useState(true)
   const [rejeitando, setRejeitando] = useState(null)
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
+  const [filtro, setFiltro] = useState('pendente')
 
-  const load = () => api.feriasPendentes().then(setPendentes).finally(() => setLoading(false))
+  const load = () =>
+    api.todasFerias()
+      .then(setTodas)
+      .finally(() => setLoading(false))
 
   useEffect(() => { load() }, [])
 
@@ -80,25 +109,61 @@ export default function Aprovacoes() {
     }
   }
 
+  const filtradas = todas.filter(f =>
+    filtro === 'todas' ? true : f.status === filtro
+  )
+
+  const counts = {
+    pendente: todas.filter(f => f.status === 'pendente').length,
+    aprovada: todas.filter(f => f.status === 'aprovada').length,
+    rejeitada: todas.filter(f => f.status === 'rejeitada').length,
+    todas: todas.length,
+  }
+
   if (loading) return <LoadingCard />
 
   return (
     <>
       <PageHeader
         title="Aprovação de Férias"
-        subtitle="Revise e aprove ou rejeite as solicitações pendentes."
+        subtitle="Gerencie todas as solicitações de férias — pendentes, aprovadas e rejeitadas."
       />
 
       {msg && <div className="alert alert-success spaced">{msg}</div>}
       {error && <div className="alert alert-error spaced">{error}</div>}
 
+      {/* Filtros */}
+      <div className="filter-tabs spaced">
+        {[
+          { key: 'pendente', label: 'Pendentes', count: counts.pendente },
+          { key: 'aprovada', label: 'Aprovadas', count: counts.aprovada },
+          { key: 'rejeitada', label: 'Rejeitadas', count: counts.rejeitada },
+          { key: 'todas', label: 'Todas', count: counts.todas },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            className={`filter-tab${filtro === tab.key ? ' active' : ''}`}
+            onClick={() => setFiltro(tab.key)}
+          >
+            {tab.label}
+            <span className="filter-tab-count">{tab.count}</span>
+          </button>
+        ))}
+      </div>
+
       <section className="card">
         <div className="card-header">
-          <h2 className="card-title">Solicitações pendentes</h2>
-          <StatusBadge tone={pendentes.length > 0 ? 'amber' : 'gray'}>{pendentes.length} pendente(s)</StatusBadge>
+          <h2 className="card-title">
+            {filtro === 'todas' ? 'Todas as solicitações' :
+             filtro === 'pendente' ? 'Solicitações pendentes' :
+             filtro === 'aprovada' ? 'Férias aprovadas' : 'Férias rejeitadas'}
+          </h2>
+          <StatusBadge tone={filtro === 'pendente' && filtradas.length > 0 ? 'amber' : 'gray'}>
+            {filtradas.length} registro(s)
+          </StatusBadge>
         </div>
         <div className="table-wrap">
-          {pendentes.length ? (
+          {filtradas.length ? (
             <table>
               <thead>
                 <tr>
@@ -107,14 +172,21 @@ export default function Aprovacoes() {
                   <th>Fim</th>
                   <th>Dias</th>
                   <th>Tipo</th>
+                  <th>Status</th>
                   <th>Solicitado em</th>
+                  <th>Histórico</th>
                   <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {pendentes.map(item => (
+                {filtradas.map(item => (
                   <tr key={item.id}>
-                    <td><strong>{item.nome_usuario}</strong></td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <UserDot cor={item.cor_usuario} nome={item.nome_usuario} />
+                        <strong>{item.nome_usuario}</strong>
+                      </div>
+                    </td>
                     <td>{formatDate(item.data_inicio)}</td>
                     <td>{formatDate(item.data_fim)}</td>
                     <td>{item.dias_usados}</td>
@@ -123,14 +195,47 @@ export default function Aprovacoes() {
                         ? <StatusBadge tone="blue">Por acordo</StatusBadge>
                         : <StatusBadge tone="gray">Normal</StatusBadge>}
                     </td>
+                    <td>
+                      <StatusBadge tone={STATUS_LABELS[item.status]?.tone || 'gray'}>
+                        {STATUS_LABELS[item.status]?.label || item.status}
+                      </StatusBadge>
+                    </td>
                     <td>{formatDate(item.criado_em)}</td>
+                    <td>
+                      {item.status === 'aprovada' && item.aprovado_por_nome && (
+                        <span className="historico-info green">
+                          ✓ {item.aprovado_por_nome}
+                          <br />
+                          <small>{formatDateTime(item.aprovado_em)}</small>
+                        </span>
+                      )}
+                      {item.status === 'rejeitada' && item.rejeitado_por_nome && (
+                        <span className="historico-info red">
+                          ✗ {item.rejeitado_por_nome}
+                          <br />
+                          <small>{formatDateTime(item.rejeitado_em)}</small>
+                          {item.motivo_rejeicao && (
+                            <><br /><em>"{item.motivo_rejeicao}"</em></>
+                          )}
+                        </span>
+                      )}
+                      {item.status === 'pendente' && (
+                        <span className="muted">Aguardando</span>
+                      )}
+                    </td>
                     <td className="actions-cell">
-                      <button className="btn btn-primary btn-sm" onClick={() => aprovar(item.id)}>
-                        Aprovar
-                      </button>
-                      <button className="btn btn-danger btn-sm" onClick={() => setRejeitando(item)}>
-                        Rejeitar
-                      </button>
+                      {item.status === 'pendente' ? (
+                        <>
+                          <button className="btn btn-primary btn-sm" onClick={() => aprovar(item.id)}>
+                            Aprovar
+                          </button>
+                          <button className="btn btn-danger btn-sm" onClick={() => setRejeitando(item)}>
+                            Rejeitar
+                          </button>
+                        </>
+                      ) : (
+                        <span className="muted" style={{ fontSize: 12 }}>—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -138,8 +243,17 @@ export default function Aprovacoes() {
             </table>
           ) : (
             <EmptyState
-              title="Nenhuma solicitação pendente"
-              text="Quando colaboradores enviarem férias, elas aparecerão aqui para aprovação."
+              title={
+                filtro === 'pendente' ? 'Nenhuma solicitação pendente' :
+                filtro === 'aprovada' ? 'Nenhuma féria aprovada' :
+                filtro === 'rejeitada' ? 'Nenhuma féria rejeitada' :
+                'Nenhum registro encontrado'
+              }
+              text={
+                filtro === 'pendente'
+                  ? 'Quando colaboradores enviarem solicitações, elas aparecerão aqui.'
+                  : 'Utilize os filtros para visualizar outros status.'
+              }
             />
           )}
         </div>

@@ -15,18 +15,23 @@ export default function SolicitarFerias() {
   const [dataFim, setDataFim] = useState('')
   const [feriasAcordo, setFeriasAcordo] = useState(false)
   const [periodos, setPeriodos] = useState([])
+  const [bloqueiosManuais, setBloqueiosManuais] = useState([])
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     api.disponibilidade()
-      .then(data => setPeriodos(data.periodos_bloqueados || []))
-      .catch(() => setPeriodos([]))
+      .then(data => {
+        setPeriodos(data.periodos_bloqueados || [])
+        setBloqueiosManuais(data.bloqueios_manuais || [])
+      })
+      .catch(() => { setPeriodos([]); setBloqueiosManuais([]) })
   }, [])
 
   const dias = calcDays(dataInicio, dataFim)
   const bloqueado = !feriasAcordo && dataInicio && dataFim && periodos.some(p => overlaps(dataInicio, dataFim, p))
+  const bloqueioManual = dataInicio && dataFim && bloqueiosManuais.find(b => overlaps(dataInicio, dataFim, b))
   const saldoInsuficiente = !feriasAcordo && dias > (user?.dias_restantes || 0)
 
   const submit = async event => {
@@ -34,6 +39,10 @@ export default function SolicitarFerias() {
     setError('')
     setSuccess('')
     if (!dias) return setError('Informe um período válido.')
+    if (bloqueioManual) {
+      const tipo = bloqueioManual.tipo === 'recesso' ? 'recesso' : 'bloqueio'
+      return setError(`O período selecionado está dentro de um ${tipo}: "${bloqueioManual.motivo}" (${formatDate(bloqueioManual.data_inicio)} a ${formatDate(bloqueioManual.data_fim)}).`)
+    }
     if (bloqueado) return setError('O período cruza datas bloqueadas pelo limite de colaboradores em férias.')
     if (saldoInsuficiente) return setError('Você não possui saldo suficiente para esse período.')
 
@@ -115,7 +124,12 @@ export default function SolicitarFerias() {
               </div>
             </div>
 
-            {bloqueado && (
+            {bloqueioManual && (
+              <div className="alert alert-error">
+                Período bloqueado: {bloqueioManual.tipo === 'recesso' ? 'recesso' : 'bloqueio'} — "{bloqueioManual.motivo}"
+              </div>
+            )}
+            {bloqueado && !bloqueioManual && (
               <div className="alert alert-warning">Há bloqueio de disponibilidade nesse intervalo.</div>
             )}
             {saldoInsuficiente && (
@@ -125,7 +139,7 @@ export default function SolicitarFerias() {
             <button
               className="btn btn-primary btn-lg"
               type="submit"
-              disabled={saving || (!feriasAcordo && (bloqueado || saldoInsuficiente)) || !dias}
+              disabled={saving || bloqueioManual || (!feriasAcordo && (bloqueado || saldoInsuficiente)) || !dias}
             >
               {saving && <span className="inline-spinner" />}
               Enviar solicitação
@@ -134,14 +148,38 @@ export default function SolicitarFerias() {
         </form>
 
         <aside className="card">
-          <div className="card-header"><h2 className="card-title">Períodos bloqueados</h2></div>
+          <div className="card-header"><h2 className="card-title">Períodos indisponíveis</h2></div>
           <div className="card-body blocked-list">
-            {periodos.length ? periodos.map((periodo, index) => (
-              <div className="blocked-item" key={index}>
-                <strong>{formatDate(periodo.data_inicio)} a {formatDate(periodo.data_fim)}</strong>
-                <span>Limite simultâneo atingido</span>
-              </div>
-            )) : <p className="muted">Nenhum período bloqueado no momento.</p>}
+            {bloqueiosManuais.length > 0 && (
+              <>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', color: 'var(--muted)', marginBottom: 4 }}>
+                  Bloqueios e Recessos
+                </div>
+                {bloqueiosManuais.map((b, i) => (
+                  <div className="blocked-item" key={`m-${i}`} style={{ borderLeftColor: b.tipo === 'recesso' ? 'var(--blue)' : 'var(--red)' }}>
+                    <strong>{b.motivo}</strong>
+                    <span>{formatDate(b.data_inicio)} a {formatDate(b.data_fim)} — {b.tipo === 'recesso' ? 'Recesso' : 'Bloqueio'}</span>
+                  </div>
+                ))}
+                {periodos.length > 0 && <div className="divider" />}
+              </>
+            )}
+            {periodos.length > 0 && (
+              <>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', color: 'var(--muted)', marginBottom: 4 }}>
+                  Limite de equipe atingido
+                </div>
+                {periodos.map((periodo, index) => (
+                  <div className="blocked-item" key={index}>
+                    <strong>{formatDate(periodo.data_inicio)} a {formatDate(periodo.data_fim)}</strong>
+                    <span>Limite simultâneo atingido</span>
+                  </div>
+                ))}
+              </>
+            )}
+            {bloqueiosManuais.length === 0 && periodos.length === 0 && (
+              <p className="muted">Nenhum período bloqueado no momento.</p>
+            )}
           </div>
         </aside>
       </div>

@@ -1,665 +1,545 @@
-# Sistema de Gestao de Ferias ONRTDPJ
+# Gestão RH — ONRTDPJ
 
-Sistema web para controle de ferias de colaboradores, com login, saldo de dias, solicitacao/cancelamento de periodos, calendario de disponibilidade, administracao de usuarios, relatorios e logs exportaveis para Excel.
+Sistema web completo para gestão de férias e RH de colaboradores. Inclui controle de saldo, solicitação/aprovação de períodos, calendário visual com cores por usuário, dashboard administrativo, bloqueio de datas, alertas de contabilidade e logs completos.
 
-## Sumario
+## Sumário
 
-- [Visao Geral](#visao-geral)
 - [Funcionalidades](#funcionalidades)
 - [Tecnologias](#tecnologias)
 - [Estrutura do Projeto](#estrutura-do-projeto)
-- [Regras de Negocio](#regras-de-negocio)
-- [Instalacao](#instalacao)
-- [Execucao](#execucao)
+- [Como Rodar Localmente](#como-rodar-localmente)
 - [Credenciais Iniciais](#credenciais-iniciais)
-- [Frontend](#frontend)
-- [Backend](#backend)
-- [Banco de Dados](#banco-de-dados)
-- [Seguranca](#seguranca)
-- [Exportacao de Logs](#exportacao-de-logs)
-- [Deploy](#deploy)
-- [Solucao de Problemas](#solucao-de-problemas)
-- [Documentos Complementares](#documentos-complementares)
+- [Rotas do Frontend](#rotas-do-frontend)
+- [Routers da API](#routers-da-api)
+- [Modelos do Banco](#modelos-do-banco)
+- [Regras de Negócio](#regras-de-negócio)
+- [Variáveis de Ambiente](#variáveis-de-ambiente)
+- [Deploy com Docker](#deploy-com-docker)
+- [Solução de Problemas](#solução-de-problemas)
 
-## Visao Geral
-
-O sistema foi criado para centralizar o fluxo de ferias de uma equipe:
-
-1. O colaborador acessa o sistema com email e senha.
-2. Consulta seu saldo de dias disponiveis.
-3. Solicita um periodo de ferias.
-4. O sistema valida saldo e disponibilidade.
-5. Todos os usuarios conseguem visualizar ferias marcadas no calendario.
-6. Administradores conseguem gerenciar usuarios, consultar relatorios e auditar logs.
+---
 
 ## Funcionalidades
 
 ### Colaborador
 
-- Login autenticado com token JWT.
-- Dashboard com saldo de ferias, dias usados e proximos periodos.
-- Consulta de ferias ja registradas.
-- Solicitacao de novo periodo.
-- Cancelamento de ferias proprias.
-- Visualizacao do calendario de disponibilidade.
-- Visualizacao das ferias marcadas por todos os colaboradores.
+- Login com JWT.
+- Dashboard pessoal: saldo de dias, dias usados, próximas férias.
+- Solicitação de férias (com validação de saldo e disponibilidade).
+- Férias por acordo (não descontam saldo).
+- Edição e cancelamento de férias próprias.
+- Calendário de disponibilidade com cores por usuário.
+- Visualização de bloqueios e recessos cadastrados pelo admin.
+- Mural de avisos.
+- Upload e download de documentos.
 
 ### Administrador
 
 - Todas as funcionalidades de colaborador.
-- Cadastro de novos usuarios.
-- Edicao de nome, email e dias totais dos usuarios.
-- Consulta de relatorio consolidado por colaborador.
-- Consulta de logs do sistema.
-- Exportacao dos logs em arquivo `.csv` compativel com Excel.
+- **Dashboard administrativo**: total de colaboradores, férias aprovadas/pendentes/rejeitadas, pessoas em férias hoje, próximas férias 30 dias, alertas de contabilidade.
+- **Aprovação de férias** com filtros (Pendente / Aprovada / Rejeitada / Todas) e histórico completo (quem aprovou/rejeitou e quando).
+- **Cor por usuário**: cada colaborador tem uma cor HEX para identificação visual no calendário e no dashboard.
+- **Bloqueio de datas**: impede solicitações em períodos críticos (auditorias, fechamentos).
+- **Recesso coletivo**: cadastro de período de recesso visível no calendário.
+- **Alertas de contabilidade**: notificação automática 4 dias antes do início de cada férias aprovada.
+- Cadastro/edição de usuários com cor, departamento, data de admissão e aniversário.
+- Gerenciamento de departamentos com limite simultâneo configurável.
+- Relatórios consolidados por colaborador.
+- Logs completos de auditoria com exportação CSV.
+- Mural de avisos (criar, fixar, expirar).
+
+---
 
 ## Tecnologias
 
-### Backend
+| Camada | Tecnologia |
+|--------|-----------|
+| Backend | Python 3.10+, FastAPI, SQLAlchemy, SQLite, Uvicorn |
+| Auth | JWT via `python-jose`, hash `bcrypt` |
+| Frontend | React 18, Vite, React Router 6 |
+| Estilo | CSS puro com variáveis de design (sem framework) |
+| Deploy | Docker + Docker Compose (opcional) |
 
-- Python
-- FastAPI
-- SQLAlchemy
-- SQLite
-- JWT com `python-jose`
-- Hash de senha com `bcrypt`
-- Uvicorn
-
-### Frontend
-
-- React 18
-- Vite
-- React Router
-- CSS puro com variaveis de design
-- Fetch API
+---
 
 ## Estrutura do Projeto
 
-```text
-FERIAS ONRTDPJ/
-  backend/
-    app/
-      core/
-        security.py
-      models/
-        user.py
-        ferias.py
-        log.py
-      routers/
-        auth.py
-        users.py
-        ferias.py
-        relatorios.py
-      schemas/
-        user.py
-        ferias.py
-        log.py
-      database.py
-      main.py
-    .env.example
-    ferias.db
-    requirements.txt
-
-  frontend/
-    src/
-      components/
-        Layout.jsx
-        PrivateRoute.jsx
-      context/
-        AuthContext.jsx
-      pages/
-        Dashboard.jsx
-        Disponibilidade.jsx
-        Login.jsx
-        Logs.jsx
-        MinhasFerias.jsx
-        Relatorios.jsx
-        SolicitarFerias.jsx
-        Usuarios.jsx
-        _helpers.jsx
-      api.js
-      index.css
-      main.jsx
-      App.jsx
-    index.html
-    package.json
-    vite.config.js
-
-  docs/
-    API.md
-    GUIA-USUARIO.md
+```
+feriasonr/
+├── backend/
+│   ├── app/
+│   │   ├── core/
+│   │   │   └── security.py          # JWT, hash, dependências de auth
+│   │   ├── models/
+│   │   │   ├── user.py              # Usuário (+ campo cor)
+│   │   │   ├── ferias.py            # Férias (+ histórico aprovação)
+│   │   │   ├── log.py               # Logs de auditoria
+│   │   │   ├── departamento.py      # Departamentos
+│   │   │   ├── aviso.py             # Mural de avisos
+│   │   │   ├── documento.py         # Documentos
+│   │   │   ├── bloqueio.py          # Bloqueios/recessos de datas
+│   │   │   └── alerta.py            # Alertas de contabilidade
+│   │   ├── routers/
+│   │   │   ├── auth.py              # Login e /auth/me
+│   │   │   ├── users.py             # CRUD de usuários
+│   │   │   ├── ferias.py            # Férias, aprovação, disponibilidade
+│   │   │   ├── relatorios.py        # Relatórios, /dashboard, /logs
+│   │   │   ├── departamentos.py     # CRUD de departamentos
+│   │   │   ├── avisos.py            # CRUD do mural
+│   │   │   ├── documentos.py        # Upload/download de documentos
+│   │   │   ├── bloqueios.py         # CRUD de bloqueios/recessos
+│   │   │   ├── alertas.py           # Alertas de contabilidade
+│   │   │   └── importacao.py        # Importação via Excel
+│   │   ├── schemas/                 # Schemas Pydantic
+│   │   ├── database.py              # Conexão SQLite
+│   │   └── main.py                  # App FastAPI, migrations, startup
+│   ├── .env.example
+│   └── requirements.txt
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Layout.jsx           # Sidebar, topbar, menu
+│   │   │   └── PrivateRoute.jsx     # Guarda de rotas
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx      # Estado global de autenticação
+│   │   ├── pages/
+│   │   │   ├── Dashboard.jsx        # Dashboard (usuário e admin)
+│   │   │   ├── Aprovacoes.jsx       # Aprovação com filtros e histórico
+│   │   │   ├── Disponibilidade.jsx  # Calendário com cores
+│   │   │   ├── Usuarios.jsx         # CRUD com color picker
+│   │   │   ├── Bloqueios.jsx        # Bloqueios e recessos
+│   │   │   ├── MinhasFerias.jsx
+│   │   │   ├── SolicitarFerias.jsx
+│   │   │   ├── Departamentos.jsx
+│   │   │   ├── Mural.jsx
+│   │   │   ├── Documentos.jsx
+│   │   │   ├── Relatorios.jsx
+│   │   │   ├── Logs.jsx
+│   │   │   ├── Login.jsx
+│   │   │   └── _helpers.jsx         # Componentes compartilhados
+│   │   ├── api.js                   # Todas as chamadas HTTP
+│   │   ├── index.css                # Design system global
+│   │   ├── App.jsx                  # Rotas
+│   │   └── main.jsx
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
+│
+├── docs/
+│   ├── API.md
+│   ├── GUIA-USUARIO.md
+│   └── DOCKER-SERVIDOR.md
+└── docker-compose.yml
 ```
 
-## Regras de Negocio
+---
 
-### Saldo de ferias
+## Como Rodar Localmente
 
-- Cada usuario possui um campo `dias_totais`.
-- Por padrao, novos usuarios recebem `30` dias.
-- O saldo restante e calculado assim:
+### Pré-requisitos
 
-```text
-dias_restantes = dias_totais - soma(dias_usados em ferias registradas)
+- **Python 3.10+**
+- **Node.js 18+** e **npm**
+- Terminal (bash, zsh, PowerShell ou cmd)
+
+---
+
+### 1. Clonar / entrar na pasta
+
+```bash
+cd feriasonr
 ```
 
-### Contagem de dias
+---
 
-A contagem e inclusiva:
+### 2. Backend
 
-```text
-dias_usados = data_fim - data_inicio + 1
+#### Criar e ativar ambiente virtual
+
+**Linux / macOS:**
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
 ```
 
-Exemplo:
-
-- Inicio: `05/05/2026`
-- Fim: `19/05/2026`
-- Total: `15` dias
-
-### Limite simultaneo
-
-O sistema usa a constante:
-
-```python
-LIMITE_SIMULTANEO = 2
-```
-
-Isso significa que no maximo 2 colaboradores podem estar em ferias ao mesmo tempo.
-
-Se o periodo solicitado tiver algum dia onde ja existem 2 colaboradores em ferias, a solicitacao e bloqueada.
-
-### Disponibilidade
-
-A rota de disponibilidade retorna:
-
-- `ferias_marcadas`: todos os periodos de ferias cadastrados.
-- `periodos_bloqueados`: periodos onde o limite simultaneo foi atingido.
-
-No frontend:
-
-- Azul: ha ferias marcadas naquele dia.
-- Vermelho: o limite simultaneo foi atingido naquele dia.
-
-### Permissoes
-
-Usuarios comuns:
-
-- Visualizam suas proprias ferias.
-- Criam suas proprias ferias.
-- Editam/cancelam apenas suas proprias ferias.
-- Visualizam disponibilidade global.
-
-Administradores:
-
-- Acessam usuarios, relatorios e logs.
-- Criam e editam usuarios.
-- Visualizam todos os relatorios.
-
-## Instalacao
-
-### Pre-requisitos
-
-- Python 3.10 ou superior
-- Node.js 18 ou superior
-- npm
-
-### Backend
-
-Entre na pasta do backend:
-
+**Windows (PowerShell):**
 ```powershell
 cd backend
-```
-
-Crie um ambiente virtual:
-
-```powershell
 python -m venv venv
-```
-
-Ative o ambiente virtual no PowerShell:
-
-```powershell
 .\venv\Scripts\Activate.ps1
 ```
 
-Instale as dependencias:
+**Windows (cmd):**
+```cmd
+cd backend
+python -m venv venv
+venv\Scripts\activate.bat
+```
 
-```powershell
+#### Instalar dependências
+
+```bash
 pip install -r requirements.txt
 ```
 
-Crie o arquivo `.env` a partir do exemplo:
+#### Criar arquivo `.env`
 
+**Linux / macOS:**
+```bash
+cp .env.example .env
+```
+
+**Windows:**
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Edite o `.env` e defina uma chave segura:
+Edite o `.env`:
 
 ```env
-SECRET_KEY=troque-por-uma-chave-grande-e-segura
+SECRET_KEY=troque-por-uma-chave-longa-e-aleatoria
 ACCESS_TOKEN_EXPIRE_MINUTES=480
-FRONTEND_URL=http://127.0.0.1:5173
+DATABASE_PATH=./ferias.db
 ```
 
-### Frontend
+#### Iniciar o servidor
 
-Entre na pasta do frontend:
-
-```powershell
-cd frontend
-```
-
-Instale as dependencias:
-
-```powershell
-npm install
-```
-
-Opcionalmente crie um arquivo `.env` no frontend para trocar a URL da API:
-
-```env
-VITE_API_URL=http://chat-server:8000
-```
-
-Se esse arquivo nao existir, o frontend usa `http://chat-server:8000`.
-
-## Execucao
-
-### Executar backend
-
-Na pasta `backend`:
-
-```powershell
+```bash
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-API:
+O backend estará em: **http://127.0.0.1:8000**
 
-```text
-http://chat-server:8000
+Documentação interativa (Swagger): **http://127.0.0.1:8000/docs**
+
+> Na primeira inicialização, o banco de dados é criado automaticamente e o administrador padrão é gerado.
+
+---
+
+### 3. Frontend
+
+Em outro terminal:
+
+```bash
+cd frontend
+npm install
 ```
 
-Documentacao interativa do FastAPI:
+Crie um arquivo `.env` na pasta `frontend`:
 
-```text
-http://chat-server:8000/docs
+```env
+VITE_API_URL=http://127.0.0.1:8000
 ```
 
-### Executar frontend
+> **Importante:** sem esse arquivo o frontend tenta conectar em `http://chat-server:8000` (endereço do servidor Docker). Para rodar local, o `.env` é obrigatório.
 
-Na pasta `frontend`:
+Inicie o servidor de desenvolvimento:
 
-```powershell
+```bash
 npm run dev
 ```
 
-Aplicacao:
+A aplicação estará em: **http://127.0.0.1:5173**
 
-```text
-http://127.0.0.1:5173
+---
+
+### 4. Resumo dos comandos (todos de uma vez)
+
+Abra **dois terminais** e rode em paralelo:
+
+**Terminal 1 — Backend:**
+```bash
+cd feriasonr/backend
+python3 -m venv venv && source venv/bin/activate   # Linux/macOS
+pip install -r requirements.txt
+cp .env.example .env
+# edite o .env conforme necessário
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-### Build de producao
-
-Na pasta `frontend`:
-
-```powershell
-npm run build
+**Terminal 2 — Frontend:**
+```bash
+cd feriasonr/frontend
+npm install
+echo "VITE_API_URL=http://127.0.0.1:8000" > .env
+npm run dev
 ```
 
-Os arquivos finais ficam em:
+Acesse: **http://127.0.0.1:5173**
 
-```text
-frontend/dist/
-```
+---
 
 ## Credenciais Iniciais
 
-No primeiro start do backend, se nao existir administrador, o sistema cria automaticamente:
+Geradas automaticamente no primeiro start:
 
-```text
-Email: admin@sistema.com
-Senha: admin123
-Perfil: admin
-```
+| Campo | Valor |
+|-------|-------|
+| E-mail | `admin@sistema.com` |
+| Senha | `admin123` |
+| Perfil | Administrador |
 
-Recomendacao: altere essa senha em ambiente real. Atualmente o sistema nao possui tela de troca de senha, entao a troca deve ser feita via ajuste de banco/script ou implementacao futura.
+> Altere a senha após o primeiro acesso via painel de configurações.
 
-## Frontend
+---
 
-### Rotas
+## Rotas do Frontend
 
-| Rota | Acesso | Descricao |
-|---|---|---|
-| `/login` | Publico | Tela de login |
-| `/` | Autenticado | Dashboard |
-| `/minhas-ferias` | Autenticado | Ferias do usuario atual |
-| `/solicitar` | Autenticado | Nova solicitacao de ferias |
-| `/disponibilidade` | Autenticado | Calendario global de ferias |
-| `/usuarios` | Admin | Cadastro e edicao de usuarios |
-| `/relatorios` | Admin | Relatorio consolidado |
-| `/logs` | Admin | Auditoria e exportacao |
+| Rota | Acesso | Descrição |
+|------|--------|-----------|
+| `/login` | Público | Tela de login |
+| `/` | Autenticado | Dashboard (resumo pessoal ou painel admin) |
+| `/minhas-ferias` | Autenticado | Histórico de férias do usuário |
+| `/solicitar` | Autenticado | Nova solicitação de férias |
+| `/disponibilidade` | Autenticado | Calendário com cores por usuário |
+| `/mural` | Autenticado | Mural de avisos |
+| `/documentos` | Autenticado | Upload e download de documentos |
+| `/aprovacoes` | Admin | Aprovação com filtros e histórico |
+| `/usuarios` | Admin | CRUD de colaboradores + color picker |
+| `/departamentos` | Admin | CRUD de departamentos |
+| `/bloqueios` | Admin | Bloqueios de datas e recessos |
+| `/relatorios` | Admin | Relatório consolidado |
+| `/logs` | Admin | Logs de auditoria |
 
-### Arquivos principais
+---
 
-- `frontend/src/App.jsx`: define as rotas.
-- `frontend/src/api.js`: concentra chamadas HTTP para o backend.
-- `frontend/src/context/AuthContext.jsx`: controla login, usuario atual e logout.
-- `frontend/src/components/PrivateRoute.jsx`: protege rotas autenticadas/admin.
-- `frontend/src/components/Layout.jsx`: sidebar, topo e menu principal.
-- `frontend/src/index.css`: design system e estilos globais.
+## Routers da API
 
-### Formato de datas
+| Arquivo | Prefixo / Rotas | Descrição |
+|---------|----------------|-----------|
+| `auth.py` | `POST /auth/login`, `GET /auth/me` | Autenticação JWT |
+| `users.py` | `/users`, `/me/configuracoes` | Usuários |
+| `ferias.py` | `/ferias` | Férias, aprovação, disponibilidade |
+| `relatorios.py` | `/relatorios`, `/dashboard`, `/logs` | Relatórios e dashboard admin |
+| `departamentos.py` | `/departamentos` | Departamentos |
+| `avisos.py` | `/avisos` | Mural |
+| `documentos.py` | `/documentos` | Documentos |
+| `bloqueios.py` | `/bloqueios` | Bloqueios e recessos |
+| `alertas.py` | `/alertas` | Alertas de contabilidade |
+| `importacao.py` | `/importacao` | Importação Excel |
 
-As datas sao exibidas no formato:
+---
 
-```text
-DD/MM/AAAA
-```
+## Modelos do Banco
 
-Internamente, inputs HTML e API usam:
+### `users`
 
-```text
-AAAA-MM-DD
-```
-
-## Backend
-
-### Inicializacao
-
-Arquivo:
-
-```text
-backend/app/main.py
-```
-
-Responsabilidades:
-
-- Criar app FastAPI.
-- Configurar CORS.
-- Registrar routers.
-- Criar tabelas automaticamente.
-- Criar administrador padrao no primeiro start.
-
-### Routers
-
-| Arquivo | Prefixo | Responsabilidade |
-|---|---|---|
-| `auth.py` | `/auth` | Login e usuario atual |
-| `users.py` | `/users`, `/me/configuracoes` | Usuarios e configuracoes |
-| `ferias.py` | `/ferias` | Ferias e disponibilidade |
-| `relatorios.py` | `/relatorios`, `/logs` | Relatorios e logs |
-
-### Modelos
-
-#### User
-
-Tabela: `users`
-
-| Campo | Tipo | Descricao |
-|---|---|---|
-| `id` | int | Identificador |
-| `nome` | string | Nome do usuario |
-| `email` | string | Email unico |
-| `senha_hash` | string | Senha criptografada |
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `id` | int | PK |
+| `nome` | string | Nome completo |
+| `email` | string | E-mail único |
+| `senha_hash` | string | Senha bcrypt |
 | `role` | string | `user` ou `admin` |
-| `dias_totais` | int | Total de dias disponiveis |
-| `criado_em` | datetime | Data de criacao |
+| `dias_totais` | int | Saldo total de dias |
+| `departamento_id` | int (FK) | Departamento |
+| `data_admissao` | date | Data de admissão |
+| `data_aniversario` | date | Aniversário |
+| `cor` | string | Cor HEX para identificação visual |
+| `criado_em` | datetime | Data de criação |
 
-#### Ferias
+### `ferias`
 
-Tabela: `ferias`
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `id` | int | PK |
+| `user_id` | int (FK) | Dono das férias |
+| `data_inicio` | date | Início do período |
+| `data_fim` | date | Fim do período |
+| `dias_usados` | int | Calculado automaticamente |
+| `status` | string | `pendente`, `aprovada`, `rejeitada` |
+| `ferias_acordo` | bool | Não desconta saldo |
+| `motivo_rejeicao` | string | Preenchido ao rejeitar |
+| `aprovado_por_id` | int (FK) | Admin que aprovou |
+| `aprovado_em` | datetime | Quando foi aprovado |
+| `rejeitado_por_id` | int (FK) | Admin que rejeitou |
+| `rejeitado_em` | datetime | Quando foi rejeitado |
+| `criado_em` | datetime | Data da solicitação |
 
-| Campo | Tipo | Descricao |
-|---|---|---|
-| `id` | int | Identificador |
-| `user_id` | int | Usuario dono das ferias |
-| `data_inicio` | date | Inicio do periodo |
-| `data_fim` | date | Fim do periodo |
-| `dias_usados` | int | Dias calculados automaticamente |
-| `criado_em` | datetime | Data de criacao |
+### `bloqueios_datas`
 
-#### Log
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `id` | int | PK |
+| `data_inicio` | date | Início do bloqueio |
+| `data_fim` | date | Fim do bloqueio |
+| `motivo` | string | Descrição (ex.: "Auditoria") |
+| `tipo` | string | `bloqueio` ou `recesso` |
+| `criado_por_id` | int (FK) | Admin que criou |
+| `criado_em` | datetime | Data de criação |
 
-Tabela: `logs`
+### `alertas`
 
-| Campo | Tipo | Descricao |
-|---|---|---|
-| `id` | int | Identificador |
-| `user_id` | int | Usuario associado |
-| `acao` | string | Nome da acao |
-| `detalhes` | string | Detalhes da acao |
-| `criado_em` | datetime | Data do registro |
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `id` | int | PK |
+| `ferias_id` | int (FK) | Férias associadas |
+| `tipo` | string | `contabilidade_4dias` |
+| `mensagem` | string | Texto do alerta |
+| `lido` | bool | Lido pelo admin |
+| `criado_em` | datetime | Data de geração |
 
-## Banco de Dados
+---
 
-O projeto usa SQLite:
+## Regras de Negócio
 
-```text
-backend/ferias.db
+### Saldo de férias
+
+```
+dias_restantes = dias_totais - soma(dias_usados das férias aprovadas/pendentes no ciclo)
 ```
 
-A string de conexao esta em:
+O ciclo é baseado na data de admissão do colaborador (aniversário de empresa).
 
-```text
-backend/app/database.py
+### Contagem de dias (inclusiva)
+
+```
+dias_usados = data_fim - data_inicio + 1
 ```
 
-```python
-SQLALCHEMY_DATABASE_URL = "sqlite:///./ferias.db"
+### Férias por acordo
+
+- Marcadas com `ferias_acordo = true`.
+- **Não** descontam saldo do colaborador.
+- Identificadas visualmente com badge "Por acordo".
+- Ainda passam pelo fluxo de aprovação quando criadas por usuário comum.
+
+### Fluxo de aprovação
+
+- Usuário comum cria férias com status `pendente`.
+- Admin cria férias direto como `aprovada`.
+- Admin pode aprovar (`pendente → aprovada`) ou rejeitar (`pendente → rejeitada`).
+- Histórico salvo: quem aprovou/rejeitou e data/hora exata.
+
+### Limite simultâneo por departamento
+
+- Configurado em cada departamento (campo `limite_simultaneo`).
+- Fallback global: 2 colaboradores simultâneos.
+- Validado tanto na criação quanto na aprovação.
+
+### Bloqueio de datas
+
+- Admin cadastra períodos com tipo `bloqueio` ou `recesso`.
+- Nenhum colaborador pode solicitar férias nesse intervalo (validação no backend e no frontend).
+- Mensagem amigável exibida ao tentar.
+
+### Alertas de contabilidade
+
+- Gerados automaticamente ao acessar `/alertas`.
+- Disparados para cada férias aprovada que começa em exatamente 4 dias.
+- Sem duplicidade: um alerta por férias.
+- Visíveis no dashboard admin.
+
+---
+
+## Variáveis de Ambiente
+
+### Backend — `backend/.env`
+
+| Variável | Descrição | Padrão |
+|----------|-----------|--------|
+| `SECRET_KEY` | Chave de assinatura JWT | `chave-secreta-padrao-troque-em-producao` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Duração do token (minutos) | `480` |
+| `DATABASE_PATH` | Caminho do arquivo SQLite | `./ferias.db` |
+
+### Frontend — `frontend/.env`
+
+| Variável | Descrição | Padrão |
+|----------|-----------|--------|
+| `VITE_API_URL` | URL base da API | `http://chat-server:8000` |
+
+---
+
+## Deploy com Docker
+
+O projeto possui `docker-compose.yml` pronto.
+
+```bash
+# Na raiz do projeto (pasta feriasonr)
+docker compose up --build
 ```
 
-As tabelas sao criadas automaticamente no startup do backend:
+Para configurar variáveis de ambiente no Docker, copie o exemplo:
 
-```python
-Base.metadata.create_all(bind=engine)
+```bash
+cp .env.docker.example .env.docker
 ```
 
-## Seguranca
+Edite `.env.docker` com suas configurações e consulte o guia completo em:
 
-### Autenticacao
-
-O login usa OAuth2 Password Flow:
-
-```text
-POST /auth/login
+```
+docs/DOCKER-SERVIDOR.md
 ```
 
-O backend retorna um token JWT:
+---
 
-```json
-{
-  "access_token": "...",
-  "token_type": "bearer",
-  "user": {}
-}
-```
+## Build de Produção (sem Docker)
 
-O frontend guarda o token em:
-
-```text
-localStorage.token
-```
-
-As requisicoes autenticadas enviam:
-
-```http
-Authorization: Bearer <token>
-```
-
-### Senhas
-
-As senhas sao armazenadas com hash `bcrypt`.
-
-### Variaveis de ambiente
-
-| Variavel | Descricao | Padrao |
-|---|---|---|
-| `SECRET_KEY` | Chave para assinar JWT | `chave-secreta-padrao-troque-em-producao` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Duracao do token | `480` |
-| `FRONTEND_URL` | URL do frontend em producao | Exemplo Lovable |
-
-### Recomendacoes para producao
-
-- Trocar `SECRET_KEY`.
-- Restringir CORS em `backend/app/main.py`.
-- Usar HTTPS.
-- Implementar troca de senha.
-- Implementar reset de senha.
-- Considerar banco de dados gerenciado para producao.
-
-## Exportacao de Logs
-
-Na tela:
-
-```text
-Logs do Sistema
-```
-
-O botao `Exportar Excel` gera um arquivo:
-
-```text
-logs-ferias-AAAA-MM-DD.csv
-```
-
-O arquivo usa:
-
-- Separador `;`, comum no Excel em configuracoes PT-BR.
-- BOM UTF-8 para preservar acentuacao.
-- Linha `sep=;` para orientar o Excel.
-
-Colunas exportadas:
-
-- Data
-- Acao
-- Usuario
-- Detalhes
-
-## Deploy
-
-### Backend
-
-Para producao, rode FastAPI com Uvicorn/Gunicorn ou servico equivalente:
-
-```powershell
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-Configure variaveis de ambiente reais:
-
-```env
-SECRET_KEY=chave-real
-ACCESS_TOKEN_EXPIRE_MINUTES=480
-FRONTEND_URL=https://seu-front-end.com
-```
-
-### Frontend
-
-Gere o build:
-
-```powershell
-npm run build
-```
-
-Publique a pasta:
-
-```text
-frontend/dist/
-```
-
-Configure a URL da API no build:
-
-```env
-VITE_API_URL=https://sua-api.com
-```
-
-## Solucao de Problemas
-
-### Erro de CORS
-
-Verifique `backend/app/main.py`.
-
-Durante desenvolvimento, o backend esta com:
-
-```python
-allow_origins=["*"]
-```
-
-Em producao, substitua por:
-
-```python
-allow_origins=["https://seu-front-end.com"]
-```
-
-### Frontend nao conecta na API
-
-Confirme se o backend esta rodando:
-
-```text
-http://chat-server:8000
-```
-
-Confirme `VITE_API_URL` ou o valor padrao em:
-
-```text
-frontend/src/api.js
-```
-
-### Token expirado
-
-Se o token expirar:
-
-1. O usuario deve sair.
-2. Acessar novamente pela tela de login.
-
-### Banco nao cria tabelas
-
-Verifique se o backend iniciou sem erro e se o processo tem permissao de escrita na pasta `backend`.
-
-### Porta ocupada
-
-Backend:
-
-```powershell
-uvicorn app.main:app --reload --port 8001
-```
-
-Frontend:
-
-```powershell
-npm run dev -- --port 5174
-```
-
-## Testes e Verificacao
-
-Comandos usados para validar:
-
-```powershell
-python -m py_compile backend\app\routers\ferias.py
-```
-
-```powershell
+```bash
 cd frontend
 npm run build
 ```
 
-## Melhorias Futuras
+Os arquivos estáticos ficam em `frontend/dist/` e podem ser servidos por qualquer servidor web (Nginx, Apache, Caddy).
 
-- Tela de troca de senha.
-- Recuperacao de senha por email.
-- Aprovacao/reprovacao de solicitacoes antes de registrar ferias.
-- Status de ferias: pendente, aprovada, cancelada.
-- Filtro por usuario no calendario.
-- Exportacao de relatorios.
-- Testes automatizados.
-- Migracoes com Alembic.
-- Banco PostgreSQL em producao.
-- Historico completo de alteracoes de usuario.
+---
+
+## Solução de Problemas
+
+### Frontend não conecta na API
+
+Verifique se existe `frontend/.env` com:
+
+```env
+VITE_API_URL=http://127.0.0.1:8000
+```
+
+Confirme que o backend está rodando na mesma porta.
+
+### Erro de CORS
+
+Em desenvolvimento o backend aceita qualquer origem (`allow_origins=["*"]`). Se encontrar erro de CORS, confirme que o `VITE_API_URL` está correto e que o backend subiu sem erros.
+
+### Banco não cria tabelas
+
+O banco é criado automaticamente no startup. Verifique se o processo tem permissão de escrita na pasta `backend/` e se não há erro no terminal do backend.
+
+### Porta ocupada
+
+```bash
+# Backend em porta alternativa
+uvicorn app.main:app --reload --port 8001
+
+# Frontend em porta alternativa
+npm run dev -- --port 5174
+```
+
+Lembre de atualizar `VITE_API_URL` no `.env` do frontend caso troque a porta do backend.
+
+### Migrations automáticas
+
+O sistema roda migrations leves no startup (`ALTER TABLE ... ADD COLUMN`). Colunas já existentes são ignoradas sem erro. Se precisar resetar o banco, basta excluir `backend/ferias.db` e reiniciar o backend.
+
+---
+
+## Exportação de Logs
+
+Na tela **Logs do Sistema**, o botão **Exportar CSV** gera:
+
+```
+logs-gestao-rh-AAAA-MM-DD.csv
+```
+
+- Separador `;` (padrão PT-BR para Excel).
+- BOM UTF-8 para acentuação correta.
+- Colunas: Data, Ação, Usuário, Detalhes.
+
+---
 
 ## Documentos Complementares
 
-- [API](docs/API.md)
-- [Guia do Usuario](docs/GUIA-USUARIO.md)
-- [Docker em Servidor](docs/DOCKER-SERVIDOR.md)
+- [API — Referência de endpoints](docs/API.md)
+- [Guia do Usuário](docs/GUIA-USUARIO.md)
+- [Deploy em Servidor com Docker](docs/DOCKER-SERVIDOR.md)

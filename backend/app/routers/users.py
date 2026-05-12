@@ -35,6 +35,7 @@ def _fmt_user(user: User, db: Session) -> dict:
         "departamento": dep,
         "data_admissao": user.data_admissao,
         "data_aniversario": user.data_aniversario,
+        "cor": user.cor,
         "criado_em": user.criado_em,
     }
 
@@ -67,6 +68,7 @@ def criar_usuario(
         departamento_id=payload.departamento_id,
         data_admissao=payload.data_admissao,
         data_aniversario=payload.data_aniversario,
+        cor=payload.cor,
     )
     db.add(novo_user)
     db.flush()
@@ -115,6 +117,8 @@ def editar_usuario(
         user.data_aniversario = payload.data_aniversario
     if payload.senha is not None and payload.senha.strip():
         user.senha_hash = hash_senha(payload.senha)
+    if payload.cor is not None:
+        user.cor = payload.cor if payload.cor.strip() else None
 
     log = Log(
         user_id=current_user.id,

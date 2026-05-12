@@ -3,7 +3,60 @@ import { api } from '../api'
 import { LoadingCard, PageHeader, StatusBadge, formatDate } from './_helpers'
 import { useAuth } from '../context/AuthContext'
 
-const blank = { nome: '', email: '', senha: '', role: 'user', dias_totais: 30, departamento_id: '', data_admissao: '', data_aniversario: '' }
+const CORES_SUGERIDAS = [
+  '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#06b6d4', '#f97316', '#ec4899', '#10b981', '#6366f1',
+]
+
+const blank = {
+  nome: '', email: '', senha: '', role: 'user',
+  dias_totais: 30, departamento_id: '', data_admissao: '',
+  data_aniversario: '', cor: '',
+}
+
+function ColorPicker({ value, onChange }) {
+  return (
+    <div className="color-picker">
+      <div className="color-swatches">
+        {CORES_SUGERIDAS.map(c => (
+          <button
+            key={c}
+            type="button"
+            className={`color-swatch${value === c ? ' selected' : ''}`}
+            style={{ background: c }}
+            onClick={() => onChange(value === c ? '' : c)}
+            title={c}
+          />
+        ))}
+      </div>
+      <div className="color-custom">
+        <input
+          type="color"
+          value={value || '#3b82f6'}
+          onChange={e => onChange(e.target.value)}
+          title="Cor personalizada"
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder="#000000"
+          maxLength={7}
+          style={{ width: 90 }}
+        />
+        {value && (
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={() => onChange('')}
+          >
+            Limpar
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function Usuarios() {
   const { user: currentUser } = useAuth()
@@ -34,6 +87,7 @@ export default function Usuarios() {
         departamento_id: form.departamento_id ? Number(form.departamento_id) : null,
         data_admissao: form.data_admissao || null,
         data_aniversario: form.data_aniversario || null,
+        cor: form.cor || null,
       }
       if (editing) {
         if (form.senha) payload.senha = form.senha
@@ -64,6 +118,7 @@ export default function Usuarios() {
       departamento_id: user.departamento_id || '',
       data_admissao: user.data_admissao || '',
       data_aniversario: user.data_aniversario || '',
+      cor: user.cor || '',
     })
     setError('')
     setSuccess('')
@@ -85,7 +140,7 @@ export default function Usuarios() {
 
   return (
     <>
-      <PageHeader title="Usuários" subtitle="Cadastre colaboradores e ajuste saldos anuais de férias." />
+      <PageHeader title="Usuários" subtitle="Cadastre colaboradores, ajuste saldos e defina cores de identificação." />
 
       <div className="grid-2 grid-2-wide-left">
         <section className="card">
@@ -94,6 +149,7 @@ export default function Usuarios() {
             <table>
               <thead>
                 <tr>
+                  <th>Cor</th>
                   <th>Nome</th>
                   <th>E-mail</th>
                   <th>Perfil</th>
@@ -107,7 +163,17 @@ export default function Usuarios() {
               <tbody>
                 {users.map(user => (
                   <tr key={user.id}>
-                    <td>{user.nome}</td>
+                    <td>
+                      <span
+                        style={{
+                          display: 'inline-block', width: 18, height: 18,
+                          borderRadius: '50%', background: user.cor || '#e2e8f0',
+                          border: '1.5px solid rgba(0,0,0,.1)', verticalAlign: 'middle',
+                        }}
+                        title={user.cor || 'Sem cor'}
+                      />
+                    </td>
+                    <td><strong>{user.nome}</strong></td>
                     <td>{user.email}</td>
                     <td>
                       <StatusBadge tone={user.role === 'admin' ? 'navy' : 'gray'}>
@@ -191,6 +257,24 @@ export default function Usuarios() {
                 ))}
               </select>
             </div>
+
+            <div className="form-group">
+              <label>
+                Cor de identificação
+                {form.cor && (
+                  <span
+                    style={{
+                      display: 'inline-block', width: 14, height: 14,
+                      borderRadius: '50%', background: form.cor,
+                      marginLeft: 8, verticalAlign: 'middle',
+                      border: '1.5px solid rgba(0,0,0,.15)',
+                    }}
+                  />
+                )}
+              </label>
+              <ColorPicker value={form.cor} onChange={cor => setForm({ ...form, cor })} />
+            </div>
+
             <div className="form-row">
               <div className="form-group">
                 <label>Dias totais</label>
@@ -240,4 +324,3 @@ export default function Usuarios() {
     </>
   )
 }
-
