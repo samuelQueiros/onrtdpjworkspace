@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
 import { LoadingCard, PageHeader, StatusBadge, formatDate } from './_helpers'
 
-const DOW = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+const DOW = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+const MONTHS = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+]
 
 function toIso(date) {
   return date.toISOString().slice(0, 10)
@@ -20,21 +24,75 @@ function vacationsOnDay(iso, vacations) {
   return vacations.filter(v => iso >= v.data_inicio && iso <= v.data_fim)
 }
 
-function getContrastColor(hex) {
-  if (!hex) return '#fff'
-  const c = hex.replace('#', '')
-  const r = parseInt(c.substring(0, 2), 16)
-  const g = parseInt(c.substring(2, 4), 16)
-  const b = parseInt(c.substring(4, 6), 16)
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-  return luminance > 0.5 ? '#1e293b' : '#ffffff'
+function buildMonthDays(year, month) {
+  const first = new Date(year, month, 1)
+  const total = new Date(year, month + 1, 0).getDate()
+  const blanks = Array.from({ length: first.getDay() }, () => null)
+  const days = Array.from({ length: total }, (_, i) => new Date(year, month, i + 1))
+  return [...blanks, ...days]
+}
+
+function MiniCalendar({ year, month, periodos, feriasMarcadas, bloqueiosManuais, selectedDay, onSelectDay }) {
+  const days = useMemo(() => buildMonthDays(year, month), [year, month])
+  const todayIso = toIso(new Date())
+
+  return (
+    <div className="mini-cal">
+      <h4 className="mini-cal-title">{MONTHS[month]}</h4>
+      <div className="cal-grid mini">
+        {DOW.map((d, i) => <div className="cal-dow" key={i}>{d}</div>)}
+        {days.map((date, i) => {
+          if (!date) return <div className="cal-day empty" key={`e-${i}`} />
+          const iso = toIso(date)
+          const bloqueadoLimite = isBlocked(iso, periodos)
+          const bm = bloqueioManual(iso, bloqueiosManuais)
+          const dayVacs = vacationsOnDay(iso, feriasMarcadas)
+          const isMarked = dayVacs.length > 0
+          const isToday = iso === todayIso
+          const isSelected = selectedDay === iso
+
+          let cls = 'cal-day '
+          if (bm) cls += 'manual-block'
+          else if (bloqueadoLimite) cls += 'blocked'
+          else if (isMarked) cls += 'marked'
+          else cls += 'available'
+          if (isToday) cls += ' today'
+          if (isSelected) cls += ' selected'
+
+          const tooltipParts = []
+          if (bm) tooltipParts.push(`${bm.tipo === 'recesso' ? 'Recesso' : 'Bloqueio'}: ${bm.motivo}`)
+          dayVacs.forEach(v => tooltipParts.push(`${v.nome}`))
+
+          return (
+            <div
+              className={cls}
+              key={iso}
+              title={tooltipParts.join('\n')}
+              onClick={() => onSelectDay(iso === selectedDay ? null : iso)}
+            >
+              <span className="cal-day-num">{date.getDate()}</span>
+              {isMarked && !bm && dayVacs.length > 0 && (
+                <div className="cal-day-dots">
+                  {dayVacs.slice(0, 2).map((v, idx) => (
+                    <span key={idx} className="cal-user-dot" style={{ background: v.cor || '#64748b' }} />
+                  ))}
+                  {dayVacs.length > 2 && <span className="cal-user-dot-more">+{dayVacs.length - 2}</span>}
+                </div>
+              )}
+              {bm && <span className="cal-block-label">{bm.tipo === 'recesso' ? 'R' : 'B'}</span>}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 export default function Disponibilidade() {
   const [periodos, setPeriodos] = useState([])
   const [feriasMarcadas, setFeriasMarcadas] = useState([])
   const [bloqueiosManuais, setBloqueiosManuais] = useState([])
-  const [cursor, setCursor] = useState(new Date())
+  const [year, setYear] = useState(new Date().getFullYear())
   const [loading, setLoading] = useState(true)
   const [selectedDay, setSelectedDay] = useState(null)
 
@@ -48,25 +106,13 @@ export default function Disponibilidade() {
       .finally(() => setLoading(false))
   }, [])
 
-  const days = useMemo(() => {
-    const year = cursor.getFullYear()
-    const month = cursor.getMonth()
-    const first = new Date(year, month, 1)
-    const total = new Date(year, month + 1, 0).getDate()
-    const blanks = Array.from({ length: first.getDay() }, () => null)
-    const monthDays = Array.from({ length: total }, (_, i) => new Date(year, month, i + 1))
-    return [...blanks, ...monthDays]
-  }, [cursor])
-
-  const changeMonth = n => {
-    setSelectedDay(null)
-    setCursor(c => new Date(c.getFullYear(), c.getMonth() + n, 1))
-  }
-
-  const selectedDayVacs = useMemo(() => {
-    if (!selectedDay) return []
-    return vacationsOnDay(selectedDay, feriasMarcadas)
-  }, [selectedDay, feriasMarcadas])
+  const selectedDayInfo = useMemo(() => {
+    if (!selectedDay) return null
+    return {
+      bm: bloqueioManual(selectedDay, bloqueiosManuais),
+      vacs: vacationsOnDay(selectedDay, feriasMarcadas),
+    }
+  }, [selectedDay, feriasMarcadas, bloqueiosManuais])
 
   if (loading) return <LoadingCard />
 
@@ -74,135 +120,84 @@ export default function Disponibilidade() {
     <>
       <PageHeader
         title="Disponibilidade"
-        subtitle="Calendário de férias dos colaboradores. Clique em um dia para ver detalhes."
+        subtitle="Calendário anual de férias dos colaboradores. Clique em um dia para ver detalhes."
       />
 
       <div className="grid-2 grid-2-wide-left">
         <section className="card">
           <div className="card-body">
-            <div className="cal-nav">
-              <button className="btn btn-outline btn-sm" onClick={() => changeMonth(-1)}>← Anterior</button>
-              <h3 className="cal-month-title">
-                {cursor.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-              </h3>
-              <button className="btn btn-outline btn-sm" onClick={() => changeMonth(1)}>Próximo →</button>
+
+            {/* Navegação de ano */}
+            <div className="cal-nav" style={{ marginBottom: 16 }}>
+              <button className="btn btn-outline btn-sm" onClick={() => { setSelectedDay(null); setYear(y => y - 1) }}>← Anterior</button>
+              <h3 className="cal-month-title">{year}</h3>
+              <button className="btn btn-outline btn-sm" onClick={() => { setSelectedDay(null); setYear(y => y + 1) }}>Próximo →</button>
             </div>
 
             {/* Legenda */}
-            <div className="cal-legend">
+            <div className="cal-legend" style={{ marginBottom: 16 }}>
               <span className="cal-legend-item"><span className="cal-legend-dot available" />Disponível</span>
               <span className="cal-legend-item"><span className="cal-legend-dot marked" />Férias marcadas</span>
               <span className="cal-legend-item"><span className="cal-legend-dot blocked" />Limite atingido</span>
               <span className="cal-legend-item"><span className="cal-legend-dot manual-block" />Bloqueio/Recesso</span>
             </div>
 
-            <div className="cal-grid">
-              {DOW.map(d => <div className="cal-dow" key={d}>{d}</div>)}
-              {days.map((date, i) => {
-                if (!date) return <div className="cal-day empty" key={`e-${i}`} />
-                const iso = toIso(date)
-                const bloqueadoLimite = isBlocked(iso, periodos)
-                const bloqueadoManual = bloqueioManual(iso, bloqueiosManuais)
-                const dayVacs = vacationsOnDay(iso, feriasMarcadas)
-                const isMarked = dayVacs.length > 0
-                const isToday = iso === toIso(new Date())
-                const isSelected = selectedDay === iso
-
-                let className = 'cal-day '
-                if (bloqueadoManual) className += 'manual-block'
-                else if (bloqueadoLimite) className += 'blocked'
-                else if (isMarked) className += 'marked'
-                else className += 'available'
-                if (isToday) className += ' today'
-                if (isSelected) className += ' selected'
-
-                const tooltipParts = []
-                if (bloqueadoManual) tooltipParts.push(`${bloqueadoManual.tipo === 'recesso' ? 'Recesso' : 'Bloqueio'}: ${bloqueadoManual.motivo}`)
-                dayVacs.forEach(v => tooltipParts.push(`${v.nome}: ${formatDate(v.data_inicio)} a ${formatDate(v.data_fim)}`))
-
-                return (
-                  <div
-                    className={className}
-                    key={iso}
-                    title={tooltipParts.join('\n')}
-                    onClick={() => setSelectedDay(iso === selectedDay ? null : iso)}
-                  >
-                    <span className="cal-day-num">{date.getDate()}</span>
-                    {isMarked && !bloqueadoManual && (
-                      <div className="cal-day-dots">
-                        {dayVacs.slice(0, 3).map((v, idx) => (
-                          <span
-                            key={idx}
-                            className="cal-user-dot"
-                            style={{ background: v.cor || '#64748b' }}
-                            title={v.nome}
-                          />
-                        ))}
-                        {dayVacs.length > 3 && <span className="cal-user-dot-more">+{dayVacs.length - 3}</span>}
-                      </div>
-                    )}
-                    {bloqueadoManual && (
-                      <span className="cal-block-label">
-                        {bloqueadoManual.tipo === 'recesso' ? 'R' : 'B'}
-                      </span>
-                    )}
-                  </div>
-                )
-              })}
+            {/* Grade anual */}
+            <div className="year-grid">
+              {Array.from({ length: 12 }, (_, m) => (
+                <MiniCalendar
+                  key={m}
+                  year={year}
+                  month={m}
+                  periodos={periodos}
+                  feriasMarcadas={feriasMarcadas}
+                  bloqueiosManuais={bloqueiosManuais}
+                  selectedDay={selectedDay}
+                  onSelectDay={setSelectedDay}
+                />
+              ))}
             </div>
 
             {/* Detalhe do dia selecionado */}
-            {selectedDay && (
-              <div className="cal-detail-panel">
+            {selectedDay && selectedDayInfo && (
+              <div className="cal-detail-panel" style={{ marginTop: 16 }}>
                 <div className="cal-detail-header">
                   <strong>
                     {new Date(`${selectedDay}T12:00:00`).toLocaleDateString('pt-BR', {
-                      weekday: 'long', day: 'numeric', month: 'long'
+                      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
                     })}
                   </strong>
                   <button className="btn-close small" onClick={() => setSelectedDay(null)}>×</button>
                 </div>
-                {(() => {
-                  const bm = bloqueioManual(selectedDay, bloqueiosManuais)
-                  const vacs = vacationsOnDay(selectedDay, feriasMarcadas)
-                  return (
-                    <>
-                      {bm && (
-                        <div className={`cal-detail-block ${bm.tipo}`}>
-                          <strong>{bm.tipo === 'recesso' ? '🏖 Recesso' : '🚫 Bloqueio'}</strong>: {bm.motivo}
+                {selectedDayInfo.bm && (
+                  <div className={`cal-detail-block ${selectedDayInfo.bm.tipo}`}>
+                    <strong>{selectedDayInfo.bm.tipo === 'recesso' ? '🏖 Recesso' : '🚫 Bloqueio'}</strong>: {selectedDayInfo.bm.motivo}
+                  </div>
+                )}
+                {selectedDayInfo.vacs.length > 0 ? (
+                  <ul className="cal-detail-list">
+                    {selectedDayInfo.vacs.map(v => (
+                      <li key={v.id} className="cal-detail-item">
+                        <span className="cal-detail-dot" style={{ background: v.cor || '#64748b' }} />
+                        <div>
+                          <strong>{v.nome}</strong>
+                          {v.ferias_acordo && <StatusBadge tone="blue" style={{ marginLeft: 6 }}>Por acordo</StatusBadge>}
+                          <div className="muted" style={{ fontSize: 12 }}>
+                            {formatDate(v.data_inicio)} a {formatDate(v.data_fim)} — {v.dias_usados} dia(s)
+                          </div>
                         </div>
-                      )}
-                      {vacs.length > 0 ? (
-                        <ul className="cal-detail-list">
-                          {vacs.map(v => (
-                            <li key={v.id} className="cal-detail-item">
-                              <span
-                                className="cal-detail-dot"
-                                style={{ background: v.cor || '#64748b' }}
-                              />
-                              <div>
-                                <strong>{v.nome}</strong>
-                                {v.ferias_acordo && <StatusBadge tone="blue" style={{ marginLeft: 6 }}>Por acordo</StatusBadge>}
-                                <div className="muted" style={{ fontSize: 12 }}>
-                                  {formatDate(v.data_inicio)} a {formatDate(v.data_fim)} — {v.dias_usados} dia(s)
-                                </div>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : !bm ? (
-                        <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>Nenhuma féria marcada neste dia.</p>
-                      ) : null}
-                    </>
-                  )
-                })()}
+                      </li>
+                    ))}
+                  </ul>
+                ) : !selectedDayInfo.bm ? (
+                  <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>Nenhuma féria marcada neste dia.</p>
+                ) : null}
               </div>
             )}
           </div>
         </section>
 
         <aside>
-          {/* Férias marcadas */}
           <section className="card" style={{ marginBottom: 16 }}>
             <div className="card-header">
               <h2 className="card-title">Férias marcadas</h2>
@@ -213,12 +208,7 @@ export default function Disponibilidade() {
             <div className="card-body blocked-list">
               {feriasMarcadas.length ? feriasMarcadas.map(item => (
                 <div className="vacation-item" key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <span
-                    style={{
-                      width: 12, height: 12, borderRadius: '50%',
-                      background: item.cor || '#64748b', flexShrink: 0, marginTop: 3
-                    }}
-                  />
+                  <span style={{ width: 12, height: 12, borderRadius: '50%', background: item.cor || '#64748b', flexShrink: 0, marginTop: 3 }} />
                   <div>
                     <strong>
                       {item.nome}
@@ -233,7 +223,6 @@ export default function Disponibilidade() {
             </div>
           </section>
 
-          {/* Bloqueios manuais */}
           <section className="card">
             <div className="card-header">
               <h2 className="card-title">Bloqueios e Recessos</h2>

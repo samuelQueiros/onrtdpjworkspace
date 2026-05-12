@@ -1002,6 +1002,54 @@ textarea { resize: vertical; min-height: 80px; }
 .alert a { color: inherit; font-weight: 600; text-decoration: underline; }
 .alert a:hover { opacity: .8; }
 
+/* ── Year calendar grid ──────────────────── */
+.year-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.mini-cal {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--bg);
+}
+
+.mini-cal-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 8px;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.cal-grid.mini .cal-dow {
+  font-size: 10px;
+  padding: 2px 0;
+}
+
+.cal-grid.mini .cal-day {
+  min-height: 28px;
+  padding: 2px;
+  font-size: 11px;
+}
+
+.cal-grid.mini .cal-day-num {
+  font-size: 11px;
+}
+
+.cal-grid.mini .cal-day-dots {
+  gap: 1px;
+  margin-top: 1px;
+}
+
+.cal-grid.mini .cal-user-dot {
+  width: 4px;
+  height: 4px;
+}
+
 /* ── Birthday modal ──────────────────────── */
 .bday-overlay {
   position: fixed;
