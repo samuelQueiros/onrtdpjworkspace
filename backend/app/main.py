@@ -1,14 +1,13 @@
 import os
-import sqlite3
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from app.database import engine, SessionLocal
-from app.models import User, Ferias, Log, Departamento, Aviso, Documento, BloqueioData, Alerta
+from app.models import User, Ferias, Log, Departamento, Aviso, Documento, BloqueioData, Alerta, Credencial, CredencialUsuario
 from app.database import Base
 from app.routers import auth, users, ferias, relatorios
-from app.routers import departamentos, avisos, documentos, importacao, bloqueios, alertas
+from app.routers import departamentos, avisos, documentos, importacao, bloqueios, alertas, credenciais
 from app.core.security import hash_senha
 
 load_dotenv()
@@ -38,46 +37,12 @@ app.include_router(documentos.router)
 app.include_router(importacao.router)
 app.include_router(bloqueios.router)
 app.include_router(alertas.router)
-
-
-def _run_migrations():
-    """Adiciona colunas novas em tabelas existentes sem recriar o banco."""
-    db_path = os.getenv("DATABASE_PATH", "./ferias.db")
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        alteracoes = [
-            # tabela, coluna, definição
-            ("ferias", "status", "TEXT DEFAULT 'aprovada'"),
-            ("ferias", "ferias_acordo", "INTEGER DEFAULT 0"),
-            ("ferias", "motivo_rejeicao", "TEXT"),
-            ("ferias", "aprovado_por_id", "INTEGER"),
-            ("ferias", "aprovado_em", "DATETIME"),
-            ("ferias", "rejeitado_por_id", "INTEGER"),
-            ("ferias", "rejeitado_em", "DATETIME"),
-            ("users", "departamento_id", "INTEGER"),
-            ("users", "data_admissao", "DATE"),
-            ("users", "data_aniversario", "DATE"),
-            ("users", "cor", "TEXT"),
-        ]
-
-        for tabela, coluna, definicao in alteracoes:
-            try:
-                cursor.execute(f"ALTER TABLE {tabela} ADD COLUMN {coluna} {definicao}")
-            except sqlite3.OperationalError:
-                pass  # coluna já existe
-
-        conn.commit()
-        conn.close()
-    except Exception as exc:
-        print(f"[migrations] Aviso: {exc}")
+app.include_router(credenciais.router)
 
 
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(bind=engine)
-    _run_migrations()
 
     db = SessionLocal()
     try:

@@ -2,8 +2,10 @@ fastapi
 uvicorn[standard]
 python-multipart
 sqlalchemy
+psycopg2-binary
 python-jose[cryptography]
 bcrypt
 python-dotenv
 pydantic[email]
 openpyxl
+holidays

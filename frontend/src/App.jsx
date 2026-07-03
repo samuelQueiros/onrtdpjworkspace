@@ -4,6 +4,8 @@ import PrivateRoute from './components/PrivateRoute'
 import { AuthProvider } from './context/AuthContext'
 import Aprovacoes from './pages/Aprovacoes'
 import Bloqueios from './pages/Bloqueios'
+import Credenciais from './pages/Credenciais'
+import MinhasCredenciais from './pages/MinhasCredenciais'
 import Dashboard from './pages/Dashboard'
 import Departamentos from './pages/Departamentos'
 import Disponibilidade from './pages/Disponibilidade'
@@ -42,6 +44,8 @@ export default function App() {
           <Route path="/bloqueios" element={<Shell adminOnly><Bloqueios /></Shell>} />
           <Route path="/relatorios" element={<Shell adminOnly><Relatorios /></Shell>} />
           <Route path="/logs" element={<Shell adminOnly><Logs /></Shell>} />
+          <Route path="/credenciais" element={<Shell adminOnly><Credenciais /></Shell>} />
+          <Route path="/minhas-credenciais" element={<Shell><MinhasCredenciais /></Shell>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

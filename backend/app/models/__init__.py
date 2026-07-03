@@ -6,3 +6,5 @@ from .aviso import Aviso
 from .documento import Documento
 from .bloqueio import BloqueioData
 from .alerta import Alerta
+from .credencial_usuario import CredencialUsuario
+from .credencial import Credencial

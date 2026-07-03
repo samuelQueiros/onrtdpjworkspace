@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import date, timedelta, datetime
 from typing import List
+import holidays as _holidays_lib
 
 from app.database import get_db
 from app.models.user import User
@@ -15,6 +16,86 @@ from app.core.security import get_current_user, require_admin
 router = APIRouter(prefix="/ferias", tags=["Férias"])
 
 LIMITE_SIMULTANEO_GLOBAL = 2  # fallback quando sem departamento
+
+_NOMES_DIA = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
+
+
+def _feriados_br(anos: set) -> set:
+    """Retorna conjunto de datas de feriados nacionais brasileiros para os anos informados."""
+    feriados: set = set()
+    for ano in anos:
+        feriados.update(_holidays_lib.Brazil(years=ano).keys())
+    return feriados
+
+
+def _primeiro_descanso_na_semana(ref: date, feriados: set) -> int:
+    """
+    Retorna o weekday (0=seg..4=sex) do primeiro feriado na semana de `ref`,
+    ou 5 (sábado) se não houver feriado nenhum dia útil da semana.
+    Usado para calcular para qual dia o período de descanso é antecipado.
+    """
+    segunda = ref - timedelta(days=ref.weekday())
+    for delta in range(5):  # seg (0) até sex (4)
+        if (segunda + timedelta(days=delta)) in feriados:
+            return delta
+    return 5  # sábado como padrão
+
+
+def verificar_regras_data(data_inicio: date, data_fim: date) -> None:
+    """
+    Aplica todas as regras de negócio sobre as datas de férias:
+    - data_fim >= data_inicio
+    - data_inicio >= hoje
+    - dia da semana de início (seg/ter/qua permitidos; qui/sex/sab/dom proibidos)
+    - se houver feriado na semana, o limite de descanso é antecipado e os 2 dias
+      úteis anteriores a ele também ficam proibidos
+    """
+    hoje = date.today()
+
+    if data_fim < data_inicio:
+        raise HTTPException(
+            status_code=400,
+            detail="A data de fim não pode ser anterior à data de início.",
+        )
+
+    if data_inicio < hoje:
+        raise HTTPException(
+            status_code=400,
+            detail="A data de início não pode ser anterior a hoje.",
+        )
+
+    feriados = _feriados_br({data_inicio.year, data_fim.year})
+
+    dia = data_inicio.weekday()  # 0=seg..6=dom
+
+    if dia >= 5:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Férias não podem iniciar em {_NOMES_DIA[dia]} (dia de descanso).",
+        )
+
+    limite = _primeiro_descanso_na_semana(data_inicio, feriados)
+    # Os 2 dias úteis imediatamente antes do primeiro dia de descanso são bloqueados
+    bloqueados = {d for d in (limite - 2, limite - 1, limite) if 0 <= d <= 4}
+
+    if dia in bloqueados:
+        if limite < 5:
+            segunda = data_inicio - timedelta(days=data_inicio.weekday())
+            feriado_data = (segunda + timedelta(days=limite)).strftime("%d/%m/%Y")
+            motivo = (
+                f"há um feriado em {_NOMES_DIA[limite]} ({feriado_data}) nesta semana, "
+                "antecipando o período de descanso"
+            )
+        else:
+            motivo = "está a menos de 48 horas do descanso semanal (sábado)"
+
+        permitidos = [_NOMES_DIA[d] for d in range(5) if d not in bloqueados]
+        detalhe_permitidos = f" Dias permitidos nesta semana: {', '.join(permitidos)}." if permitidos else " Não há dia permitido nesta semana."
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Férias não podem iniciar em {_NOMES_DIA[dia]}: {motivo}.{detalhe_permitidos}",
+        )
 
 
 # ── Utilitários ──────────────────────────────────────────────────────────────
@@ -161,6 +242,16 @@ def verificar_bloqueio_datas(db: Session, data_inicio: date, data_fim: date) -> 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
 
+@router.get("/feriados/{year}")
+def listar_feriados(year: int, _=Depends(get_current_user)):
+    """Retorna os feriados nacionais brasileiros do ano informado."""
+    feriados = _holidays_lib.Brazil(years=year)
+    return [
+        {"data": str(d), "nome": nome}
+        for d, nome in sorted(feriados.items())
+    ]
+
+
 @router.get("/me")
 def minhas_ferias(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     ferias = db.query(Ferias).filter(Ferias.user_id == current_user.id).order_by(Ferias.criado_em.desc()).all()
@@ -280,6 +371,8 @@ def registrar_ferias(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    verificar_regras_data(payload.data_inicio, payload.data_fim)
+
     dias_solicitados = calcular_dias(payload.data_inicio, payload.data_fim)
 
     # Verificar bloqueio de datas para qualquer tipo de férias
@@ -424,6 +517,9 @@ def editar_ferias(
     owner = db.query(User).filter(User.id == ferias.user_id).first()
     nova_inicio = payload.data_inicio if payload.data_inicio is not None else ferias.data_inicio
     nova_fim = payload.data_fim if payload.data_fim is not None else ferias.data_fim
+
+    verificar_regras_data(nova_inicio, nova_fim)
+
     dias_solicitados = calcular_dias(nova_inicio, nova_fim)
 
     novo_acordo = payload.ferias_acordo if payload.ferias_acordo is not None else ferias.ferias_acordo

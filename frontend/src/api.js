@@ -50,6 +50,7 @@ export const api = {
   // Férias
   minhasFerias: () => req('GET', '/ferias/me'),
   disponibilidade: () => req('GET', '/ferias/disponibilidade'),
+  feriados: year => req('GET', `/ferias/feriados/${year}`),
   registrarFerias: body => req('POST', '/ferias', body),
   editarFerias: (id, body) => req('PUT', `/ferias/${id}`, body),
   cancelarFerias: id => req('DELETE', `/ferias/${id}`),
@@ -106,4 +107,15 @@ export const api = {
   listarAlertas: () => req('GET', '/alertas'),
   marcarAlertaLido: id => req('PUT', `/alertas/${id}/lido`),
   marcarTodosAlertasLidos: () => req('PUT', '/alertas/marcar-todos-lidos'),
+
+  // Credenciais (admin)
+  listarCredenciais: () => req('GET', '/credenciais'),
+  criarCredencial: body => req('POST', '/credenciais', body),
+  editarCredencial: (id, body) => req('PUT', `/credenciais/${id}`, body),
+  excluirCredencial: id => req('DELETE', `/credenciais/${id}`),
+  usuariosCredencial: id => req('GET', `/credenciais/${id}/usuarios`),
+  salvarPermissoes: (id, user_ids) => req('PUT', `/credenciais/${id}/permissoes`, { user_ids }),
+
+  // Credenciais (colaborador)
+  minhasCredenciais: () => req('GET', '/credenciais/minhas'),
 }

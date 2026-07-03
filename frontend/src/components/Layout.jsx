@@ -17,6 +17,7 @@ const Icon = {
   logout: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>,
   chevron: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>,
   lock: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+  key: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></svg>,
 }
 
 const PAGES = {
@@ -32,6 +33,8 @@ const PAGES = {
   '/bloqueios': 'Bloqueio de Datas',
   '/relatorios': 'Relatórios',
   '/logs': 'Logs do Sistema',
+  '/credenciais': 'Acessos / Senhas',
+  '/minhas-credenciais': 'Minhas Credenciais',
 }
 
 function LinkItem({ to, end, icon, children, badge }) {
@@ -95,12 +98,12 @@ export default function Layout({ children }) {
       <aside className="sidebar">
         <div className="sidebar-logo">
           <div className="logo-mark">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L4 7v5c0 5.25 3.5 10.25 8 11.5C17.5 22.25 21 17.25 21 12V7L12 2z" fill="white" opacity=".9" />
-              <path d="M9 12l2 2 4-4" stroke="#0d1b3e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <img src="/logo.png" alt="ONRTDPJ" width="38" height="38" />
           </div>
-          <span className="logo-text">Gestão<span>RH</span></span>
+          <div className="logo-text">
+            <strong>ONRTDPJ</strong>
+            <span>Gestão RH</span>
+          </div>
         </div>
 
         <nav className="sidebar-nav">
@@ -112,6 +115,7 @@ export default function Layout({ children }) {
             <LinkItem to="/disponibilidade" icon={Icon.grid}>Disponibilidade</LinkItem>
             <LinkItem to="/mural" icon={Icon.bell}>Mural de Avisos</LinkItem>
             <LinkItem to="/documentos" icon={Icon.file}>Documentos</LinkItem>
+            <LinkItem to="/minhas-credenciais" icon={Icon.key}>Minhas Credenciais</LinkItem>
           </div>
 
           {user?.role === 'admin' && (
@@ -121,6 +125,7 @@ export default function Layout({ children }) {
               <LinkItem to="/usuarios" icon={Icon.users}>Usuários</LinkItem>
               <LinkItem to="/departamentos" icon={Icon.building}>Departamentos</LinkItem>
               <LinkItem to="/bloqueios" icon={Icon.lock}>Bloqueio de Datas</LinkItem>
+              <LinkItem to="/credenciais" icon={Icon.key}>Acessos / Senhas</LinkItem>
               <LinkItem to="/relatorios" icon={Icon.chart}>Relatórios</LinkItem>
               <LinkItem to="/logs" icon={Icon.log}>Logs</LinkItem>
             </div>

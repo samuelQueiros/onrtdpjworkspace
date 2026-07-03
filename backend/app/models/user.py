@@ -28,3 +28,8 @@ class User(Base):
         foreign_keys="Documento.user_id",
         cascade="all, delete-orphan",
     )
+    credenciais = relationship(
+        "Credencial",
+        secondary="credencial_usuarios",
+        back_populates="usuarios",
+    )
