@@ -12,7 +12,12 @@ from app.database import get_db
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY", "chave-secreta-padrao-troque-em-producao")
+environment = os.getenv("ENVIRONMENT", "development")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    if environment == "production":
+        raise RuntimeError("SECRET_KEY não está configurada.")
+    SECRET_KEY = "chave-secreta-padrao-troque-em-producao"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
 
