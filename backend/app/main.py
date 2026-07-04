@@ -50,24 +50,27 @@ def startup():
     try:
         admin_existente = db.query(User).filter(User.role == "admin").first()
         if not admin_existente:
-            admin = User(
-                nome="Administrador",
-                email="admin@sistema.com",
-                senha_hash=hash_senha("admin123"),
-                role="admin",
-                dias_totais=30,
-            )
-            db.add(admin)
-            db.flush()
+            admin_email = os.getenv("ADMIN_EMAIL")
+            admin_password = os.getenv("ADMIN_PASSWORD")
+            admin_name = os.getenv("ADMIN_NAME", "Administrador")
 
-            log = Log(
-                user_id=admin.id,
-                acao="USUARIO_CRIADO",
-                detalhes="Administrador padrão criado automaticamente",
-            )
-            db.add(log)
-            db.commit()
-            print("Admin padrão criado: admin@sistema.com / admin123")
+            if admin_email and admin_password:
+                admin = User(
+                    nome=admin_name,
+                    email=admin_email,
+                    senha_hash=hash_senha(admin_password),
+                    role="admin",
+                    dias_totais=30,
+                )
+                db.add(admin)
+                db.flush()
+
+                log = Log(user_id = admin.id, acao = "USUARIO_CRIADO", detalhes = "Administrador inicial criado automaticamente.")
+                db.add(log)
+                db.commit()
+                print(f"Admin inicial criado: {admin_email}")
+            else:
+                print("Nenhum administrador encontrado. Configure ADMIN_EMAIL e ADMIN_PASSWORD.")
     finally:
         db.close()
 

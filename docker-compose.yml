@@ -23,9 +23,12 @@ services:
     container_name: ferias-backend
     restart: unless-stopped
     environment:
-      SECRET_KEY: ${SECRET_KEY:-troque-esta-chave-em-producao}
+      SECRET_KEY: ${SECRET_KEY}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
       FRONTEND_URL: ${FRONTEND_URL:-http://chat-server}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrador}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       DATABASE_URL: postgresql://${POSTGRES_USER:-ferias}:${POSTGRES_PASSWORD:-ferias}@db:5432/${POSTGRES_DB:-ferias}
     depends_on:
       db:
