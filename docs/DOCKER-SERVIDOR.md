@@ -4,20 +4,21 @@ Este guia explica como publicar o Sistema de Gestao de Ferias ONRTDPJ em um serv
 
 ## Visao Geral
 
-O Docker Compose sobe dois servicos:
+O Docker Compose sobe tres servicos:
 
 | Servico | Container | Porta | Funcao |
 |---|---|---|---|
+| `db` | `ferias-db` | interna `5432` | Banco PostgreSQL |
 | `backend` | `ferias-backend` | `8000` | API FastAPI |
 | `frontend` | `ferias-frontend` | `80` | Interface React servida por Nginx |
 
-O banco SQLite fica em um volume Docker:
+O banco PostgreSQL fica em um volume Docker:
 
 ```text
-ferias_data:/app/data/ferias.db
+ferias_data:/var/lib/postgresql/data
 ```
 
-Isso evita perder o banco ao recriar containers.
+Isso evita perder o banco ao recriar containers. A porta do PostgreSQL nao e publicada no host por padrao; o backend acessa o banco pela rede interna do Docker usando o hostname `db`.
 
 ## Arquivos Docker
 
@@ -128,6 +129,10 @@ VITE_API_URL=http://123.123.123.123:8000
 
 FRONTEND_PORT=80
 BACKEND_PORT=8000
+
+ADMIN_NAME=Administrador
+ADMIN_EMAIL=admin@sistema.com
+ADMIN_PASSWORD=admin123
 ```
 
 Exemplo usando dominio:
@@ -141,6 +146,10 @@ VITE_API_URL=https://api-ferias.seudominio.com
 
 FRONTEND_PORT=80
 BACKEND_PORT=8000
+
+ADMIN_NAME=Administrador
+ADMIN_EMAIL=admin@sistema.com
+ADMIN_PASSWORD=admin123
 ```
 
 Importante:
@@ -148,6 +157,7 @@ Importante:
 - `VITE_API_URL` precisa ser acessivel pelo navegador dos usuarios.
 - Nao use `chat-server` em producao, a menos que o sistema seja acessado apenas na propria maquina.
 - Se alterar `VITE_API_URL`, e necessario rebuildar o frontend.
+- O PostgreSQL fica acessivel apenas para os containers da aplicacao. Para acessar o banco manualmente, use `docker compose exec db psql -U ferias -d ferias`.
 
 ## Subir o Sistema
 
@@ -192,11 +202,6 @@ http://IP_DO_SERVIDOR:8000/docs
 Credenciais iniciais:
 
 Email e senha dependem das variáveis ADMIN_EMAIL e ADMIN_PASSWORD configuradas no .env.
-
-```text
-Email: admin@sistema.com
-Senha: admin123
-```
 
 ## Firewall
 
@@ -249,18 +254,6 @@ Nao use `docker compose down -v` sem backup, porque isso remove volumes e pode a
 
 ## Backup do Banco
 
-Descubra o nome do volume:
-
-```bash
-docker volume ls
-```
-
-O nome geralmente sera algo como:
-
-```text
-ferias-onrtdpj_ferias_data
-```
-
 Crie a pasta de backups:
 
 ```bash
@@ -270,38 +263,20 @@ mkdir -p backups
 Faca backup:
 
 ```bash
-docker run --rm \
-  -v ferias-onrtdpj_ferias_data:/data \
-  -v "$(pwd)/backups:/backup" \
-  alpine \
-  cp /data/ferias.db /backup/ferias-$(date +%F).db
+docker compose exec -T db pg_dump -U ferias ferias > backups/ferias-$(date +%F).sql
 ```
 
-Se o nome do volume for diferente, substitua `ferias-onrtdpj_ferias_data`.
+Esse comando gera um dump SQL do PostgreSQL.
 
 ## Restaurar Backup
 
-Pare os containers:
+Restaure o backup:
 
 ```bash
-docker compose down
+cat backups/ferias-AAAA-MM-DD.sql | docker compose exec -T db psql -U ferias -d ferias
 ```
 
-Copie o backup para o volume:
-
-```bash
-docker run --rm \
-  -v ferias-onrtdpj_ferias_data:/data \
-  -v "$(pwd)/backups:/backup" \
-  alpine \
-  cp /backup/ferias-AAAA-MM-DD.db /data/ferias.db
-```
-
-Suba novamente:
-
-```bash
-docker compose up -d
-```
+Para restauracoes em ambientes reais, prefira parar o backend durante a operacao e valide o backup antes de sobrescrever dados.
 
 ## HTTPS com Proxy Reverso
 

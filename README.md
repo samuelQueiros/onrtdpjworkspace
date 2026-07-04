@@ -184,7 +184,7 @@ docker run -d \
   -e POSTGRES_USER=ferias \
   -e POSTGRES_PASSWORD=ferias \
   -e POSTGRES_DB=ferias \
-  -p 5432:5432 \
+  -p 127.0.0.1:5432:5432 \
   postgres:16-alpine
 ```
 
@@ -279,7 +279,6 @@ Conteúdo mínimo recomendado para produção:
 POSTGRES_USER=ferias
 POSTGRES_PASSWORD=SenhaForteAqui123
 POSTGRES_DB=ferias
-DB_PORT=5432
 
 # ── Backend ────────────────────────────────────
 # OBRIGATÓRIO: troque por uma string aleatória longa
@@ -321,7 +320,7 @@ docker compose ps
 
 # Saída esperada:
 # NAME              STATUS          PORTS
-# ferias-db         Up (healthy)    0.0.0.0:5432->5432/tcp
+# ferias-db         Up (healthy)    5432/tcp
 # ferias-backend    Up              0.0.0.0:8000->8000/tcp
 # ferias-frontend   Up              0.0.0.0:80->80/tcp
 ```
@@ -360,14 +359,14 @@ docker compose up --build -d
 # Ver uso de recursos
 docker stats
 
-# Acessar o banco de dados diretamente
-docker exec -it ferias-db psql -U ferias -d ferias
+# Acessar o banco de dados pela rede interna do Docker
+docker compose exec db psql -U ferias -d ferias
 
 # Backup do banco de dados
-docker exec ferias-db pg_dump -U ferias ferias > backup_$(date +%Y%m%d).sql
+docker compose exec -T db pg_dump -U ferias ferias > backup_$(date +%Y%m%d).sql
 
 # Restaurar backup
-cat backup_20240101.sql | docker exec -i ferias-db psql -U ferias -d ferias
+cat backup_20240101.sql | docker compose exec -T db psql -U ferias -d ferias
 ```
 
 #### 7. Configurar domínio com HTTPS (Nginx Proxy + Certbot)
@@ -420,7 +419,6 @@ server {
 | `POSTGRES_USER` | Usuário do banco | `ferias` |
 | `POSTGRES_PASSWORD` | Senha do banco | `ferias` |
 | `POSTGRES_DB` | Nome do banco | `ferias` |
-| `DB_PORT` | Porta exposta do PostgreSQL | `5432` |
 | `SECRET_KEY` | Chave de assinatura JWT (**trocar em produção!**) | `troque-esta-chave-em-producao` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Duração da sessão em minutos | `480` (8h) |
 | `VITE_API_URL` | URL pública da API (usada no build do React) | `http://chat-server:8000` |
@@ -672,10 +670,10 @@ FRONTEND_PORT=8080
 
 ```bash
 # Backup
-docker exec ferias-db pg_dump -U ferias ferias > backup_$(date +%Y%m%d_%H%M).sql
+docker compose exec -T db pg_dump -U ferias ferias > backup_$(date +%Y%m%d_%H%M).sql
 
 # Restaurar em container novo
-docker exec -i ferias-db psql -U ferias -d ferias < backup_20240101_1200.sql
+docker compose exec -T db psql -U ferias -d ferias < backup_20240101_1200.sql
 ```
 
 ### Exportação de Logs
