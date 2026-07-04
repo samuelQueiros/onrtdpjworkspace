@@ -59,7 +59,7 @@ Exemplo:
 ```powershell
 Invoke-RestMethod -Method Post `
   -Uri http://chat-server:8000/auth/login `
-  -Body @{username='admin@sistema.com';password='admin123'}
+  -Body @{username='SEU_ADMIN_EMAIL';password='SUA_SENHA_ADMIN'}
 ```
 
 Resposta:

@@ -191,6 +191,8 @@ http://IP_DO_SERVIDOR:8000/docs
 
 Credenciais iniciais:
 
+Email e senha dependem das variáveis ADMIN_EMAIL e ADMIN_PASSWORD configuradas no .env.
+
 ```text
 Email: admin@sistema.com
 Senha: admin123

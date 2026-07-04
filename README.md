@@ -446,7 +446,7 @@ server {
 
 ## Credenciais Iniciais
 
-Geradas automaticamente na primeira inicialização:
+O administrador inicial pode ser criado automaticamente se as variáveis ADMIN_EMAIL e ADMIN_PASSWORD forem configuradas antes da primeira inicialização.
 
 | Campo | Valor |
 |-------|-------|
