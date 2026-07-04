@@ -27,10 +27,13 @@ services:
       ADMIN_NAME: ${ADMIN_NAME:-Administrador}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/app/uploads}
       DATABASE_URL: postgresql://${POSTGRES_USER:-ferias}:${POSTGRES_PASSWORD:-ferias}@db:5432/${POSTGRES_DB:-ferias}
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - ./uploads:${UPLOAD_DIR:-/app/uploads}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     healthcheck:

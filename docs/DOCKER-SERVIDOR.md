@@ -12,13 +12,23 @@ O Docker Compose sobe tres servicos:
 | `backend` | `ferias-backend` | `8000` | API FastAPI |
 | `frontend` | `ferias-frontend` | `80` | Interface React servida por Nginx |
 
-O banco PostgreSQL fica em um volume Docker:
+O banco PostgreSQL fica em volume Docker, e os documentos enviados ficam em uma pasta do servidor montada no container:
 
 ```text
 ferias_data:/var/lib/postgresql/data
+./uploads:/app/uploads
 ```
 
-Isso evita perder o banco ao recriar containers. A porta do PostgreSQL nao e publicada no host por padrao; o backend acessa o banco pela rede interna do Docker usando o hostname `db`.
+Isso evita perder o banco ao recriar containers e deixa os arquivos acessiveis diretamente na maquina em `uploads/`. A porta do PostgreSQL nao e publicada no host por padrao; o backend acessa o banco pela rede interna do Docker usando o hostname `db`.
+
+Os documentos sao organizados dentro da pasta `uploads/` por envio administrativo e recebimento:
+
+```text
+uploads/enviados/nome-admin/nome-destinatario/arquivo
+uploads/recebidos/nome-destinatario/arquivo
+```
+
+Quando um colaborador envia seu proprio documento, o arquivo fica apenas em `uploads/recebidos/nome-colaborador/arquivo`.
 
 ## Arquivos Docker
 
@@ -129,6 +139,7 @@ VITE_API_URL=http://123.123.123.123:8000
 
 FRONTEND_PORT=80
 BACKEND_PORT=8000
+UPLOAD_DIR=/app/uploads
 
 ADMIN_NAME=Administrador
 ADMIN_EMAIL=admin@sistema.com
@@ -146,6 +157,7 @@ VITE_API_URL=https://api-ferias.seudominio.com
 
 FRONTEND_PORT=80
 BACKEND_PORT=8000
+UPLOAD_DIR=/app/uploads
 
 ADMIN_NAME=Administrador
 ADMIN_EMAIL=admin@sistema.com
@@ -157,6 +169,8 @@ Importante:
 - `VITE_API_URL` precisa ser acessivel pelo navegador dos usuarios.
 - Nao use `chat-server` em producao, a menos que o sistema seja acessado apenas na propria maquina.
 - Se alterar `VITE_API_URL`, e necessario rebuildar o frontend.
+- `UPLOAD_DIR` deve apontar para a pasta interna usada pelo container, normalmente `/app/uploads`.
+- No servidor, os arquivos ficam disponiveis na pasta `uploads/` da raiz do projeto.
 - O PostgreSQL fica acessivel apenas para os containers da aplicacao. Para acessar o banco manualmente, use `docker compose exec db psql -U ferias -d ferias`.
 
 ## Subir o Sistema
@@ -252,7 +266,7 @@ docker compose restart
 
 Nao use `docker compose down -v` sem backup, porque isso remove volumes e pode apagar o banco.
 
-## Backup do Banco
+## Backup do Banco e Documentos
 
 Crie a pasta de backups:
 
@@ -267,6 +281,12 @@ docker compose exec -T db pg_dump -U ferias ferias > backups/ferias-$(date +%F).
 ```
 
 Esse comando gera um dump SQL do PostgreSQL.
+
+Os documentos ficam na pasta `uploads/`. Para gerar um arquivo compactado com os uploads:
+
+```bash
+tar czf backups/documentos-$(date +%F).tar.gz uploads
+```
 
 ## Restaurar Backup
 
@@ -443,4 +463,5 @@ docker compose up -d --build
 - [ ] Testar calendario de disponibilidade.
 - [ ] Testar exportacao de logs e relatorios.
 - [ ] Configurar backup do volume `ferias_data`.
+- [ ] Configurar backup da pasta `uploads/`.
 - [ ] Configurar HTTPS para uso real.

@@ -376,6 +376,49 @@ Resposta:
 ]
 ```
 
+## Documentos
+
+### POST `/documentos/upload`
+
+Envia um documento para o usuario informado.
+
+Acesso: autenticado.
+
+Content-Type:
+
+```text
+multipart/form-data
+```
+
+Campos:
+
+| Campo | Tipo | Obrigatorio | Descricao |
+|---|---|---|---|
+| `file` | arquivo | Sim | PDF, JPEG ou PNG de ate 10 MB |
+| `tipo` | string | Sim | `atestado` ou `contracheque` |
+| `user_id` | integer | Sim | Usuario dono do documento |
+
+Observacoes:
+
+- Usuarios comuns podem enviar apenas documentos para si mesmos.
+- Apenas administradores podem enviar `contracheque`.
+- Os arquivos sao salvos em pasta local configurada por `UPLOAD_DIR`.
+- Envios feitos por administradores geram uma copia em `enviados/nome-admin/nome-destinatario/arquivo`.
+- Todos os documentos recebidos ficam em `recebidos/nome-destinatario/arquivo`.
+- Quando um colaborador envia seu proprio documento, o arquivo fica apenas em `recebidos/nome-colaborador/arquivo`.
+
+### GET `/documentos/{doc_id}/download`
+
+Baixa o documento.
+
+Acesso: admin ou usuario dono do documento.
+
+### GET `/documentos/{doc_id}/visualizar`
+
+Abre o documento inline quando o navegador suportar o tipo do arquivo.
+
+Acesso: admin ou usuario dono do documento.
+
 ## Codigos de Erro Comuns
 
 | Codigo | Significado | Situacao comum |

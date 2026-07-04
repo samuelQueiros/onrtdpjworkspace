@@ -47,6 +47,8 @@ O **ONRTDPJ Workspace** é um sistema web full-stack desenvolvido internamente p
 | **Documentos** | Upload e download de atestados e documentos pessoais |
 | **Minhas Credenciais** | Visualização das credenciais de sistemas compartilhados que o colaborador tem acesso, com opção de copiar e mostrar/ocultar senhas |
 
+Os documentos sao armazenados em pasta persistente configurada por `UPLOAD_DIR`. Envios feitos por administradores geram uma copia em `enviados/nome-admin/nome-destinatario/arquivo` e outra em `recebidos/nome-destinatario/arquivo`; envios feitos pelo proprio colaborador ficam apenas em `recebidos/nome-colaborador/arquivo`.
+
 ### Exclusivo para Administradores
 
 | Módulo | Descrição |
@@ -285,6 +287,7 @@ POSTGRES_DB=ferias
 SECRET_KEY=cole-aqui-uma-chave-de-64-caracteres-ou-mais-gerada-aleatoriamente
 ACCESS_TOKEN_EXPIRE_MINUTES=480
 BACKEND_PORT=8000
+UPLOAD_DIR=/app/uploads
 
 # ── Frontend ───────────────────────────────────
 # Troque pelo IP ou domínio público do servidor
@@ -425,6 +428,7 @@ server {
 | `FRONTEND_URL` | URL do frontend (CORS) | `http://chat-server` |
 | `BACKEND_PORT` | Porta exposta do backend | `8000` |
 | `FRONTEND_PORT` | Porta exposta do frontend | `80` |
+| `UPLOAD_DIR` | Pasta interna onde documentos enviados sao salvos | `/app/uploads` |
 
 ### Backend — `backend/.env` (desenvolvimento local)
 
@@ -433,6 +437,7 @@ server {
 | `SECRET_KEY` | Chave JWT | — |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Duração da sessão | `480` |
 | `DATABASE_URL` | URL completa do PostgreSQL | `postgresql://ferias:ferias@localhost:5432/ferias` |
+| `UPLOAD_DIR` | Pasta local para salvar documentos enviados | `./data/uploads` |
 
 ### Frontend — `frontend/.env` (desenvolvimento local)
 
@@ -521,7 +526,7 @@ O token é obtido via `POST /auth/login` e expira após `ACCESS_TOKEN_EXPIRE_MIN
 | `POST` | `/bloqueios` | Admin | Criar bloqueio/recesso |
 | `GET` | `/avisos` | ✓ | Listar avisos do mural |
 | `POST` | `/avisos` | Admin | Criar aviso |
-| `POST` | `/documentos` | ✓ | Upload de documento |
+| `POST` | `/documentos/upload` | ✓ | Upload de documento |
 | `GET` | `/documentos/{id}/download` | ✓ | Download de documento |
 | `POST` | `/importacao` | Admin | Importar colaboradores via Excel |
 

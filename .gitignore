@@ -13,6 +13,9 @@ venv/
 .venv/
 
 ferias.db
+backend/data/uploads/
+data/uploads/
+uploads/
 
 .DS_Store
 
