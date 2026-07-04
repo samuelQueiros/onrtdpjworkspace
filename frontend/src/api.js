@@ -84,8 +84,6 @@ export const api = {
   meusDocumentos: () => req('GET', '/documentos/me'),
   documentosUsuario: userId => req('GET', `/documentos/usuario/${userId}`),
   uploadDocumento: formData => upload('/documentos/upload', formData),
-  downloadDocumentoUrl: id => `${BASE}/documentos/${id}/download?token=${token()}`,
-  visualizarDocumentoUrl: id => `${BASE}/documentos/${id}/visualizar`,
   excluirDocumento: id => req('DELETE', `/documentos/${id}`),
 
   // Relatórios e Logs
