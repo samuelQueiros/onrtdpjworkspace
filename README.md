@@ -12,6 +12,7 @@
 - [Estrutura do Projeto](#estrutura-do-projeto)
 - [Rodando em Desenvolvimento (sem Docker)](#rodando-em-desenvolvimento-sem-docker)
 - [Deploy em Servidor com Docker](#deploy-em-servidor-com-docker)
+- [Testes](#testes)
 - [Variáveis de Ambiente](#variáveis-de-ambiente)
 - [Credenciais Iniciais](#credenciais-iniciais)
 - [Rotas do Frontend](#rotas-do-frontend)
@@ -241,6 +242,27 @@ npm run dev
 ```
 
 Frontend disponível em: `http://127.0.0.1:5173`
+
+---
+
+## Testes
+
+Os testes automatizados do backend ficam em `backend/tests` e cobrem regras criticas de armazenamento de documentos, como normalizacao de nomes, validacao de assinatura de arquivos e protecao contra path traversal.
+
+Para executar usando Docker:
+
+```bash
+docker compose build backend
+docker compose run --rm --entrypoint python backend -m unittest discover -s tests
+```
+
+Para executar localmente, instale antes as dependencias do backend:
+
+```bash
+cd backend
+pip install -r requirements.txt
+python -m unittest discover -s tests
+```
 
 ---
 
