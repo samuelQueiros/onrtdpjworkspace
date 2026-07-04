@@ -1,7 +1,0 @@
-ferias.db
-.env
-venv/
-__pycache__/
-*.pyc
-*.pyo
-.DS_Store
