@@ -31,6 +31,7 @@ O **ONRTDPJ Workspace** é um sistema web full-stack desenvolvido internamente p
 - Banco de dados PostgreSQL com criação automática de tabelas no startup
 - Migrations versionadas com Alembic
 - Containerização completa via Docker e Docker Compose
+- Backend executado como usuário não-root no container
 - API RESTful documentada via Swagger (FastAPI)
 
 ---
@@ -310,6 +311,14 @@ FRONTEND_PORT=80
 ```bash
 # Construir as imagens e iniciar em background
 docker compose up --build -d
+```
+
+Se estiver em servidor Linux, garanta que a pasta de uploads exista e permita escrita para o UID/GID `1000` usado pelo backend:
+
+```bash
+mkdir -p uploads
+chown -R 1000:1000 uploads
+chmod 775 uploads
 ```
 
 Aguarde o processo concluir (~2-3 minutos na primeira vez). O Docker irá:

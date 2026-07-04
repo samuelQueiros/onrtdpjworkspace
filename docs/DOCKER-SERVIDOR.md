@@ -114,6 +114,16 @@ Entre na pasta:
 cd /opt/ferias-onrtdpj
 ```
 
+Crie a pasta de documentos no servidor:
+
+```bash
+mkdir -p uploads
+chown -R 1000:1000 uploads
+chmod 775 uploads
+```
+
+O backend roda como usuario nao-root no container usando UID/GID `1000`. Por isso a pasta `uploads/` precisa permitir escrita para esse usuario.
+
 ## Configurar `.env`
 
 Copie o exemplo:

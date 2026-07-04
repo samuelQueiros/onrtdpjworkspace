@@ -5,6 +5,9 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+ARG APP_UID=1000
+ARG APP_GID=1000
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -12,7 +15,12 @@ COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini .
 
-RUN mkdir -p /app/data /app/uploads
+RUN groupadd --gid ${APP_GID} appuser \
+    && useradd --uid ${APP_UID} --gid ${APP_GID} --create-home --shell /usr/sbin/nologin appuser \
+    && mkdir -p /app/data /app/uploads \
+    && chown -R appuser:appuser /app
+
+USER appuser
 
 EXPOSE 8000
 
