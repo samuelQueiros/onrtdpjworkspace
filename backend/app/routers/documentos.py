@@ -1,4 +1,5 @@
-import base64
+from pathlib import Path
+from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
@@ -26,6 +27,17 @@ def _fmt(doc: Documento) -> dict:
         "criado_por_nome": doc.criado_por.nome if doc.criado_por else "Sistema",
         "criado_em": doc.criado_em,
     }
+
+def corrigir_nome_arquivo(nome: str | None) -> str:
+    nome = Path(nome or "arquivo").name
+    nome = nome.replace("\r", "").replace("\n", "").strip()
+    return nome or "arquivo"
+
+
+def content_disposition(tipo: str, nome_arquivo: str) -> str:
+    nome_seguro = corrigir_nome_arquivo(nome_arquivo)
+    nome_encoded = quote(nome_seguro)
+    return f"{tipo}; filename=\"{nome_seguro}\"; filename*=UTF-8''{nome_encoded}"
 
 
 @router.get("/me")
@@ -86,7 +98,7 @@ async def upload_documento(
     doc = Documento(
         user_id=user_id,
         tipo=tipo,
-        nome_arquivo=file.filename or "arquivo",
+        nome_arquivo=corrigir_nome_arquivo(file.filename),
         mime_type=mime,
         conteudo=conteudo,
         tamanho=len(conteudo),
@@ -123,7 +135,7 @@ def download_documento(
     return Response(
         content=doc.conteudo,
         media_type=doc.mime_type,
-        headers={"Content-Disposition": f'attachment; filename="{doc.nome_arquivo}"'},
+        headers={"Content-Disposition": content_disposition("attachment", doc.nome_arquivo)},
     )
 
 
@@ -143,7 +155,7 @@ def visualizar_documento(
     return Response(
         content=doc.conteudo,
         media_type=doc.mime_type,
-        headers={"Content-Disposition": f'inline; filename="{doc.nome_arquivo}"'},
+        headers={"Content-Disposition": content_disposition("inline", doc.nome_arquivo)},
     )
 
 
