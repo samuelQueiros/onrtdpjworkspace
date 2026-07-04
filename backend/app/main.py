@@ -2,11 +2,9 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from sqlalchemy import text
 
-from app.database import engine, SessionLocal
+from app.database import SessionLocal
 from app.models import User, Ferias, Log, Departamento, Aviso, Documento, BloqueioData, Alerta, Credencial, CredencialUsuario
-from app.database import Base
 from app.routers import auth, users, ferias, relatorios
 from app.routers import departamentos, avisos, documentos, importacao, bloqueios, alertas, credenciais
 from app.core.security import hash_senha
@@ -43,23 +41,8 @@ app.include_router(alertas.router)
 app.include_router(credenciais.router)
 
 
-def garantir_schema_documentos():
-    if engine.dialect.name != "postgresql":
-        return
-
-    with engine.begin() as conn:
-        conn.execute(text("ALTER TABLE documentos ADD COLUMN IF NOT EXISTS caminho_arquivo VARCHAR"))
-        conn.execute(text("ALTER TABLE documentos ADD COLUMN IF NOT EXISTS caminho_enviado VARCHAR"))
-        conn.execute(text("DELETE FROM documentos WHERE caminho_arquivo IS NULL"))
-        conn.execute(text("ALTER TABLE documentos DROP COLUMN IF EXISTS conteudo"))
-        conn.execute(text("ALTER TABLE documentos ALTER COLUMN caminho_arquivo SET NOT NULL"))
-        conn.execute(text("ALTER TABLE documentos ALTER COLUMN caminho_enviado DROP NOT NULL"))
-
-
 @app.on_event("startup")
 def startup():
-    Base.metadata.create_all(bind=engine)
-    garantir_schema_documentos()
     documentos.inicializar_diretorios_upload()
 
     db = SessionLocal()

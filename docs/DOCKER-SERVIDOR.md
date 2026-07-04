@@ -181,6 +181,14 @@ Na raiz do projeto:
 docker compose up -d --build
 ```
 
+Ao iniciar o backend, o container executa automaticamente:
+
+```bash
+alembic upgrade head
+```
+
+Isso aplica as migrations do banco antes de iniciar a API FastAPI.
+
 Verifique:
 
 ```bash
@@ -349,6 +357,12 @@ Logs do backend:
 
 ```bash
 docker compose logs -f backend
+```
+
+Versao atual das migrations no banco:
+
+```bash
+docker compose exec backend alembic current
 ```
 
 Logs do frontend:

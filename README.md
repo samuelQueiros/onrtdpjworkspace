@@ -29,6 +29,7 @@ O **ONRTDPJ Workspace** é um sistema web full-stack desenvolvido internamente p
 - Interface moderna com glassmorphism, totalmente responsiva
 - Autenticação JWT com controle de perfis (Administrador / Colaborador)
 - Banco de dados PostgreSQL com criação automática de tabelas no startup
+- Migrations versionadas com Alembic
 - Containerização completa via Docker e Docker Compose
 - API RESTful documentada via Swagger (FastAPI)
 
@@ -208,11 +209,14 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edite o .env se necessário (veja seção Variáveis de Ambiente)
 
+# Aplicar migrations do banco
+alembic upgrade head
+
 # Iniciar servidor
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-> **O banco é configurado automaticamente** na primeira inicialização: todas as tabelas são criadas via `Base.metadata.create_all()` e o usuário administrador padrão é inserido se não existir.
+> **O banco é configurado por migrations Alembic**. O usuário administrador inicial é inserido no startup se não existir e se `ADMIN_EMAIL`/`ADMIN_PASSWORD` estiverem configurados.
 
 Backend disponível em: `http://127.0.0.1:8000`  
 Swagger (docs interativo): `http://127.0.0.1:8000/docs`
@@ -313,7 +317,8 @@ Aguarde o processo concluir (~2-3 minutos na primeira vez). O Docker irá:
 2. Instalar as dependências Python e Node
 3. Fazer o build de produção do React
 4. Copiar os arquivos estáticos para o Nginx
-5. Iniciar os três serviços em sequência (o backend aguarda o Postgres estar saudável)
+5. Aplicar migrations Alembic no backend
+6. Iniciar os três serviços em sequência (o backend aguarda o Postgres estar saudável)
 
 #### 4. Verificar o status dos serviços
 
