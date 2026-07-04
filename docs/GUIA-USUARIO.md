@@ -14,6 +14,10 @@ Informe email e senha.
 
 Credencial inicial:
 
+Solicite ao administrador responsável o e-mail e senha de acesso.
+
+Exemplo Padrão:
+
 ```text
 Email: admin@sistema.com
 Senha: admin123
