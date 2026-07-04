@@ -13,7 +13,20 @@ from app.core.security import get_current_user, require_admin
 router = APIRouter(prefix="/documentos", tags=["Documentos"])
 
 MAX_SIZE = 10 * 1024 * 1024  # 10 MB
-TIPOS_PERMITIDOS = {"application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp"}
+TIPOS_PERMITIDOS = {"application/pdf", "image/jpeg", "image/png"}
+
+
+def validar_assinatura_arquivo(conteudo: bytes, mime: str) -> bool:
+    if mime == "application/pdf":
+        return conteudo.startswith(b"%PDF-")
+
+    if mime == "image/jpeg":
+        return conteudo.startswith(b"\xff\xd8\xff")
+
+    if mime == "image/png":
+        return conteudo.startswith(b"\x89PNG\r\n\x1a\n")
+
+    return False
 
 
 def _fmt(doc: Documento) -> dict:
@@ -94,6 +107,9 @@ async def upload_documento(
     mime = file.content_type or "application/octet-stream"
     if mime not in TIPOS_PERMITIDOS:
         raise HTTPException(status_code=400, detail=f"Tipo de arquivo não permitido. Aceitos: PDF, JPEG, PNG")
+
+    if not validar_assinatura_arquivo(conteudo, mime):
+        raise HTTPException(status_code=400, detail="Assinatura do arquivo inválida")
 
     doc = Documento(
         user_id=user_id,

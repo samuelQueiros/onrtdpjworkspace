@@ -234,7 +234,7 @@ export default function Documentos() {
 
             <div className="form-group">
               <label>Arquivo (PDF, JPG, PNG — máx. 10 MB)</label>
-              <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" required />
+              <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png," required />
             </div>
 
             <button className="btn btn-primary" type="submit" disabled={uploading}>
