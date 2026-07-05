@@ -5,6 +5,7 @@ from app.schemas.auth import AuthUserOut, TokenOut
 from app.schemas.common import MensagemOut
 from app.schemas.documento import DocumentoOut
 from app.schemas.ferias import DisponibilidadeOut, FeriasOut, MinhasFeriasOut
+from app.schemas.importacao import ImportacaoOut
 from app.schemas.relatorio import DashboardOut, LogDetalhadoOut, RelatorioColaboradoresOut
 from app.schemas.user import AniversarianteOut, UserResponse
 
@@ -184,6 +185,15 @@ class SchemasDtoTests(unittest.TestCase):
         )
 
         self.assertEqual(log.nome_usuario, "Sistema")
+
+    def test_importacao_out_aceita_resultado_da_importacao(self):
+        response = ImportacaoOut(
+            inseridos=1,
+            erros=[],
+            mensagem="1 registro(s) importado(s) com sucesso. 0 erro(s).",
+        )
+
+        self.assertEqual(response.inseridos, 1)
 
     def test_mensagem_out_aceita_detail(self):
         mensagem = MensagemOut(detail="Documento excluido com sucesso")

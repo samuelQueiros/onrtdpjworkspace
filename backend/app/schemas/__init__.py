@@ -17,3 +17,4 @@ from .aviso import AvisoCreate, AvisoOut, AvisoUpdate
 from .bloqueio import BloqueioCreate, BloqueioOut, BloqueioUpdate
 from .alerta import AlertaOut
 from .relatorio import DashboardOut, LogDetalhadoOut, RelatorioColaboradoresOut
+from .importacao import ImportacaoOut
