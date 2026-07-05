@@ -14,7 +14,7 @@ router = APIRouter(tags=["Relatórios e Logs"])
 
 @router.get("/relatorios")
 def relatorio_colaboradores(db: Session = Depends(get_db), _=Depends(require_admin)):
-    from app.routers.ferias import calcular_saldo, get_ciclo_atual
+    from app.services.ferias_service import calcular_saldo, get_ciclo_atual
 
     users = db.query(User).order_by(User.nome).all()
     colaboradores = []

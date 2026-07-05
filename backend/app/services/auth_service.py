@@ -7,7 +7,7 @@ from app.repositories import auth_repository
 
 
 def calcular_dias_restantes(user: User, db: Session) -> int:
-    from app.routers.ferias import calcular_saldo
+    from app.services.ferias_service import calcular_saldo
 
     return calcular_saldo(db, user)
 
