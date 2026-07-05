@@ -31,7 +31,7 @@ export default function Credenciais() {
 
   const startEdit = async (c) => {
     setEditing(c.id)
-    setForm({ descricao: c.descricao, email: c.email, senha: c.senha })
+    setForm({ descricao: c.descricao, email: c.email, senha: '' })
     setError('')
     setSuccess('')
     setMostrarSenha(false)
@@ -202,8 +202,8 @@ export default function Credenciais() {
                     type={mostrarSenha ? 'text' : 'password'}
                     value={form.senha}
                     onChange={e => setForm({ ...form, senha: e.target.value })}
-                    placeholder="Senha de acesso"
-                    required
+                    placeholder={editing === 'nova' ? 'Senha de acesso' : 'Deixe em branco para manter a senha atual'}
+                    required={editing === 'nova'}
                     style={{ flex: 1 }}
                   />
                   <button

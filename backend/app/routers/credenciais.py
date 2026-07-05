@@ -14,21 +14,26 @@ from app.schemas.credencial import (
     CredencialComSenhaOut,
     PermissoesUpdate,
 )
+from app.core.crypto import criptografar_credencial, descriptografar_credencial
 from app.core.security import get_current_user, require_admin
 
 router = APIRouter(prefix="/credenciais", tags=["Credenciais"])
 
 
-def _fmt_credencial(c: Credencial) -> dict:
-    return {
+def _fmt_credencial(c: Credencial, incluir_senha: bool = False) -> dict:
+    dados = {
         "id": c.id,
         "descricao": c.descricao,
         "email": c.email,
-        "senha": c.senha,
         "criado_em": c.criado_em,
         "atualizado_em": c.atualizado_em,
         "total_usuarios": len(c.usuarios),
     }
+
+    if incluir_senha:
+        dados["senha"] = descriptografar_credencial(c.senha)
+
+    return dados
 
 
 @router.get("/minhas", response_model=List[CredencialComSenhaOut])
@@ -42,7 +47,7 @@ def minhas_credenciais(
         .filter(CredencialUsuario.user_id == current_user.id)
         .all()
     )
-    return [_fmt_credencial(c) for c in credenciais]
+    return [_fmt_credencial(c, incluir_senha=True) for c in credenciais]
 
 
 @router.get("", response_model=List[CredencialOut])
@@ -63,7 +68,7 @@ def criar_credencial(
     credencial = Credencial(
         descricao=payload.descricao,
         email=payload.email,
-        senha=payload.senha,
+        senha=criptografar_credencial(payload.senha),
     )
     db.add(credencial)
     db.commit()
@@ -86,8 +91,8 @@ def editar_credencial(
         credencial.descricao = payload.descricao
     if payload.email is not None:
         credencial.email = payload.email
-    if payload.senha is not None:
-        credencial.senha = payload.senha
+    if payload.senha is not None and payload.senha.strip():
+        credencial.senha = criptografar_credencial(payload.senha)
 
     credencial.atualizado_em = datetime.utcnow()
     db.commit()

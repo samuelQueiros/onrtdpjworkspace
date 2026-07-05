@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
@@ -6,7 +6,7 @@ from datetime import datetime
 class CredencialCreate(BaseModel):
     descricao: str
     email: str
-    senha: str
+    senha: str = Field(min_length=1)
 
 
 class CredencialUpdate(BaseModel):

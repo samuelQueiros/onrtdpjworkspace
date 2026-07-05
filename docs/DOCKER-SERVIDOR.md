@@ -141,7 +141,9 @@ nano .env
 Exemplo usando IP:
 
 ```env
+ENVIRONMENT=production
 SECRET_KEY=troque-por-uma-chave-longa-e-segura
+CREDENTIALS_ENCRYPTION_KEY=troque-por-outra-chave-longa-e-segura-para-credenciais
 ACCESS_TOKEN_EXPIRE_MINUTES=480
 
 FRONTEND_URL=http://123.123.123.123
@@ -159,7 +161,9 @@ ADMIN_PASSWORD=admin123
 Exemplo usando dominio:
 
 ```env
+ENVIRONMENT=production
 SECRET_KEY=troque-por-uma-chave-longa-e-segura
+CREDENTIALS_ENCRYPTION_KEY=troque-por-outra-chave-longa-e-segura-para-credenciais
 ACCESS_TOKEN_EXPIRE_MINUTES=480
 
 FRONTEND_URL=https://ferias.seudominio.com
@@ -477,6 +481,7 @@ docker compose up -d --build
 ## Checklist de Producao
 
 - [ ] Trocar `SECRET_KEY`.
+- [ ] Trocar `CREDENTIALS_ENCRYPTION_KEY`.
 - [ ] Trocar senha inicial do admin.
 - [ ] Configurar IP ou dominio.
 - [ ] Conferir `VITE_API_URL`.

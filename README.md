@@ -311,7 +311,9 @@ POSTGRES_DB=ferias
 
 # ── Backend ────────────────────────────────────
 # OBRIGATÓRIO: troque por uma string aleatória longa
+ENVIRONMENT=production
 SECRET_KEY=cole-aqui-uma-chave-de-64-caracteres-ou-mais-gerada-aleatoriamente
+CREDENTIALS_ENCRYPTION_KEY=cole-aqui-outra-chave-longa-para-criptografar-credenciais
 ACCESS_TOKEN_EXPIRE_MINUTES=480
 BACKEND_PORT=8000
 UPLOAD_DIR=/app/uploads
@@ -458,7 +460,9 @@ server {
 | `POSTGRES_USER` | Usuário do banco | `ferias` |
 | `POSTGRES_PASSWORD` | Senha do banco | `ferias` |
 | `POSTGRES_DB` | Nome do banco | `ferias` |
+| `ENVIRONMENT` | Ambiente da aplicação (`production` no Docker) | `production` |
 | `SECRET_KEY` | Chave de assinatura JWT (**trocar em produção!**) | `troque-esta-chave-em-producao` |
+| `CREDENTIALS_ENCRYPTION_KEY` | Chave usada para criptografar senhas compartilhadas | — |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Duração da sessão em minutos | `480` (8h) |
 | `VITE_API_URL` | URL pública da API (usada no build do React) | `http://chat-server:8000` |
 | `FRONTEND_URL` | URL do frontend (CORS) | `http://chat-server` |
@@ -470,7 +474,9 @@ server {
 
 | Variável | Descrição | Padrão |
 |----------|-----------|--------|
+| `ENVIRONMENT` | Ambiente da aplicação | `development` |
 | `SECRET_KEY` | Chave JWT | — |
+| `CREDENTIALS_ENCRYPTION_KEY` | Chave usada para criptografar senhas compartilhadas | — |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Duração da sessão | `480` |
 | `DATABASE_URL` | URL completa do PostgreSQL | `postgresql://ferias:ferias@localhost:5432/ferias` |
 | `UPLOAD_DIR` | Pasta local para salvar documentos enviados | `./data/uploads` |

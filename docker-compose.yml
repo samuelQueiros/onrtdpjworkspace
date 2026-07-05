@@ -21,7 +21,9 @@ services:
     container_name: ferias-backend
     restart: unless-stopped
     environment:
+      ENVIRONMENT: ${ENVIRONMENT:-production}
       SECRET_KEY: ${SECRET_KEY}
+      CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:-}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
       FRONTEND_URL: ${FRONTEND_URL:-http://chat-server}
       ADMIN_NAME: ${ADMIN_NAME:-Administrador}
