@@ -1,8 +1,7 @@
-import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
+from app.core.config import settings
 from app.database import SessionLocal
 from app.models import User, Ferias, Log, Departamento, Aviso, Documento, BloqueioData, Alerta, Credencial, CredencialUsuario
 from app.routers import auth, users, ferias, relatorios
@@ -10,19 +9,15 @@ from app.routers import departamentos, avisos, documentos, importacao, bloqueios
 from app.core.security import hash_senha
 from app.storage.documentos_storage import inicializar_diretorios_upload
 
-load_dotenv()
-
 app = FastAPI(
     title="Gestão RH",
     description="API para gerenciamento de férias e RH de colaboradores",
     version="2.0.0",
 )
 
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url],
+    allow_origins=[settings.frontend_url],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,9 +45,9 @@ def startup():
     try:
         admin_existente = db.query(User).filter(User.role == "admin").first()
         if not admin_existente:
-            admin_email = os.getenv("ADMIN_EMAIL")
-            admin_password = os.getenv("ADMIN_PASSWORD")
-            admin_name = os.getenv("ADMIN_NAME", "Administrador")
+            admin_email = settings.admin_email
+            admin_password = settings.admin_password
+            admin_name = settings.admin_name
 
             if admin_email and admin_password:
                 admin = User(

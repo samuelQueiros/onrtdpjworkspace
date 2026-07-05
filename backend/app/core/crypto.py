@@ -1,8 +1,9 @@
 import base64
 import hashlib
-import os
 
 from cryptography.fernet import Fernet, InvalidToken
+
+from app.core.config import settings
 
 
 CREDENTIAL_PREFIX = "fernet:"
@@ -14,14 +15,7 @@ def _derive_key(secret: str) -> bytes:
 
 
 def _get_credentials_secret() -> str:
-    secret = os.getenv("CREDENTIALS_ENCRYPTION_KEY")
-    if secret:
-        return secret
-
-    if os.getenv("ENVIRONMENT", "development") == "production":
-        raise RuntimeError("CREDENTIALS_ENCRYPTION_KEY nao esta configurada.")
-
-    return os.getenv("SECRET_KEY", "chave-local-para-credenciais")
+    return settings.credentials_encryption_key
 
 
 def _get_fernet() -> Fernet:

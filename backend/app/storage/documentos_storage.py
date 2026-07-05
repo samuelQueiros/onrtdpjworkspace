@@ -1,4 +1,3 @@
-import os
 import re
 import unicodedata
 from pathlib import Path
@@ -7,6 +6,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 
+from app.core.config import settings
 from app.models.documento import Documento
 from app.models.user import User
 
@@ -20,7 +20,7 @@ EXTENSOES_POR_MIME = {
 
 
 def obter_upload_dir() -> Path:
-    upload_dir = Path(os.getenv("UPLOAD_DIR", "data/uploads")).resolve()
+    upload_dir = settings.upload_dir
     (upload_dir / "enviados").mkdir(parents=True, exist_ok=True)
     (upload_dir / "recebidos").mkdir(parents=True, exist_ok=True)
     return upload_dir
