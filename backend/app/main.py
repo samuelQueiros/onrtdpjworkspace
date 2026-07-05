@@ -3,11 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.database import SessionLocal
-from app.models import User, Ferias, Log, Departamento, Aviso, Documento, BloqueioData, Alerta, Credencial, CredencialUsuario
 from app.routers import auth, users, ferias, relatorios
 from app.routers import departamentos, avisos, documentos, importacao, bloqueios, alertas, credenciais
-from app.core.security import hash_senha
-from app.storage.documentos_storage import inicializar_diretorios_upload
+from app.services import bootstrap_service
 
 app = FastAPI(
     title="Gestão RH",
@@ -39,33 +37,15 @@ app.include_router(credenciais.router)
 
 @app.on_event("startup")
 def startup():
-    inicializar_diretorios_upload()
+    bootstrap_service.inicializar_uploads()
 
     db = SessionLocal()
     try:
-        admin_existente = db.query(User).filter(User.role == "admin").first()
-        if not admin_existente:
-            admin_email = settings.admin_email
-            admin_password = settings.admin_password
-            admin_name = settings.admin_name
-
-            if admin_email and admin_password:
-                admin = User(
-                    nome=admin_name,
-                    email=admin_email,
-                    senha_hash=hash_senha(admin_password),
-                    role="admin",
-                    dias_totais=30,
-                )
-                db.add(admin)
-                db.flush()
-
-                log = Log(user_id = admin.id, acao = "USUARIO_CRIADO", detalhes = "Administrador inicial criado automaticamente.")
-                db.add(log)
-                db.commit()
-                print(f"Admin inicial criado: {admin_email}")
-            else:
-                print("Nenhum administrador encontrado. Configure ADMIN_EMAIL e ADMIN_PASSWORD.")
+        resultado = bootstrap_service.garantir_admin_inicial(db)
+        if resultado == "admin_criado":
+            print(f"Admin inicial criado: {settings.admin_email}")
+        elif resultado == "admin_nao_configurado":
+            print("Nenhum administrador encontrado. Configure ADMIN_EMAIL e ADMIN_PASSWORD.")
     finally:
         db.close()
 

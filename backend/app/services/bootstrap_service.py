@@ -1,0 +1,38 @@
+from sqlalchemy.orm import Session
+
+from app.core.config import settings
+from app.core.security import hash_senha
+from app.models.log import Log
+from app.models.user import User
+from app.repositories import bootstrap_repository
+from app.storage.documentos_storage import inicializar_diretorios_upload
+
+
+def inicializar_uploads() -> None:
+    inicializar_diretorios_upload()
+
+
+def garantir_admin_inicial(db: Session) -> str:
+    if bootstrap_repository.obter_admin(db):
+        return "admin_existente"
+
+    admin_email = settings.admin_email
+    admin_password = settings.admin_password
+
+    if not admin_email or not admin_password:
+        return "admin_nao_configurado"
+
+    admin = User(
+        nome=settings.admin_name,
+        email=admin_email,
+        senha_hash=hash_senha(admin_password),
+        role="admin",
+        dias_totais=30,
+    )
+    log = Log(
+        user_id=None,
+        acao="USUARIO_CRIADO",
+        detalhes="Administrador inicial criado automaticamente.",
+    )
+    bootstrap_repository.salvar_admin_com_log(db, admin, log)
+    return "admin_criado"
