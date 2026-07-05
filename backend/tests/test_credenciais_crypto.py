@@ -6,8 +6,8 @@ from app.core.crypto import (
     criptografar_credencial,
     descriptografar_credencial,
 )
-from app.routers.credenciais import criar_credencial, _fmt_credencial
 from app.schemas.credencial import CredencialCreate
+from app.services.credenciais_service import criar_credencial, formatar_credencial
 
 
 class FakeDb:
@@ -61,7 +61,7 @@ class CredenciaisCryptoTests(unittest.TestCase):
             senha="senha-original",
         )
 
-        response = criar_credencial(payload=payload, db=db, _=None)
+        response = criar_credencial(payload=payload, db=db)
 
         self.assertNotEqual(db.saved.senha, "senha-original")
         self.assertTrue(db.saved.senha.startswith(CREDENTIAL_PREFIX))
@@ -74,10 +74,10 @@ class CredenciaisCryptoTests(unittest.TestCase):
             email="acesso@sistema.com",
             senha="senha-original",
         )
-        criar_credencial(payload=payload, db=db, _=None)
+        criar_credencial(payload=payload, db=db)
 
-        sem_senha = _fmt_credencial(db.saved)
-        com_senha = _fmt_credencial(db.saved, incluir_senha=True)
+        sem_senha = formatar_credencial(db.saved)
+        com_senha = formatar_credencial(db.saved, incluir_senha=True)
 
         self.assertNotIn("senha", sem_senha)
         self.assertEqual(com_senha["senha"], "senha-original")
