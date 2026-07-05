@@ -8,6 +8,7 @@ from app.models import User, Ferias, Log, Departamento, Aviso, Documento, Bloque
 from app.routers import auth, users, ferias, relatorios
 from app.routers import departamentos, avisos, documentos, importacao, bloqueios, alertas, credenciais
 from app.core.security import hash_senha
+from app.storage.documentos_storage import inicializar_diretorios_upload
 
 load_dotenv()
 
@@ -43,7 +44,7 @@ app.include_router(credenciais.router)
 
 @app.on_event("startup")
 def startup():
-    documentos.inicializar_diretorios_upload()
+    inicializar_diretorios_upload()
 
     db = SessionLocal()
     try:

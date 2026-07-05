@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from fastapi import HTTPException
 
 from app.models.documento import Documento
-from app.routers import documentos
+from app.storage import documentos_storage
 
 
 class DocumentosStorageTests(unittest.TestCase):
@@ -27,34 +27,34 @@ class DocumentosStorageTests(unittest.TestCase):
     def test_nome_pasta_usuario_normaliza_nome(self):
         user = SimpleNamespace(nome="Joao da Silva Junior")
 
-        self.assertEqual(documentos.nome_pasta_usuario(user), "joao-da-silva-junior")
+        self.assertEqual(documentos_storage.nome_pasta_usuario(user), "joao-da-silva-junior")
 
     def test_nome_pasta_usuario_tem_fallback(self):
         user = SimpleNamespace(nome="!!!")
 
-        self.assertEqual(documentos.nome_pasta_usuario(user), "usuario")
+        self.assertEqual(documentos_storage.nome_pasta_usuario(user), "usuario")
 
     def test_validar_assinatura_arquivo_permite_tipos_esperados(self):
-        self.assertTrue(documentos.validar_assinatura_arquivo(b"%PDF-1.7", "application/pdf"))
-        self.assertTrue(documentos.validar_assinatura_arquivo(b"\xff\xd8\xff\xe0", "image/jpeg"))
-        self.assertTrue(documentos.validar_assinatura_arquivo(b"\x89PNG\r\n\x1a\n", "image/png"))
+        self.assertTrue(documentos_storage.validar_assinatura_arquivo(b"%PDF-1.7", "application/pdf"))
+        self.assertTrue(documentos_storage.validar_assinatura_arquivo(b"\xff\xd8\xff\xe0", "image/jpeg"))
+        self.assertTrue(documentos_storage.validar_assinatura_arquivo(b"\x89PNG\r\n\x1a\n", "image/png"))
 
     def test_validar_assinatura_arquivo_recusa_conteudo_invalido(self):
-        self.assertFalse(documentos.validar_assinatura_arquivo(b"<script></script>", "application/pdf"))
-        self.assertFalse(documentos.validar_assinatura_arquivo(b"GIF89a", "image/png"))
+        self.assertFalse(documentos_storage.validar_assinatura_arquivo(b"<script></script>", "application/pdf"))
+        self.assertFalse(documentos_storage.validar_assinatura_arquivo(b"GIF89a", "image/png"))
 
     def test_gerar_nome_armazenamento_remove_caminho_e_normaliza(self):
-        nome = documentos.gerar_nome_armazenamento("../Contra Cheque 07.pdf", "application/pdf")
+        nome = documentos_storage.gerar_nome_armazenamento("../Contra Cheque 07.pdf", "application/pdf")
 
         self.assertRegex(nome, r"^[0-9a-f]{32}-contra-cheque-07\.pdf$")
 
     def test_gerar_nome_armazenamento_corrige_extensao_pelo_mime(self):
-        nome = documentos.gerar_nome_armazenamento("foto.exe", "image/png")
+        nome = documentos_storage.gerar_nome_armazenamento("foto.exe", "image/png")
 
         self.assertRegex(nome, r"^[0-9a-f]{32}-foto\.png$")
 
     def test_obter_upload_dir_cria_pastas_base(self):
-        upload_dir = documentos.obter_upload_dir()
+        upload_dir = documentos_storage.obter_upload_dir()
 
         self.assertTrue((upload_dir / "enviados").is_dir())
         self.assertTrue((upload_dir / "recebidos").is_dir())
@@ -63,7 +63,7 @@ class DocumentosStorageTests(unittest.TestCase):
         doc = Documento(caminho_arquivo="../segredo.pdf")
 
         with self.assertRaises(HTTPException) as exc:
-            documentos.caminho_documento(doc)
+            documentos_storage.caminho_documento(doc)
 
         self.assertEqual(exc.exception.status_code, 400)
 
@@ -75,10 +75,10 @@ class DocumentosStorageTests(unittest.TestCase):
 
         doc = Documento(caminho_arquivo="recebidos/gabriel/arquivo.pdf")
 
-        self.assertEqual(documentos.caminho_documento(doc), caminho.resolve())
+        self.assertEqual(documentos_storage.caminho_documento(doc), caminho.resolve())
 
     def test_content_disposition_remove_quebra_de_linha(self):
-        header = documentos.content_disposition("attachment", "arquivo\r\nmalicioso.pdf")
+        header = documentos_storage.content_disposition("attachment", "arquivo\r\nmalicioso.pdf")
 
         self.assertNotIn("\r", header)
         self.assertNotIn("\n", header)
