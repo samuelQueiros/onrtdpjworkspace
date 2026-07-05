@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.documento import Documento
 from app.models.log import Log
 from app.models.user import User
+from app.repositories import documentos_repository
 from app.storage.documentos_storage import (
     MAX_SIZE,
     TIPOS_PERMITIDOS,
@@ -50,26 +51,21 @@ def validar_arquivo_upload(arquivo_bytes: bytes, mime: str) -> None:
 
 
 def buscar_usuario(db: Session, user_id: int) -> User:
-    user = db.query(User).filter(User.id == user_id).first()
+    user = documentos_repository.obter_usuario_por_id(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario nao encontrado")
     return user
 
 
 def buscar_documento(db: Session, doc_id: int) -> Documento:
-    doc = db.query(Documento).filter(Documento.id == doc_id).first()
+    doc = documentos_repository.obter_documento_por_id(db, doc_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Documento nao encontrado")
     return doc
 
 
 def listar_documentos_usuario(db: Session, user_id: int) -> list[Documento]:
-    return (
-        db.query(Documento)
-        .filter(Documento.user_id == user_id)
-        .order_by(Documento.criado_em.desc())
-        .all()
-    )
+    return documentos_repository.listar_documentos_por_usuario(db, user_id)
 
 
 def salvar_arquivo_upload(
@@ -135,17 +131,12 @@ async def criar_documento_upload(
     )
 
     try:
-        db.add(doc)
-        db.flush()
-
         log = Log(
             user_id=current_user.id,
             acao="DOCUMENTO_ENVIADO",
             detalhes=f"{tipo.title()} '{file.filename}' enviado para {target_user.nome}",
         )
-        db.add(log)
-        db.commit()
-        db.refresh(doc)
+        documentos_repository.salvar_documento_com_log(db, doc, log)
     except Exception:
         db.rollback()
         if caminho_enviado:
@@ -180,9 +171,7 @@ def excluir_documento_admin(db: Session, doc_id: int, current_user: User) -> Non
         acao="DOCUMENTO_EXCLUIDO",
         detalhes=f"Documento '{doc.nome_arquivo}' excluido",
     )
-    db.add(log)
-    db.delete(doc)
-    db.commit()
+    documentos_repository.excluir_documento_com_log(db, doc, log)
 
     for caminho in caminhos:
         caminho.unlink(missing_ok=True)
