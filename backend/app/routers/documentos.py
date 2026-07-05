@@ -6,6 +6,7 @@ from app.core.security import get_current_user, require_admin
 from app.database import get_db
 from app.models.documento import Documento
 from app.models.user import User
+from app.schemas.documento import DocumentoOut, MensagemOut
 from app.services.documentos_service import (
     buscar_documento,
     buscar_usuario,
@@ -45,7 +46,7 @@ def responder_documento(doc: Documento, disposition: str):
     )
 
 
-@router.get("/me")
+@router.get("/me", response_model=list[DocumentoOut])
 def meus_documentos(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -54,7 +55,7 @@ def meus_documentos(
     return [_fmt(d) for d in docs]
 
 
-@router.get("/usuario/{user_id}")
+@router.get("/usuario/{user_id}", response_model=list[DocumentoOut])
 def documentos_usuario(
     user_id: int,
     db: Session = Depends(get_db),
@@ -68,7 +69,7 @@ def documentos_usuario(
     return [_fmt(d) for d in docs]
 
 
-@router.post("/upload", status_code=status.HTTP_201_CREATED)
+@router.post("/upload", response_model=DocumentoOut, status_code=status.HTTP_201_CREATED)
 async def upload_documento(
     file: UploadFile = File(...),
     tipo: str = Form(...),
@@ -104,7 +105,7 @@ def visualizar_documento(
     return responder_documento(doc, "inline")
 
 
-@router.delete("/{doc_id}", status_code=status.HTTP_200_OK)
+@router.delete("/{doc_id}", response_model=MensagemOut, status_code=status.HTTP_200_OK)
 def excluir_documento(
     doc_id: int,
     db: Session = Depends(get_db),
