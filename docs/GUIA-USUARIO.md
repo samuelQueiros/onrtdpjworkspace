@@ -14,14 +14,7 @@ Informe email e senha.
 
 Credencial inicial:
 
-Solicite ao administrador responsável o e-mail e senha de acesso.
-
-Exemplo Padrão:
-
-```text
-Email: admin@sistema.com
-Senha: admin123
-```
+Solicite ao administrador responsavel o e-mail e a senha de acesso. Em ambientes Docker, esses dados sao definidos pelas variaveis `ADMIN_EMAIL` e `ADMIN_PASSWORD` no arquivo `.env`.
 
 ## Perfis
 

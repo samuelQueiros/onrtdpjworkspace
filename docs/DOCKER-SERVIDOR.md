@@ -155,7 +155,7 @@ UPLOAD_DIR=/app/uploads
 
 ADMIN_NAME=Administrador
 ADMIN_EMAIL=admin@sistema.com
-ADMIN_PASSWORD=admin123
+ADMIN_PASSWORD=troque-por-uma-senha-forte
 ```
 
 Exemplo usando dominio:
@@ -175,7 +175,7 @@ UPLOAD_DIR=/app/uploads
 
 ADMIN_NAME=Administrador
 ADMIN_EMAIL=admin@sistema.com
-ADMIN_PASSWORD=admin123
+ADMIN_PASSWORD=troque-por-uma-senha-forte
 ```
 
 Importante:

@@ -29,7 +29,7 @@ O **ONRTDPJ Workspace** é um sistema web full-stack desenvolvido internamente p
 
 - Interface moderna com glassmorphism, totalmente responsiva
 - Autenticação JWT com controle de perfis (Administrador / Colaborador)
-- Banco de dados PostgreSQL com criação automática de tabelas no startup
+- Banco de dados PostgreSQL com schema versionado por migrations Alembic
 - Migrations versionadas com Alembic
 - Containerização completa via Docker e Docker Compose
 - Backend executado como usuário não-root no container
@@ -495,11 +495,11 @@ O administrador inicial pode ser criado automaticamente se as variáveis ADMIN_E
 
 | Campo | Valor |
 |-------|-------|
-| E-mail | `admin@sistema.com` |
-| Senha | `admin123` |
+| E-mail | Definido em `ADMIN_EMAIL` |
+| Senha | Definida em `ADMIN_PASSWORD` |
 | Perfil | Administrador |
 
-> Recomendamos alterar a senha e o e-mail após o primeiro acesso em produção.
+> Use uma senha forte ja no `.env` de producao. O arquivo `.env` nao deve ser versionado.
 
 ---
 
@@ -617,7 +617,7 @@ O token é obtido via `POST /auth/login` e expira após `ACCESS_TOKEN_EXPIRE_MIN
 | `id` | Integer PK | Identificador |
 | `descricao` | String | Nome do sistema/serviço |
 | `email` | String | Login da credencial |
-| `senha` | String | Senha (armazenada em texto — protegida por perfil) |
+| `senha` | String | Senha criptografada no banco e descriptografada apenas para usuarios autorizados |
 | `criado_em` | DateTime | Timestamp de criação |
 | `atualizado_em` | DateTime | Última atualização |
 
@@ -692,7 +692,7 @@ Em produção com Docker, confirme que `VITE_API_URL` no `.env` raiz aponta para
 
 ### Erro de CORS
 
-O backend aceita qualquer origem em modo padrão (`allow_origins=["*"]`). Se ocorrer erro de CORS mesmo assim, verifique se o `VITE_API_URL` não tem barra no final e se o backend iniciou sem erros.
+O backend aceita apenas a origem configurada em `FRONTEND_URL`. Se ocorrer erro de CORS, confira se `FRONTEND_URL` aponta para a URL usada no navegador e se `VITE_API_URL` aponta para a API sem barra final.
 
 ### Container `ferias-backend` reinicia em loop
 
