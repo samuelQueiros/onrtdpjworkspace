@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 
 from app.schemas.auth import AuthUserOut, TokenOut
 from app.schemas.documento import DocumentoOut, MensagemOut
+from app.schemas.user import AniversarianteOut, UserResponse
 
 
 class SchemasDtoTests(unittest.TestCase):
@@ -58,6 +59,29 @@ class SchemasDtoTests(unittest.TestCase):
         mensagem = MensagemOut(detail="Documento excluido com sucesso")
 
         self.assertEqual(mensagem.detail, "Documento excluido com sucesso")
+
+    def test_user_response_aceita_formato_das_rotas_de_usuarios(self):
+        user = UserResponse(
+            id=1,
+            nome="Admin",
+            email="admin@sistema.com",
+            role="admin",
+            dias_totais=30,
+            dias_restantes=20,
+            departamento_id=2,
+            departamento={"id": 2, "nome": "RH"},
+            data_admissao=None,
+            data_aniversario=None,
+            cor="#ffffff",
+            criado_em=datetime.now(UTC),
+        )
+
+        self.assertEqual(user.departamento.nome, "RH")
+
+    def test_aniversariante_out_aceita_data(self):
+        aniversariante = AniversarianteOut(nome="Gabriel", data_aniversario=datetime.now(UTC).date())
+
+        self.assertEqual(aniversariante.nome, "Gabriel")
 
 
 if __name__ == "__main__":

@@ -55,3 +55,32 @@ class UserWithDias(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UserDepartamentoOut(BaseModel):
+    id: int
+    nome: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    nome: str
+    email: str
+    role: str
+    dias_totais: int
+    dias_restantes: int
+    departamento_id: Optional[int] = None
+    departamento: Optional[UserDepartamentoOut] = None
+    data_admissao: Optional[date] = None
+    data_aniversario: Optional[date] = None
+    cor: Optional[str] = None
+    criado_em: datetime
+
+
+class AniversarianteOut(BaseModel):
+    nome: str
+    data_aniversario: date
+
+
+class MensagemOut(BaseModel):
+    detail: str
