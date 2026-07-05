@@ -21,3 +21,11 @@ class DepartamentoOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DepartamentoComTotalOut(DepartamentoOut):
+    total_usuarios: int
+
+
+class MensagemOut(BaseModel):
+    detail: str
