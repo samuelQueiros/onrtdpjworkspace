@@ -8,7 +8,7 @@ from .user import (
     UserWithDias,
 )
 from .common import MensagemOut
-from .ferias import FeriasCreate, FeriasUpdate, FeriasOut, DisponibilidadeOut
+from .ferias import DisponibilidadeOut, FeriadoOut, FeriasCreate, FeriasOut, FeriasUpdate, MinhasFeriasOut
 from .log import LogOut
 from .auth import AuthDepartamentoOut, AuthUserOut, TokenOut
 from .documento import DocumentoOut

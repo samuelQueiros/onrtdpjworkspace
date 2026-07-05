@@ -1,6 +1,7 @@
-from pydantic import BaseModel, model_validator
-from typing import Optional, List
 from datetime import date, datetime
+from typing import List, Optional
+
+from pydantic import BaseModel, model_validator
 
 
 class FeriasCreate(BaseModel):
@@ -37,6 +38,8 @@ class FeriasAprovar(BaseModel):
 class FeriasOut(BaseModel):
     id: int
     user_id: int
+    nome_usuario: Optional[str] = None
+    cor_usuario: Optional[str] = None
     data_inicio: date
     data_fim: date
     dias_usados: int
@@ -44,9 +47,27 @@ class FeriasOut(BaseModel):
     ferias_acordo: bool
     motivo_rejeicao: Optional[str]
     criado_em: datetime
+    aprovado_por_id: Optional[int] = None
+    aprovado_por_nome: Optional[str] = None
+    aprovado_em: Optional[datetime] = None
+    rejeitado_por_id: Optional[int] = None
+    rejeitado_por_nome: Optional[str] = None
+    rejeitado_em: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+
+class MinhasFeriasOut(BaseModel):
+    ferias: List[FeriasOut]
+    saldo: int
+    ciclo_inicio: date
+    ciclo_fim: date
+
+
+class FeriadoOut(BaseModel):
+    data: str
+    nome: str
 
 
 class PeriodoBloqueado(BaseModel):
@@ -54,5 +75,26 @@ class PeriodoBloqueado(BaseModel):
     data_fim: date
 
 
+class FeriasMarcadaOut(BaseModel):
+    id: int
+    user_id: int
+    nome: str
+    cor: Optional[str] = None
+    data_inicio: date
+    data_fim: date
+    dias_usados: int
+    ferias_acordo: bool
+
+
+class BloqueioManualOut(BaseModel):
+    id: int
+    data_inicio: date
+    data_fim: date
+    motivo: str
+    tipo: str
+
+
 class DisponibilidadeOut(BaseModel):
     periodos_bloqueados: List[PeriodoBloqueado]
+    ferias_marcadas: List[FeriasMarcadaOut]
+    bloqueios_manuais: List[BloqueioManualOut]

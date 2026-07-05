@@ -5,38 +5,46 @@ from app.core.security import get_current_user, require_admin
 from app.database import get_db
 from app.models.user import User
 from app.schemas.common import MensagemOut
-from app.schemas.ferias import FeriasAprovar, FeriasCreate, FeriasUpdate
+from app.schemas.ferias import (
+    DisponibilidadeOut,
+    FeriadoOut,
+    FeriasAprovar,
+    FeriasCreate,
+    FeriasOut,
+    FeriasUpdate,
+    MinhasFeriasOut,
+)
 from app.services import ferias_service
 
 router = APIRouter(prefix="/ferias", tags=["Ferias"])
 
 
-@router.get("/feriados/{year}")
+@router.get("/feriados/{year}", response_model=list[FeriadoOut])
 def listar_feriados(year: int, _=Depends(get_current_user)):
     return ferias_service.listar_feriados(year)
 
 
-@router.get("/me")
+@router.get("/me", response_model=MinhasFeriasOut)
 def minhas_ferias(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return ferias_service.minhas_ferias(db, current_user)
 
 
-@router.get("/pendentes")
+@router.get("/pendentes", response_model=list[FeriasOut])
 def ferias_pendentes(db: Session = Depends(get_db), _=Depends(require_admin)):
     return ferias_service.ferias_pendentes(db)
 
 
-@router.get("/todas")
+@router.get("/todas", response_model=list[FeriasOut])
 def todas_ferias(db: Session = Depends(get_db), _=Depends(require_admin)):
     return ferias_service.todas_ferias(db)
 
 
-@router.get("/disponibilidade")
+@router.get("/disponibilidade", response_model=DisponibilidadeOut)
 def disponibilidade(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return ferias_service.disponibilidade(db, current_user)
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=FeriasOut, status_code=status.HTTP_201_CREATED)
 def registrar_ferias(
     payload: FeriasCreate,
     db: Session = Depends(get_db),
@@ -45,7 +53,7 @@ def registrar_ferias(
     return ferias_service.registrar_ferias(db, payload, current_user)
 
 
-@router.put("/{ferias_id}/aprovar")
+@router.put("/{ferias_id}/aprovar", response_model=FeriasOut)
 def aprovar_ferias(
     ferias_id: int,
     db: Session = Depends(get_db),
@@ -54,7 +62,7 @@ def aprovar_ferias(
     return ferias_service.aprovar_ferias(db, ferias_id, current_user)
 
 
-@router.put("/{ferias_id}/rejeitar")
+@router.put("/{ferias_id}/rejeitar", response_model=FeriasOut)
 def rejeitar_ferias(
     ferias_id: int,
     payload: FeriasAprovar,
@@ -64,7 +72,7 @@ def rejeitar_ferias(
     return ferias_service.rejeitar_ferias(db, ferias_id, payload, current_user)
 
 
-@router.put("/{ferias_id}")
+@router.put("/{ferias_id}", response_model=FeriasOut)
 def editar_ferias(
     ferias_id: int,
     payload: FeriasUpdate,
