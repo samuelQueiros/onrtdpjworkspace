@@ -28,3 +28,7 @@ class AvisoOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class MensagemOut(BaseModel):
+    detail: str

@@ -13,3 +13,4 @@ from .log import LogOut
 from .auth import AuthDepartamentoOut, AuthUserOut, TokenOut
 from .documento import DocumentoOut, MensagemOut
 from .departamento import DepartamentoComTotalOut, DepartamentoCreate, DepartamentoOut, DepartamentoUpdate
+from .aviso import AvisoCreate, AvisoOut, AvisoUpdate
