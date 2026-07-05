@@ -2,7 +2,8 @@ import unittest
 from datetime import UTC, datetime
 
 from app.schemas.auth import AuthUserOut, TokenOut
-from app.schemas.documento import DocumentoOut, MensagemOut
+from app.schemas.common import MensagemOut
+from app.schemas.documento import DocumentoOut
 from app.schemas.user import AniversarianteOut, UserResponse
 
 

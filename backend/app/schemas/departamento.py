@@ -25,7 +25,3 @@ class DepartamentoOut(BaseModel):
 
 class DepartamentoComTotalOut(DepartamentoOut):
     total_usuarios: int
-
-
-class MensagemOut(BaseModel):
-    detail: str

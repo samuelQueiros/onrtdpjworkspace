@@ -80,7 +80,3 @@ class UserResponse(BaseModel):
 class AniversarianteOut(BaseModel):
     nome: str
     data_aniversario: date
-
-
-class MensagemOut(BaseModel):
-    detail: str

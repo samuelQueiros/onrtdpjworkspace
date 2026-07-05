@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from app.core.security import get_current_user, require_admin
 from app.database import get_db
 from app.models.user import User
-from app.schemas.bloqueio import BloqueioCreate, BloqueioOut, BloqueioUpdate, MensagemOut
+from app.schemas.bloqueio import BloqueioCreate, BloqueioOut, BloqueioUpdate
+from app.schemas.common import MensagemOut
 from app.services import bloqueios_service
 
 router = APIRouter(prefix="/bloqueios", tags=["Bloqueios de Datas"])

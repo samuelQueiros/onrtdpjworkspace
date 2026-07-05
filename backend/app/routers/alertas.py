@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.core.security import require_admin
 from app.database import get_db
-from app.schemas.alerta import AlertaOut, MensagemOut
+from app.schemas.alerta import AlertaOut
+from app.schemas.common import MensagemOut
 from app.services import alertas_service
 
 router = APIRouter(prefix="/alertas", tags=["Alertas"])

@@ -12,7 +12,3 @@ class DocumentoOut(BaseModel):
     tamanho: int
     criado_por_nome: str
     criado_em: datetime
-
-
-class MensagemOut(BaseModel):
-    detail: str

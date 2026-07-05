@@ -4,12 +4,12 @@ from sqlalchemy.orm import Session
 from app.core.security import get_current_user, require_admin
 from app.database import get_db
 from app.models.user import User
+from app.schemas.common import MensagemOut
 from app.schemas.departamento import (
     DepartamentoComTotalOut,
     DepartamentoCreate,
     DepartamentoOut,
     DepartamentoUpdate,
-    MensagemOut,
 )
 from app.services import departamentos_service
 

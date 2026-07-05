@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from app.core.security import get_current_user, require_admin
 from app.database import get_db
 from app.models.user import User
-from app.schemas.aviso import AvisoCreate, AvisoOut, AvisoUpdate, MensagemOut
+from app.schemas.aviso import AvisoCreate, AvisoOut, AvisoUpdate
+from app.schemas.common import MensagemOut
 from app.services import avisos_service
 
 router = APIRouter(prefix="/avisos", tags=["Mural de Avisos"])

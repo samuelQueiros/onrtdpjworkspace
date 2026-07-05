@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from app.core.security import get_current_user, require_admin
 from app.database import get_db
 from app.models.user import User
-from app.schemas.user import (AniversarianteOut, MensagemOut, UserConfigUpdate, UserCreate, UserResponse, UserUpdate,)
+from app.schemas.common import MensagemOut
+from app.schemas.user import AniversarianteOut, UserConfigUpdate, UserCreate, UserResponse, UserUpdate
 from app.services import users_service
 
 router = APIRouter(tags=["Usuarios"])

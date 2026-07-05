@@ -6,7 +6,8 @@ from app.core.security import get_current_user, require_admin
 from app.database import get_db
 from app.models.documento import Documento
 from app.models.user import User
-from app.schemas.documento import DocumentoOut, MensagemOut
+from app.schemas.common import MensagemOut
+from app.schemas.documento import DocumentoOut
 from app.services.documentos_service import (
     buscar_documento,
     buscar_usuario,
