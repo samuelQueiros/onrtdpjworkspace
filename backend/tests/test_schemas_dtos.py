@@ -5,6 +5,7 @@ from app.schemas.auth import AuthUserOut, TokenOut
 from app.schemas.common import MensagemOut
 from app.schemas.documento import DocumentoOut
 from app.schemas.ferias import DisponibilidadeOut, FeriasOut, MinhasFeriasOut
+from app.schemas.relatorio import DashboardOut, LogDetalhadoOut, RelatorioColaboradoresOut
 from app.schemas.user import AniversarianteOut, UserResponse
 
 
@@ -114,6 +115,75 @@ class SchemasDtoTests(unittest.TestCase):
         )
 
         self.assertEqual(response.ferias_marcadas[0].nome, "Gabriel")
+
+    def test_relatorio_colaboradores_out_aceita_shape_do_csv(self):
+        hoje = datetime.now(UTC).date()
+        response = RelatorioColaboradoresOut(
+            colaboradores=[
+                {
+                    "id": 1,
+                    "nome": "Gabriel",
+                    "email": "gabriel@sistema.com",
+                    "departamento": {"id": 1, "nome": "RH"},
+                    "dias_totais": 30,
+                    "dias_usados": 5,
+                    "dias_restantes": 25,
+                    "ciclo_inicio": hoje,
+                    "ciclo_fim": hoje,
+                    "ferias": [
+                        {
+                            "id": 1,
+                            "data_inicio": hoje,
+                            "data_fim": hoje,
+                            "dias_usados": 1,
+                            "status": "aprovada",
+                            "ferias_acordo": False,
+                        }
+                    ],
+                    "ferias_acordo": [],
+                    "ferias_pendentes": [],
+                }
+            ]
+        )
+
+        self.assertEqual(response.colaboradores[0].ferias[0].status, "aprovada")
+
+    def test_dashboard_out_aceita_shape_do_dashboard(self):
+        hoje = datetime.now(UTC).date()
+        response = DashboardOut(
+            total_colaboradores=1,
+            total_ferias_aprovadas=2,
+            total_ferias_pendentes=3,
+            total_ferias_rejeitadas=4,
+            total_departamentos=5,
+            pessoas_em_ferias=[
+                {
+                    "id": 1,
+                    "nome": "Gabriel",
+                    "cor": None,
+                    "data_inicio": hoje,
+                    "data_fim": hoje,
+                    "dias_restantes": 1,
+                }
+            ],
+            proximas_ferias=[],
+            alertas_contabilidade=[],
+        )
+
+        self.assertEqual(response.total_departamentos, 5)
+
+    def test_log_detalhado_out_aceita_usuario_sistema(self):
+        log = LogDetalhadoOut(
+            id=1,
+            user_id=None,
+            nome_usuario="Sistema",
+            email_usuario=None,
+            acao="TESTE",
+            detalhes=None,
+            criado_em=datetime.now(UTC),
+        )
+
+        self.assertEqual(log.nome_usuario, "Sistema")
 
     def test_mensagem_out_aceita_detail(self):
         mensagem = MensagemOut(detail="Documento excluido com sucesso")
