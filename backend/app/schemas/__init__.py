@@ -15,3 +15,4 @@ from .documento import DocumentoOut, MensagemOut
 from .departamento import DepartamentoComTotalOut, DepartamentoCreate, DepartamentoOut, DepartamentoUpdate
 from .aviso import AvisoCreate, AvisoOut, AvisoUpdate
 from .bloqueio import BloqueioCreate, BloqueioOut, BloqueioUpdate
+from .alerta import AlertaOut
