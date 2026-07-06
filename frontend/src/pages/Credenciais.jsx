@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from '../api'
+import { api } from '../services/api'
 import { EmptyState, LoadingCard, PageHeader } from './_helpers'
 
 const blank = { descricao: '', email: '', senha: '' }

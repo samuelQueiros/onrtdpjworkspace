@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from '../api'
+import { api } from '../services/api'
 import { EmptyState, LoadingCard, PageHeader, StatusBadge, formatDate } from './_helpers'
 
 const blank = { data_inicio: '', data_fim: '', motivo: '', tipo: 'bloqueio' }

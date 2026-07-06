@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { api } from '../api'
+import { api } from '../services/api'
 import { EmptyState, LoadingCard, PageHeader, StatusBadge, formatDate } from './_helpers'
 import { useAuth } from '../context/AuthContext'
 

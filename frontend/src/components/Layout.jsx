@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { api } from '../services/api'
 
 const Icon = {
   home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>,
@@ -73,9 +74,7 @@ export default function Layout({ children }) {
 
   useEffect(() => {
     if (user?.role === 'admin') {
-      import('../api').then(({ api }) => {
-        api.feriasPendentes().then(list => setPendentes(list.length)).catch(() => {})
-      })
+      api.feriasPendentes().then(list => setPendentes(list.length)).catch(() => {})
     }
   }, [user, location.pathname])
 

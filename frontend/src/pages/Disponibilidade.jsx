@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { api } from '../api'
+import { api } from '../services/api'
 import { LoadingCard, PageHeader, StatusBadge, formatDate } from './_helpers'
 
 const DOW = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']

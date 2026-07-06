@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from '../api'
+import { api } from '../services/api'
 import { LoadingCard, PageHeader, StatusBadge } from './_helpers'
 
 const blank = { nome: '', limite_simultaneo: 2 }
