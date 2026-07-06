@@ -55,7 +55,7 @@ function isBirthdayToday(dataAniversario) {
   return today.getMonth() + 1 === month && today.getDate() === day
 }
 
-export default function Layout({ children }) {
+export default function AppLayout({ children }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()

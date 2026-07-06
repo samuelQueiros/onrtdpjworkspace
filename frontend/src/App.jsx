@@ -1,5 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import Layout from './components/Layout'
+import AppLayout from './layouts/AppLayout'
 import PrivateRoute from './components/PrivateRoute'
 import { AuthProvider } from './context/AuthContext'
 import Aprovacoes from './pages/Aprovacoes'
@@ -21,7 +21,7 @@ import Usuarios from './pages/Usuarios'
 function Shell({ children, adminOnly = false }) {
   return (
     <PrivateRoute adminOnly={adminOnly}>
-      <Layout>{children}</Layout>
+      <AppLayout>{children}</AppLayout>
     </PrivateRoute>
   )
 }
