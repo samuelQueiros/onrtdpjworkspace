@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
 import BloqueioForm, { blankBloqueioForm } from '../components/bloqueios/BloqueioForm'
 import BloqueiosTabela from '../components/bloqueios/BloqueiosTabela'
+import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Bloqueios() {
+  const toast = useToast()
   const [bloqueios, setBloqueios] = useState([])
   const [form, setForm] = useState(blankBloqueioForm)
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [filtro, setFiltro] = useState('todos')
 
   const load = () =>
@@ -23,27 +23,23 @@ export default function Bloqueios() {
   const resetForm = () => {
     setEditing(null)
     setForm(blankBloqueioForm)
-    setError('')
-    setSuccess('')
   }
 
   const save = async event => {
     event.preventDefault()
-    setError('')
-    setSuccess('')
     try {
       if (editing) {
         await api.editarBloqueio(editing, form)
-        setSuccess('Período atualizado com sucesso.')
+        toast.success('Período atualizado com sucesso.')
       } else {
         await api.criarBloqueio(form)
-        setSuccess('Período cadastrado com sucesso.')
+        toast.success('Período cadastrado com sucesso.')
       }
       setForm(blankBloqueioForm)
       setEditing(null)
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -55,19 +51,16 @@ export default function Bloqueios() {
       motivo: bloqueio.motivo,
       tipo: bloqueio.tipo,
     })
-    setError('')
-    setSuccess('')
   }
 
   const excluir = async id => {
     if (!confirm('Excluir este bloqueio/recesso?')) return
-    setError('')
     try {
       await api.excluirBloqueio(id)
-      setSuccess('Período excluído.')
+      toast.success('Período excluído.')
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -96,12 +89,10 @@ export default function Bloqueios() {
 
         <BloqueioForm
           editing={editing}
-          error={error}
           form={form}
           onCancel={resetForm}
           onChange={setForm}
           onSubmit={save}
-          success={success}
         />
       </div>
     </>

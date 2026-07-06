@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import BlockedPeriodsPanel from '../components/solicitacaoFerias/BlockedPeriodsPanel'
 import VacationRequestForm from '../components/solicitacaoFerias/VacationRequestForm'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { calcDays, formatDate } from '../utils/formatters'
 import { overlaps, validarDataInicio } from '../utils/feriasValidation'
@@ -11,14 +12,13 @@ import { PageHeader } from '../components/comum/PageHelpers'
 export default function SolicitarFerias() {
   const navigate = useNavigate()
   const { user, refreshUser } = useAuth()
+  const toast = useToast()
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
   const [feriasAcordo, setFeriasAcordo] = useState(false)
   const [periodos, setPeriodos] = useState([])
   const [bloqueiosManuais, setBloqueiosManuais] = useState([])
   const [feriadosSet, setFeriadosSet] = useState(new Set())
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -49,16 +49,14 @@ export default function SolicitarFerias() {
 
   const submit = async event => {
     event.preventDefault()
-    setError('')
-    setSuccess('')
-    if (!dias) return setError('Informe um período válido.')
-    if (erroDatas) return setError(erroDatas)
+    if (!dias) return toast.error('Informe um período válido.')
+    if (erroDatas) return toast.error(erroDatas)
     if (bloqueioManual) {
       const tipo = bloqueioManual.tipo === 'recesso' ? 'recesso' : 'bloqueio'
-      return setError(`O período selecionado está dentro de um ${tipo}: "${bloqueioManual.motivo}" (${formatDate(bloqueioManual.data_inicio)} a ${formatDate(bloqueioManual.data_fim)}).`)
+      return toast.error(`O período selecionado está dentro de um ${tipo}: "${bloqueioManual.motivo}" (${formatDate(bloqueioManual.data_inicio)} a ${formatDate(bloqueioManual.data_fim)}).`)
     }
-    if (bloqueado) return setError('O período cruza datas bloqueadas pelo limite de colaboradores em férias.')
-    if (saldoInsuficiente) return setError('Você não possui saldo suficiente para esse período.')
+    if (bloqueado) return toast.error('O período cruza datas bloqueadas pelo limite de colaboradores em férias.')
+    if (saldoInsuficiente) return toast.error('Você não possui saldo suficiente para esse período.')
 
     setSaving(true)
     try {
@@ -68,12 +66,12 @@ export default function SolicitarFerias() {
         ferias_acordo: feriasAcordo,
       })
       await refreshUser()
-      setSuccess(res.status === 'pendente'
+      toast.success(res.status === 'pendente'
         ? 'Solicitação enviada! Aguarde a aprovação do administrador.'
         : 'Férias registradas com sucesso.')
       setTimeout(() => navigate('/minhas-ferias'), 1200)
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     } finally {
       setSaving(false)
     }
@@ -91,7 +89,6 @@ export default function SolicitarFerias() {
           dataInicio={dataInicio}
           dias={dias}
           erroDatas={erroDatas}
-          error={error}
           feriasAcordo={feriasAcordo}
           onDataFimChange={setDataFim}
           onDataInicioChange={setDataInicio}
@@ -100,7 +97,6 @@ export default function SolicitarFerias() {
           podeSolicitar={podeSolicitar}
           saldoInsuficiente={saldoInsuficiente}
           saving={saving}
-          success={success}
           user={user}
         />
 

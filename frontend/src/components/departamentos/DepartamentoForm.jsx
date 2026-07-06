@@ -1,6 +1,6 @@
 export const blankDepartamentoForm = { nome: '', limite_simultaneo: 2 }
 
-export default function DepartamentoForm({ editing, error, form, onCancel, onChange, onSubmit, success }) {
+export default function DepartamentoForm({ editing, form, onCancel, onChange, onSubmit }) {
   const updateForm = changes => onChange({ ...form, ...changes })
 
   return (
@@ -9,9 +9,6 @@ export default function DepartamentoForm({ editing, error, form, onCancel, onCha
         <h2 className="card-title">{editing ? 'Editar departamento' : 'Novo departamento'}</h2>
       </div>
       <div className="card-body form-stack">
-        {error && <div className="alert alert-error">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
-
         <div className="form-group">
           <label>Nome do setor</label>
           <input

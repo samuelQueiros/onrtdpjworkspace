@@ -1,21 +1,21 @@
 import { useState } from 'react'
+import { useToast } from '../../contexts/ToastContext'
 import { api } from '../../services/api'
 import { formatDate } from '../../utils/formatters'
 
 export default function RejeitarFeriasModal({ ferias, onClose, onRejeitado }) {
+  const toast = useToast()
   const [motivo, setMotivo] = useState('')
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
 
   const submit = async event => {
     event.preventDefault()
     setSaving(true)
-    setError('')
     try {
       await api.rejeitarFerias(ferias.id, motivo)
       onRejeitado()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     } finally {
       setSaving(false)
     }
@@ -34,7 +34,6 @@ export default function RejeitarFeriasModal({ ferias, onClose, onRejeitado }) {
               Rejeitar férias de <strong>{ferias.nome_usuario}</strong> -{' '}
               {formatDate(ferias.data_inicio)} a {formatDate(ferias.data_fim)} ({ferias.dias_usados} dias)
             </p>
-            {error && <div className="alert alert-error">{error}</div>}
             <div className="form-group">
               <label>Motivo da rejeição (opcional)</label>
               <textarea

@@ -4,7 +4,6 @@ export const blankCredencialForm = { descricao: '', email: '', senha: '' }
 
 export default function CredencialForm({
   editing,
-  error,
   form,
   mostrarSenha,
   onCancel,
@@ -12,7 +11,6 @@ export default function CredencialForm({
   onSubmit,
   onToggleSenha,
   onToggleUsuario,
-  success,
   userIds,
   usuarios,
 }) {
@@ -24,9 +22,6 @@ export default function CredencialForm({
         <h2 className="card-title">{editing === 'nova' ? 'Nova credencial' : 'Editar credencial'}</h2>
       </div>
       <div className="card-body form-stack">
-        {error && <div className="alert alert-error">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
-
         <div className="form-group">
           <label>Descrição</label>
           <input
@@ -62,9 +57,8 @@ export default function CredencialForm({
             />
             <button
               type="button"
-              className="btn btn-outline btn-sm"
               onClick={onToggleSenha}
-              className="nowrap"
+              className="btn btn-outline btn-sm nowrap"
             >
               {mostrarSenha ? 'Ocultar' : 'Mostrar'}
             </button>

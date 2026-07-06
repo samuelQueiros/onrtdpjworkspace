@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react'
 import CredencialCompartilhadaCard from '../components/minhasCredenciais/CredencialCompartilhadaCard'
+import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { EmptyState, LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function MinhasCredenciais() {
+  const toast = useToast()
   const [credenciais, setCredenciais] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [visiveis, setVisiveis] = useState({})
   const [copiado, setCopiado] = useState({})
 
   useEffect(() => {
     api.minhasCredenciais()
       .then(setCredenciais)
-      .catch(err => setError(err.message))
+      .catch(err => toast.error(err.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [toast])
 
   const toggleVisivel = id => {
     setVisiveis(prev => ({ ...prev, [id]: !prev[id] }))
@@ -39,8 +40,6 @@ export default function MinhasCredenciais() {
         title="Minhas Credenciais"
         subtitle="Acessos e senhas compartilhados com você pela administração."
       />
-
-      {error && <div className="alert alert-error">{error}</div>}
 
       {credenciais.length === 0 ? (
         <div className="card">

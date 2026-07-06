@@ -8,7 +8,6 @@ function PasswordIcon({ visible }) {
 
 export default function LoginForm({
   email,
-  error,
   loading,
   onEmailChange,
   onSenhaChange,
@@ -37,12 +36,6 @@ export default function LoginForm({
             Use suas credenciais do sistema para continuar.
           </p>
         </div>
-
-        {error && (
-          <div className="alert alert-error" role="alert">
-            {error}
-          </div>
-        )}
 
         <div className="form-group">
           <label htmlFor="email">E-mail</label>

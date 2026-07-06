@@ -3,13 +3,14 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import LoginForm from '../components/login/LoginForm'
 import LoginHero from '../components/login/LoginHero'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 
 export default function Login() {
   const { login, user } = useAuth()
+  const toast = useToast()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPass, setShowPass] = useState(false)
 
@@ -17,13 +18,12 @@ export default function Login() {
 
   const submit = async event => {
     event.preventDefault()
-    setError('')
     setLoading(true)
     try {
       await login(email, senha)
       navigate('/', { replace: true })
     } catch {
-      setError('E-mail ou senha inválidos.')
+      toast.error('E-mail ou senha inválidos.')
     } finally {
       setLoading(false)
     }
@@ -34,7 +34,6 @@ export default function Login() {
       <LoginHero />
       <LoginForm
         email={email}
-        error={error}
         loading={loading}
         onEmailChange={setEmail}
         onSenhaChange={setSenha}

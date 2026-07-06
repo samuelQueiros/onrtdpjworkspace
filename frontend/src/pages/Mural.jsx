@@ -3,11 +3,13 @@ import AniversariantesMes from '../components/mural/AniversariantesMes'
 import AvisoForm, { blankAvisoForm } from '../components/mural/AvisoForm'
 import AvisosLista from '../components/mural/AvisosLista'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { EmptyState, LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Mural() {
   const { user } = useAuth()
+  const toast = useToast()
   const isAdmin = user?.role === 'admin'
 
   const [avisos, setAvisos] = useState([])
@@ -16,8 +18,6 @@ export default function Mural() {
   const [form, setForm] = useState(blankAvisoForm)
   const [editing, setEditing] = useState(null)
   const [showForm, setShowForm] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
   const load = () => {
     const fn = isAdmin ? api.listarTodosAvisos : api.listarAvisos
@@ -39,8 +39,6 @@ export default function Mural() {
 
   const save = async event => {
     event.preventDefault()
-    setError('')
-    setSuccess('')
     try {
       const payload = {
         titulo: form.titulo,
@@ -50,15 +48,15 @@ export default function Mural() {
       }
       if (editing) {
         await api.editarAviso(editing, payload)
-        setSuccess('Aviso atualizado com sucesso.')
+        toast.success('Aviso atualizado com sucesso.')
       } else {
         await api.criarAviso(payload)
-        setSuccess('Aviso publicado com sucesso.')
+        toast.success('Aviso publicado com sucesso.')
       }
       resetForm()
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -71,19 +69,16 @@ export default function Mural() {
       data_expiracao: aviso.data_expiracao || '',
     })
     setShowForm(true)
-    setError('')
-    setSuccess('')
   }
 
   const excluir = async id => {
     if (!confirm('Excluir este aviso?')) return
-    setError('')
     try {
       await api.excluirAviso(id)
-      setSuccess('Aviso excluído.')
+      toast.success('Aviso excluído.')
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -108,12 +103,6 @@ export default function Mural() {
           )
         }
       />
-
-      {(error || success) && (
-        <div className={`alert spaced ${error ? 'alert-error' : 'alert-success'}`}>
-          {error || success}
-        </div>
-      )}
 
       <AniversariantesMes aniversariantes={aniversariantes} />
 

@@ -1,21 +1,21 @@
 import { useState } from 'react'
+import { useToast } from '../../contexts/ToastContext'
 import { api } from '../../services/api'
 
 export default function EditarFeriasModal({ ferias, onClose, onSaved }) {
+  const toast = useToast()
   const [dataInicio, setDataInicio] = useState(ferias.data_inicio)
   const [dataFim, setDataFim] = useState(ferias.data_fim)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
 
   const submit = async event => {
     event.preventDefault()
     setSaving(true)
-    setError('')
     try {
       await api.editarFerias(ferias.id, { data_inicio: dataInicio, data_fim: dataFim })
       onSaved()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     } finally {
       setSaving(false)
     }
@@ -30,7 +30,6 @@ export default function EditarFeriasModal({ ferias, onClose, onSaved }) {
         </div>
         <form onSubmit={submit}>
           <div className="modal-body form-stack">
-            {error && <div className="alert alert-error">{error}</div>}
             <div className="form-row">
               <div className="form-group">
                 <label>Data de início</label>

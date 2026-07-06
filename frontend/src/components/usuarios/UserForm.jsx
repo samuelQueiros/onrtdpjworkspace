@@ -16,12 +16,10 @@ export const blankUserForm = {
 export default function UserForm({
   departamentos,
   editing,
-  error,
   form,
   onCancel,
   onChange,
   onSubmit,
-  success,
 }) {
   const updateForm = changes => onChange({ ...form, ...changes })
 
@@ -31,9 +29,6 @@ export default function UserForm({
         <h2 className="card-title">{editing ? 'Editar usuário' : 'Novo usuário'}</h2>
       </div>
       <div className="card-body form-stack">
-        {error && <div className="alert alert-error">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
-
         <div className="form-group">
           <label>Nome</label>
           <input

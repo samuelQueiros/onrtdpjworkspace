@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react'
 import FiltrosAprovacoes from '../components/aprovacoes/FiltrosAprovacoes'
 import RejeitarFeriasModal from '../components/aprovacoes/RejeitarFeriasModal'
 import TabelaAprovacoes from '../components/aprovacoes/TabelaAprovacoes'
+import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Aprovacoes() {
+  const toast = useToast()
   const [todas, setTodas] = useState([])
   const [loading, setLoading] = useState(true)
   const [rejeitando, setRejeitando] = useState(null)
-  const [msg, setMsg] = useState('')
-  const [error, setError] = useState('')
   const [filtro, setFiltro] = useState('pendente')
 
   const load = () =>
@@ -21,14 +21,12 @@ export default function Aprovacoes() {
   useEffect(() => { load() }, [])
 
   const aprovar = async id => {
-    setMsg('')
-    setError('')
     try {
       await api.aprovarFerias(id)
-      setMsg('Férias aprovadas com sucesso.')
+      toast.success('Férias aprovadas com sucesso.')
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -52,9 +50,6 @@ export default function Aprovacoes() {
         subtitle="Gerencie todas as solicitações de férias: pendentes, aprovadas e rejeitadas."
       />
 
-      {msg && <div className="alert alert-success spaced">{msg}</div>}
-      {error && <div className="alert alert-error spaced">{error}</div>}
-
       <FiltrosAprovacoes counts={counts} filtro={filtro} onChange={setFiltro} />
 
       <TabelaAprovacoes
@@ -68,7 +63,7 @@ export default function Aprovacoes() {
         <RejeitarFeriasModal
           ferias={rejeitando}
           onClose={() => setRejeitando(null)}
-          onRejeitado={() => { setRejeitando(null); setMsg('Férias rejeitadas.'); load() }}
+          onRejeitado={() => { setRejeitando(null); toast.success('Férias rejeitadas.'); load() }}
         />
       )}
     </>

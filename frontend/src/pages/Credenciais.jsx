@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
 import CredencialForm, { blankCredencialForm } from '../components/credenciais/CredencialForm'
 import CredenciaisTabela from '../components/credenciais/CredenciaisTabela'
+import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Credenciais() {
+  const toast = useToast()
   const [credenciais, setCredenciais] = useState([])
   const [form, setForm] = useState(blankCredencialForm)
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [usuarios, setUsuarios] = useState([])
   const [userIds, setUserIds] = useState([])
@@ -31,8 +31,6 @@ export default function Credenciais() {
   const startEdit = async credencial => {
     setEditing(credencial.id)
     setForm({ descricao: credencial.descricao, email: credencial.email, senha: '' })
-    setError('')
-    setSuccess('')
     setMostrarSenha(false)
     await carregarUsuarios(credencial.id)
   }
@@ -40,8 +38,6 @@ export default function Credenciais() {
   const startNova = async () => {
     setEditing('nova')
     setForm(blankCredencialForm)
-    setError('')
-    setSuccess('')
     setMostrarSenha(false)
     try {
       const lista = await api.listarUsuarios()
@@ -58,8 +54,6 @@ export default function Credenciais() {
     setForm(blankCredencialForm)
     setUsuarios([])
     setUserIds([])
-    setError('')
-    setSuccess('')
   }
 
   const toggleUsuario = id => {
@@ -70,17 +64,15 @@ export default function Credenciais() {
 
   const save = async event => {
     event.preventDefault()
-    setError('')
-    setSuccess('')
     try {
       if (editing === 'nova') {
         const nova = await api.criarCredencial(form)
         if (userIds.length > 0) await api.salvarPermissoes(nova.id, userIds)
-        setSuccess('Credencial criada com sucesso.')
+        toast.success('Credencial criada com sucesso.')
       } else {
         await api.editarCredencial(editing, form)
         await api.salvarPermissoes(editing, userIds)
-        setSuccess('Credencial atualizada com sucesso.')
+        toast.success('Credencial atualizada com sucesso.')
       }
       setEditing(null)
       setForm(blankCredencialForm)
@@ -88,19 +80,18 @@ export default function Credenciais() {
       setUserIds([])
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
   const excluir = async id => {
     if (!confirm('Excluir esta credencial e todos os acessos associados?')) return
-    setError('')
     try {
       await api.excluirCredencial(id)
-      setSuccess('Credencial excluída.')
+      toast.success('Credencial excluída.')
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -125,7 +116,6 @@ export default function Credenciais() {
         {editing && (
           <CredencialForm
             editing={editing}
-            error={error}
             form={form}
             mostrarSenha={mostrarSenha}
             onCancel={cancelar}
@@ -133,7 +123,6 @@ export default function Credenciais() {
             onSubmit={save}
             onToggleSenha={() => setMostrarSenha(value => !value)}
             onToggleUsuario={toggleUsuario}
-            success={success}
             userIds={userIds}
             usuarios={usuarios}
           />

@@ -7,7 +7,6 @@ export default function VacationRequestForm({
   dataInicio,
   dias,
   erroDatas,
-  error,
   feriasAcordo,
   onDataFimChange,
   onDataInicioChange,
@@ -16,16 +15,12 @@ export default function VacationRequestForm({
   podeSolicitar,
   saldoInsuficiente,
   saving,
-  success,
   user,
 }) {
   return (
     <form className="card form-card" onSubmit={onSubmit}>
       <div className="card-header"><h2 className="card-title">Novo período</h2></div>
       <div className="card-body form-stack">
-        {error && <div className="alert alert-error">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
-
         <div className="form-row">
           <div className="form-group">
             <label>Data de início</label>

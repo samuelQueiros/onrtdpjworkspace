@@ -1,6 +1,6 @@
 export const blankBloqueioForm = { data_inicio: '', data_fim: '', motivo: '', tipo: 'bloqueio' }
 
-export default function BloqueioForm({ editing, error, form, onCancel, onChange, onSubmit, success }) {
+export default function BloqueioForm({ editing, form, onCancel, onChange, onSubmit }) {
   const updateForm = changes => onChange({ ...form, ...changes })
 
   return (
@@ -9,9 +9,6 @@ export default function BloqueioForm({ editing, error, form, onCancel, onChange,
         <h2 className="card-title">{editing ? 'Editar período' : 'Novo período'}</h2>
       </div>
       <div className="card-body form-stack">
-        {error && <div className="alert alert-error">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
-
         <div className="form-group">
           <label>Tipo</label>
           <select value={form.tipo} onChange={event => updateForm({ tipo: event.target.value })}>

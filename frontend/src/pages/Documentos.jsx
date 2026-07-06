@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import DocumentosTabela from '../components/documentos/DocumentosTabela'
 import UploadDocumentoForm from '../components/documentos/UploadDocumentoForm'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { PageHeader } from '../components/comum/PageHelpers'
 
 export default function Documentos() {
   const { user } = useAuth()
+  const toast = useToast()
   const isAdmin = user?.role === 'admin'
 
   const [docs, setDocs] = useState([])
@@ -16,8 +18,6 @@ export default function Documentos() {
   const [uploading, setUploading] = useState(false)
   const [tipo, setTipo] = useState('atestado')
   const [targetUser, setTargetUser] = useState('')
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const fileRef = useRef(null)
 
   const loadDocs = async (uid = null) => {
@@ -51,13 +51,11 @@ export default function Documentos() {
   const handleUpload = async event => {
     event.preventDefault()
     const file = fileRef.current?.files?.[0]
-    if (!file) return setError('Selecione um arquivo.')
+    if (!file) return toast.error('Selecione um arquivo.')
 
     const uid = isAdmin ? (targetUser || user.id) : user.id
-    if (!uid) return setError('Selecione o colaborador.')
+    if (!uid) return toast.error('Selecione o colaborador.')
 
-    setError('')
-    setSuccess('')
     setUploading(true)
 
     try {
@@ -66,11 +64,11 @@ export default function Documentos() {
       formData.append('tipo', tipo)
       formData.append('user_id', uid)
       await api.uploadDocumento(formData)
-      setSuccess('Documento enviado com sucesso.')
+      toast.success('Documento enviado com sucesso.')
       if (fileRef.current) fileRef.current.value = ''
       await loadDocs(isAdmin ? selectedUser : null)
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     } finally {
       setUploading(false)
     }
@@ -78,13 +76,12 @@ export default function Documentos() {
 
   const excluir = async id => {
     if (!confirm('Excluir este documento?')) return
-    setError('')
     try {
       await api.excluirDocumento(id)
-      setSuccess('Documento excluído.')
+      toast.success('Documento excluído.')
       await loadDocs(isAdmin ? selectedUser : null)
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -101,7 +98,7 @@ export default function Documentos() {
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -111,12 +108,6 @@ export default function Documentos() {
         title="Documentos"
         subtitle="Atestados médicos e contracheques dos colaboradores."
       />
-
-      {(error || success) && (
-        <div className={`alert spaced ${error ? 'alert-error' : 'alert-success'}`}>
-          {error || success}
-        </div>
-      )}
 
       <div className="grid-2 grid-2-wide-left">
         <DocumentosTabela

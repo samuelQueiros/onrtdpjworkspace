@@ -4,14 +4,15 @@ import EditarFeriasModal from '../components/minhasFerias/EditarFeriasModal'
 import ResumoFeriasCards from '../components/minhasFerias/ResumoFeriasCards'
 import TabelaMinhasFerias from '../components/minhasFerias/TabelaMinhasFerias'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function MinhasFerias() {
   const { user } = useAuth()
+  const toast = useToast()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [editando, setEditando] = useState(null)
 
   const load = () => api.minhasFerias().then(setData).finally(() => setLoading(false))
@@ -23,12 +24,12 @@ export default function MinhasFerias() {
 
   const cancel = async id => {
     if (!confirm('Cancelar este período de férias?')) return
-    setError('')
     try {
       await api.cancelarFerias(id)
+      toast.success('Período de férias cancelado.')
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -42,8 +43,6 @@ export default function MinhasFerias() {
         action={<Link className="btn btn-primary" to="/solicitar">Solicitar férias</Link>}
       />
 
-      {error && <div className="alert alert-error spaced">{error}</div>}
-
       <ResumoFeriasCards data={data} saldo={saldo} />
 
       <TabelaMinhasFerias
@@ -56,7 +55,7 @@ export default function MinhasFerias() {
         <EditarFeriasModal
           ferias={editando}
           onClose={() => setEditando(null)}
-          onSaved={() => { setEditando(null); load() }}
+          onSaved={() => { setEditando(null); toast.success('Férias atualizadas.'); load() }}
         />
       )}
     </>

@@ -2,18 +2,18 @@ import { useEffect, useState } from 'react'
 import UserForm, { blankUserForm } from '../components/usuarios/UserForm'
 import UsersTable from '../components/usuarios/UsersTable'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Usuarios() {
   const { user: currentUser } = useAuth()
+  const toast = useToast()
   const [users, setUsers] = useState([])
   const [departamentos, setDepartamentos] = useState([])
   const [form, setForm] = useState(blankUserForm)
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
   const load = () =>
     Promise.all([api.listarUsuarios(), api.listarDepartamentos()])
@@ -25,14 +25,10 @@ export default function Usuarios() {
   const resetForm = () => {
     setForm(blankUserForm)
     setEditing(null)
-    setError('')
-    setSuccess('')
   }
 
   const save = async event => {
     event.preventDefault()
-    setError('')
-    setSuccess('')
     try {
       const payload = {
         nome: form.nome,
@@ -46,18 +42,18 @@ export default function Usuarios() {
       if (editing) {
         if (form.senha) payload.senha = form.senha
         await api.editarUsuario(editing, payload)
-        setSuccess('Usuário atualizado com sucesso.')
+        toast.success('Usuário atualizado com sucesso.')
       } else {
         payload.senha = form.senha
         payload.role = form.role
         await api.criarUsuario(payload)
-        setSuccess('Usuário criado com sucesso.')
+        toast.success('Usuário criado com sucesso.')
       }
       setForm(blankUserForm)
       setEditing(null)
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -74,19 +70,16 @@ export default function Usuarios() {
       data_aniversario: user.data_aniversario || '',
       cor: user.cor || '',
     })
-    setError('')
-    setSuccess('')
   }
 
   const excluir = async id => {
     if (!confirm('Excluir este usuário? Todas as férias associadas também serão removidas.')) return
-    setError('')
     try {
       await api.excluirUsuario(id)
-      setSuccess('Usuário excluído.')
+      toast.success('Usuário excluído.')
       await load()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -107,12 +100,10 @@ export default function Usuarios() {
         <UserForm
           departamentos={departamentos}
           editing={editing}
-          error={error}
           form={form}
           onCancel={resetForm}
           onChange={setForm}
           onSubmit={save}
-          success={success}
         />
       </div>
     </>
