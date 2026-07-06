@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import CredencialCompartilhadaCard from '../components/minhasCredenciais/CredencialCompartilhadaCard'
 import { api } from '../services/api'
 import { EmptyState, LoadingCard, PageHeader } from './_helpers'
 
@@ -26,7 +27,7 @@ export default function MinhasCredenciais() {
       setCopiado(prev => ({ ...prev, [id]: true }))
       setTimeout(() => setCopiado(prev => ({ ...prev, [id]: false })), 1500)
     } catch {
-      // Falha silenciosa se clipboard não disponível
+      // Falha silenciosa se clipboard não disponível.
     }
   }
 
@@ -50,42 +51,15 @@ export default function MinhasCredenciais() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {credenciais.map(c => (
-            <div className="card" key={c.id}>
-              <div className="card-header">
-                <h2 className="card-title">{c.descricao}</h2>
-              </div>
-              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ minWidth: 60, color: 'var(--muted)', fontSize: 13 }}>E-mail</span>
-                  <span style={{ flex: 1 }}>{c.email}</span>
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={() => copiar(`email-${c.id}`, c.email)}
-                  >
-                    {copiado[`email-${c.id}`] ? 'Copiado!' : 'Copiar'}
-                  </button>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ minWidth: 60, color: 'var(--muted)', fontSize: 13 }}>Senha</span>
-                  <span style={{ flex: 1, fontFamily: 'monospace', letterSpacing: visiveis[c.id] ? 0 : 2 }}>
-                    {visiveis[c.id] ? c.senha : '••••••••'}
-                  </span>
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={() => toggleVisivel(c.id)}
-                  >
-                    {visiveis[c.id] ? 'Ocultar' : 'Mostrar'}
-                  </button>
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={() => copiar(`senha-${c.id}`, c.senha)}
-                  >
-                    {copiado[`senha-${c.id}`] ? 'Copiado!' : 'Copiar'}
-                  </button>
-                </div>
-              </div>
-            </div>
+          {credenciais.map(credencial => (
+            <CredencialCompartilhadaCard
+              key={credencial.id}
+              copiado={copiado}
+              credencial={credencial}
+              onCopiar={copiar}
+              onToggleVisivel={toggleVisivel}
+              visivel={!!visiveis[credencial.id]}
+            />
           ))}
         </div>
       )}
