@@ -30,10 +30,10 @@ O **ONRTDPJ Workspace** é um sistema web full-stack desenvolvido internamente p
 - Interface moderna com glassmorphism, totalmente responsiva
 - Autenticação JWT com controle de perfis (Administrador / Colaborador)
 - Banco de dados PostgreSQL com schema versionado por migrations Alembic
-- Migrations versionadas com Alembic
 - Containerização completa via Docker e Docker Compose
 - Backend executado como usuário não-root no container
 - API RESTful documentada via Swagger (FastAPI)
+- Notificações globais e modal de confirmação reutilizável para ações importantes
 
 ---
 
@@ -50,7 +50,7 @@ O **ONRTDPJ Workspace** é um sistema web full-stack desenvolvido internamente p
 | **Documentos** | Upload e download de atestados e documentos pessoais |
 | **Minhas Credenciais** | Visualização das credenciais de sistemas compartilhados que o colaborador tem acesso, com opção de copiar e mostrar/ocultar senhas |
 
-Os documentos sao armazenados em pasta persistente configurada por `UPLOAD_DIR`. Envios feitos por administradores geram uma copia em `enviados/nome-admin/nome-destinatario/arquivo` e outra em `recebidos/nome-destinatario/arquivo`; envios feitos pelo proprio colaborador ficam apenas em `recebidos/nome-colaborador/arquivo`.
+Os documentos são armazenados em pasta persistente configurada por `UPLOAD_DIR`. Envios feitos por administradores geram uma cópia em `enviados/nome-admin/nome-destinatario/arquivo` e outra em `recebidos/nome-destinatario/arquivo`; envios feitos pelo próprio colaborador ficam apenas em `recebidos/nome-colaborador/arquivo`.
 
 ### Exclusivo para Administradores
 
@@ -76,8 +76,8 @@ Os documentos sao armazenados em pasta persistente configurada por `UPLOAD_DIR`.
 | **Banco de Dados** | PostgreSQL | 16 |
 | **Autenticação** | JWT via `python-jose` + hash `bcrypt` | — |
 | **Feriados** | `holidays` (calendário oficial brasileiro) | — |
-| **Frontend** | React + Vite | 18 / 5 |
-| **Roteamento** | React Router | 6 |
+| **Frontend** | React + Vite | 18.3.1 / 8.1.3 |
+| **Roteamento** | React Router | 6.30.4 |
 | **Estilo** | CSS puro com design system de variáveis | — |
 | **HTTP Client** | Fetch API nativa | — |
 | **Servidor Web** | Nginx (produção) | 1.27-alpine |
@@ -89,78 +89,70 @@ Os documentos sao armazenados em pasta persistente configurada por `UPLOAD_DIR`.
 
 ```
 feriasonr/
-├── docker-compose.yml          # Orquestração: db + backend + frontend
-│
-├── backend/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── app/
-│       ├── main.py             # Entrypoint FastAPI, CORS, startup
-│       ├── database.py         # Conexão PostgreSQL via SQLAlchemy
-│       ├── core/
-│       │   └── security.py     # JWT (criar/verificar token), hash bcrypt, guards
-│       ├── models/
-│       │   ├── user.py         # Tabela users
-│       │   ├── ferias.py       # Tabela ferias
-│       │   ├── departamento.py # Tabela departamentos
-│       │   ├── aviso.py        # Tabela avisos (mural)
-│       │   ├── documento.py    # Tabela documentos
-│       │   ├── bloqueio.py     # Tabela bloqueios_datas
-│       │   ├── alerta.py       # Tabela alertas
-│       │   ├── credencial.py   # Tabela credenciais
-│       │   └── credencial_usuario.py  # Tabela associativa N:N
-│       ├── routers/
-│       │   ├── auth.py         # POST /auth/login, GET /auth/me
-│       │   ├── users.py        # CRUD /users
-│       │   ├── ferias.py       # CRUD /ferias + aprovação + feriados
-│       │   ├── relatorios.py   # GET /relatorios, /dashboard, /logs
-│       │   ├── departamentos.py
-│       │   ├── avisos.py
-│       │   ├── documentos.py
-│       │   ├── bloqueios.py
-│       │   ├── alertas.py
-│       │   ├── credenciais.py  # CRUD /credenciais + /minhas + permissões
-│       │   └── importacao.py   # POST /importacao (Excel)
-│       └── schemas/            # Modelos Pydantic de validação
-│
-├── frontend/
-│   ├── Dockerfile              # Build multistage Node→Nginx
-│   ├── nginx.conf              # SPA fallback + cache de assets
-│   ├── index.html
-│   ├── package.json
-│   ├── vite.config.js
-│   └── src/
-│       ├── main.jsx
-│       ├── App.jsx             # Definição de rotas
-│       ├── index.css           # Design system global (variáveis, glass effects)
-│       ├── api.js              # Todos os métodos HTTP centralizados
-│       ├── context/
-│       │   └── AuthContext.jsx # Estado global de autenticação (JWT)
-│       ├── components/
-│       │   ├── Layout.jsx      # Sidebar + topbar + menu adaptativo por role
-│       │   └── PrivateRoute.jsx
-│       └── pages/
-│           ├── Login.jsx
-│           ├── Dashboard.jsx
-│           ├── MinhasFerias.jsx
-│           ├── SolicitarFerias.jsx
-│           ├── Disponibilidade.jsx
-│           ├── Mural.jsx
-│           ├── Documentos.jsx
-│           ├── Aprovacoes.jsx
-│           ├── Usuarios.jsx
-│           ├── Departamentos.jsx
-│           ├── Bloqueios.jsx
-│           ├── Credenciais.jsx      # Admin: CRUD de credenciais + permissões
-│           ├── MinhasCredenciais.jsx # Colaborador: visualizar + copiar senhas
-│           ├── Relatorios.jsx
-│           ├── Logs.jsx
-│           └── _helpers.jsx
-│
-└── docs/
-    ├── API.md
-    ├── GUIA-USUARIO.md
-    └── DOCKER-SERVIDOR.md
+|-- docker-compose.yml              # Orquestra db + backend + frontend
+|-- .env.docker.example             # Exemplo de variaveis para Docker
+|-- README.md
+|-- docs/
+|   |-- API.md
+|   |-- GUIA-USUARIO.md
+|   +-- DOCKER-SERVIDOR.md
+|
+|-- backend/
+|   |-- Dockerfile                  # Imagem Python/FastAPI com usuario nao-root
+|   |-- requirements.txt
+|   |-- alembic.ini
+|   |-- alembic/                    # Migrations versionadas do banco
+|   |-- tests/                      # Testes unitarios do backend
+|   +-- app/
+|       |-- main.py                 # Entrypoint FastAPI, CORS, routers e startup
+|       |-- database.py             # Engine/session SQLAlchemy
+|       |-- core/                   # Configuracao, seguranca e criptografia
+|       |-- models/                 # Modelos SQLAlchemy
+|       |-- repositories/           # Acesso a dados
+|       |-- routers/                # Rotas HTTP FastAPI
+|       |-- schemas/                # DTOs/Pydantic de request/response
+|       |-- services/               # Regras de negocio
+|       +-- storage/                # Persistencia fisica de documentos
+|
+|-- frontend/
+|   |-- Dockerfile                  # Build Vite e publicacao em Nginx
+|   |-- nginx.conf                  # SPA fallback, cache e headers basicos
+|   |-- package.json
+|   |-- index.html
+|   +-- src/
+|       |-- main.jsx
+|       |-- App.jsx                 # Providers globais e roteamento base
+|       |-- index.css               # Importa os arquivos de estilos globais
+|       |-- components/             # Componentes por dominio da interface
+|       |   |-- aprovacoes/
+|       |   |-- bloqueios/
+|       |   |-- comum/
+|       |   |-- credenciais/
+|       |   |-- departamentos/
+|       |   |-- disponibilidade/
+|       |   |-- documentos/
+|       |   |-- estrutura/
+|       |   |-- login/
+|       |   |-- logs/
+|       |   |-- minhasCredenciais/
+|       |   |-- minhasFerias/
+|       |   |-- mural/
+|       |   |-- painel/
+|       |   |-- relatorios/
+|       |   |-- solicitacaoFerias/
+|       |   +-- usuarios/
+|       |-- contexts/               # Auth, toast e confirmacao global
+|       |-- layouts/                # Layout principal da aplicacao
+|       |-- pages/                  # Containers de tela/rota
+|       |-- routes/                 # Declaracao das rotas React Router
+|       |-- services/               # Cliente HTTP e servicos por dominio
+|       |   +-- dominios/
+|       |-- styles/                 # base, layout, ui, login, features, responsive, effects
+|       +-- utils/                  # Formatadores, validacoes e exportadores CSV
+|
++-- uploads/                        # Criada em runtime; nao versionar
+    |-- enviados/
+    +-- recebidos/
 ```
 
 ---
@@ -169,8 +161,8 @@ feriasonr/
 
 ### Pré-requisitos
 
-- **Python 3.10+** com `pip`
-- **Node.js 18+** com `npm`
+- **Python 3.12+** com `pip`
+- **Node.js 20+** com `npm`
 - **PostgreSQL 14+** rodando localmente **ou** Docker instalado para subir apenas o banco
 
 ### 1. Subir o banco de dados
@@ -247,7 +239,9 @@ Frontend disponível em: `http://127.0.0.1:5173`
 
 ## Testes
 
-Os testes automatizados do backend ficam em `backend/tests` e cobrem regras criticas de armazenamento de documentos, como normalizacao de nomes, validacao de assinatura de arquivos e protecao contra path traversal.
+Os testes automatizados do backend ficam em `backend/tests` e cobrem regras críticas de autenticação, usuários, férias, documentos, armazenamento físico de arquivos, credenciais criptografadas, relatórios, schemas/DTOs, repositórios e services.
+
+Na última validação do projeto foram executados 127 testes com sucesso via Docker.
 
 Para executar usando Docker:
 
@@ -317,6 +311,9 @@ CREDENTIALS_ENCRYPTION_KEY=cole-aqui-outra-chave-longa-para-criptografar-credenc
 ACCESS_TOKEN_EXPIRE_MINUTES=480
 BACKEND_PORT=8000
 UPLOAD_DIR=/app/uploads
+ADMIN_NAME=Administrador
+ADMIN_EMAIL=admin@sistema.com
+ADMIN_PASSWORD=troque-por-uma-senha-forte
 
 # ── Frontend ───────────────────────────────────
 # Troque pelo IP ou domínio público do servidor
@@ -464,6 +461,9 @@ server {
 | `SECRET_KEY` | Chave de assinatura JWT (**trocar em produção!**) | `troque-esta-chave-em-producao` |
 | `CREDENTIALS_ENCRYPTION_KEY` | Chave usada para criptografar senhas compartilhadas | — |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Duração da sessão em minutos | `480` (8h) |
+| `ADMIN_NAME` | Nome do administrador inicial criado no primeiro startup | `Administrador` |
+| `ADMIN_EMAIL` | E-mail do administrador inicial | — |
+| `ADMIN_PASSWORD` | Senha do administrador inicial | — |
 | `VITE_API_URL` | URL pública da API (usada no build do React) | `http://chat-server:8000` |
 | `FRONTEND_URL` | URL do frontend (CORS) | `http://chat-server` |
 | `BACKEND_PORT` | Porta exposta do backend | `8000` |
@@ -480,6 +480,9 @@ server {
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Duração da sessão | `480` |
 | `DATABASE_URL` | URL completa do PostgreSQL | `postgresql://ferias:ferias@localhost:5432/ferias` |
 | `UPLOAD_DIR` | Pasta local para salvar documentos enviados | `./data/uploads` |
+| `ADMIN_NAME` | Nome do administrador inicial | `Administrador` |
+| `ADMIN_EMAIL` | E-mail do administrador inicial | — |
+| `ADMIN_PASSWORD` | Senha do administrador inicial | — |
 
 ### Frontend — `frontend/.env` (desenvolvimento local)
 
