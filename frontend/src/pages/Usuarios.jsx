@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import UserForm, { blankUserForm } from '../components/users/UserForm'
-import UsersTable from '../components/users/UsersTable'
+import UserForm, { blankUserForm } from '../components/usuarios/UserForm'
+import UsersTable from '../components/usuarios/UsersTable'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../services/api'
 import { LoadingCard, PageHeader } from './_helpers'

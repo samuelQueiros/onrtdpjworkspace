@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import AvailabilityCalendar from '../components/availability/AvailabilityCalendar'
-import AvailabilitySidebar from '../components/availability/AvailabilitySidebar'
+import AvailabilityCalendar from '../components/disponibilidade/AvailabilityCalendar'
+import AvailabilitySidebar from '../components/disponibilidade/AvailabilitySidebar'
 import { findManualBlock, vacationsOnDay } from '../utils/availabilityCalendar'
 import { api } from '../services/api'
 import { LoadingCard, PageHeader } from './_helpers'

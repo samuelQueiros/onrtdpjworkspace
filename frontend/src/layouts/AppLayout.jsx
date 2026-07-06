@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import BirthdayModal from '../components/layout/BirthdayModal'
-import Sidebar from '../components/layout/Sidebar'
-import Topbar from '../components/layout/Topbar'
+import BirthdayModal from '../components/estrutura/BirthdayModal'
+import Sidebar from '../components/estrutura/Sidebar'
+import Topbar from '../components/estrutura/Topbar'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../services/api'
 
