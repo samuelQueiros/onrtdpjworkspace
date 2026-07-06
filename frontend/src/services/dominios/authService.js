@@ -1,0 +1,12 @@
+import { postForm, req } from '../httpClient'
+
+export const authService = {
+  login(email, senha) {
+    const form = new URLSearchParams()
+    form.append('username', email)
+    form.append('password', senha)
+    return postForm('/auth/login', form)
+  },
+  me: () => req('GET', '/auth/me'),
+  updateConfig: body => req('PUT', '/me/configuracoes', body),
+}
