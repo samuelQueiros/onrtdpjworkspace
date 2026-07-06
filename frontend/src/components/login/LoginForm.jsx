@@ -93,6 +93,10 @@ export default function LoginForm({
           {loading && <span className="inline-spinner" />}
           {loading ? 'Entrando...' : 'Entrar no sistema'}
         </button>
+
+        <p className="login-hint muted" style={{ fontSize: 12, textAlign: 'center', marginTop: 4 }}>
+          Acesso inicial: <strong>admin@sistema.com</strong> / admin123
+        </p>
       </form>
     </section>
   )
