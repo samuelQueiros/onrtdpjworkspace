@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import LoginForm from '../components/login/LoginForm'
+import LoginHero from '../components/login/LoginHero'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Login() {
@@ -29,131 +31,18 @@ export default function Login() {
 
   return (
     <div className="login-wrap">
-      {/* ── Painel esquerdo ───────────────── */}
-      <section className="login-panel-left">
-        <div className="login-brand">
-          <div className="login-logo-wrap">
-            <div className="login-logo-mark">
-              <img src="/logo.png" alt="ONRTDPJ" width="52" height="52" />
-            </div>
-            <div className="login-logo-text">
-              <strong>ONRTDPJ</strong>
-              <span>Operador Nacional de RTDPJ</span>
-            </div>
-          </div>
-
-          <p className="eyebrow">Sistema Interno</p>
-          <h1>ONRTDPJ Workspace</h1>
-          <p>
-            O ambiente unificado para a gestão das operações internas.
-          </p>
-          <p style={{ marginTop: 12 }}>
-            Uma plataforma desenvolvida para centralizar processos administrativos,
-            controlar acessos, organizar documentos e apoiar a gestão de pessoas
-            em um único lugar.
-          </p>
-        </div>
-
-        <div className="login-feature-grid">
-          <span>👥 Gestão de Colaboradores</span>
-          <span>📅 Gestão de Férias</span>
-          <span>🔐 Acessos e Credenciais</span>
-          <span>📄 Documentos e Atestados</span>
-          <span>🏢 Departamentos</span>
-          <span>📢 Comunicados Internos</span>
-          <span>📊 Relatórios Gerenciais</span>
-          <span>⚙️ Administração do Sistema</span>
-        </div>
-      </section>
-
-      {/* ── Painel direito ────────────────── */}
-      <section className="login-panel-right">
-        <form className="login-card" onSubmit={submit}>
-
-          {/* Logo no painel direito */}
-          <div className="login-right-logo">
-            <div className="login-right-logo-mark">
-              <img src="/logo.png" alt="ONRTDPJ" width="42" height="42" />
-            </div>
-            <div className="login-right-logo-text">
-              <strong>ONRTDPJ</strong>
-              <span>Gestão RH</span>
-            </div>
-          </div>
-
-          <div>
-            <p className="eyebrow">Bem-vindo</p>
-            <h2>Acesse sua conta</h2>
-            <p className="login-muted" style={{ marginTop: 4 }}>
-              Use suas credenciais do sistema para continuar.
-            </p>
-          </div>
-
-          {error && <div className="alert alert-error">{error}</div>}
-
-          <div className="form-group">
-            <label htmlFor="email">E-mail</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              autoComplete="username"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="senha">Senha</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                id="senha"
-                type={showPass ? 'text' : 'password'}
-                value={senha}
-                onChange={e => setSenha(e.target.value)}
-                placeholder="••••••••"
-                autoComplete="current-password"
-                style={{ paddingRight: 48 }}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPass(v => !v)}
-                style={{
-                  position: 'absolute', right: 12, top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none', border: 'none',
-                  cursor: 'pointer', color: 'var(--muted)',
-                  padding: 4, borderRadius: 6,
-                  display: 'flex', alignItems: 'center',
-                }}
-                tabIndex={-1}
-              >
-                {showPass ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                )}
-              </button>
-            </div>
-          </div>
-
-          <button
-            className="btn btn-primary btn-lg"
-            type="submit"
-            disabled={loading}
-            style={{ width: '100%', justifyContent: 'center', marginTop: 4 }}
-          >
-            {loading && <span className="inline-spinner" />}
-            {loading ? 'Entrando...' : 'Entrar no sistema'}
-          </button>
-
-          <p className="login-hint muted" style={{ fontSize: 12, textAlign: 'center', marginTop: 4 }}>
-            Acesso inicial: <strong>admin@sistema.com</strong> / admin123
-          </p>
-        </form>
-      </section>
+      <LoginHero />
+      <LoginForm
+        email={email}
+        error={error}
+        loading={loading}
+        onEmailChange={setEmail}
+        onSenhaChange={setSenha}
+        onSubmit={submit}
+        onTogglePassword={() => setShowPass(value => !value)}
+        senha={senha}
+        showPass={showPass}
+      />
     </div>
   )
 }
