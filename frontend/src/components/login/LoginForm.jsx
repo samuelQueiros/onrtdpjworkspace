@@ -38,7 +38,11 @@ export default function LoginForm({
           </p>
         </div>
 
-        {error && <div className="alert alert-error">{error}</div>}
+        {error && (
+          <div className="alert alert-error" role="alert">
+            {error}
+          </div>
+        )}
 
         <div className="form-group">
           <label htmlFor="email">E-mail</label>
@@ -49,6 +53,7 @@ export default function LoginForm({
             onChange={event => onEmailChange(event.target.value)}
             placeholder="seu@email.com"
             autoComplete="username"
+            disabled={loading}
             required
           />
         </div>
@@ -64,13 +69,17 @@ export default function LoginForm({
               placeholder="********"
               autoComplete="current-password"
               className="login-password-input"
+              disabled={loading}
               required
             />
             <button
               type="button"
               onClick={onTogglePassword}
               className="login-password-toggle"
-              tabIndex={-1}
+              aria-label={showPass ? 'Ocultar senha' : 'Mostrar senha'}
+              aria-pressed={showPass}
+              title={showPass ? 'Ocultar senha' : 'Mostrar senha'}
+              disabled={loading}
             >
               <PasswordIcon visible={showPass} />
             </button>

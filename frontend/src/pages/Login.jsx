@@ -22,8 +22,8 @@ export default function Login() {
     try {
       await login(email, senha)
       navigate('/', { replace: true })
-    } catch (err) {
-      setError(err.message)
+    } catch {
+      setError('E-mail ou senha inválidos.')
     } finally {
       setLoading(false)
     }
