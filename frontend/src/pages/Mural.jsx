@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../services/api'
 import { EmptyState, LoadingCard, PageHeader, StatusBadge } from './_helpers'
 import { formatDate } from '../utils/formatters'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../contexts/AuthContext'
 
 const blank = { titulo: '', conteudo: '', fixado: false, data_expiracao: '' }
 

@@ -1,7 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout from './layouts/AppLayout'
 import PrivateRoute from './components/PrivateRoute'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider } from './contexts/AuthContext'
 import Aprovacoes from './pages/Aprovacoes'
 import Bloqueios from './pages/Bloqueios'
 import Credenciais from './pages/Credenciais'

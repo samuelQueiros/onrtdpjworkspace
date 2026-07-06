@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../services/api'
 import { EmptyState, LoadingCard, PageHeader, StatusBadge } from './_helpers'
 import { formatBytes, formatDate } from '../utils/formatters'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../contexts/AuthContext'
 
 const TIPO_LABEL = { atestado: 'Atestado', contracheque: 'Contracheque' }
 const TIPO_TONE = { atestado: 'blue', contracheque: 'green' }
