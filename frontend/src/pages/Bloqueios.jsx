@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import BloqueioForm, { blankBloqueioForm } from '../components/bloqueios/BloqueioForm'
 import BloqueiosTabela from '../components/bloqueios/BloqueiosTabela'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Bloqueios() {
+  const confirmar = useConfirm()
   const toast = useToast()
   const [bloqueios, setBloqueios] = useState([])
   const [form, setForm] = useState(blankBloqueioForm)
@@ -54,7 +56,13 @@ export default function Bloqueios() {
   }
 
   const excluir = async id => {
-    if (!confirm('Excluir este bloqueio/recesso?')) return
+    const confirmado = await confirmar({
+      title: 'Excluir bloqueio/recesso?',
+      message: 'O período deixará de aparecer como indisponível no calendário.',
+      confirmLabel: 'Excluir período',
+    })
+    if (!confirmado) return
+
     try {
       await api.excluirBloqueio(id)
       toast.success('Período excluído.')

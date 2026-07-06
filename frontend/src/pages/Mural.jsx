@@ -3,12 +3,14 @@ import AniversariantesMes from '../components/mural/AniversariantesMes'
 import AvisoForm, { blankAvisoForm } from '../components/mural/AvisoForm'
 import AvisosLista from '../components/mural/AvisosLista'
 import { useAuth } from '../contexts/AuthContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { EmptyState, LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Mural() {
   const { user } = useAuth()
+  const confirmar = useConfirm()
   const toast = useToast()
   const isAdmin = user?.role === 'admin'
 
@@ -72,7 +74,13 @@ export default function Mural() {
   }
 
   const excluir = async id => {
-    if (!confirm('Excluir este aviso?')) return
+    const confirmado = await confirmar({
+      title: 'Excluir aviso?',
+      message: 'O comunicado será removido do mural para todos os usuários.',
+      confirmLabel: 'Excluir aviso',
+    })
+    if (!confirmado) return
+
     try {
       await api.excluirAviso(id)
       toast.success('Aviso excluído.')

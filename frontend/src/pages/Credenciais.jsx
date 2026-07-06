@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import CredencialForm, { blankCredencialForm } from '../components/credenciais/CredencialForm'
 import CredenciaisTabela from '../components/credenciais/CredenciaisTabela'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Credenciais() {
+  const confirmar = useConfirm()
   const toast = useToast()
   const [credenciais, setCredenciais] = useState([])
   const [form, setForm] = useState(blankCredencialForm)
@@ -85,7 +87,13 @@ export default function Credenciais() {
   }
 
   const excluir = async id => {
-    if (!confirm('Excluir esta credencial e todos os acessos associados?')) return
+    const confirmado = await confirmar({
+      title: 'Excluir credencial?',
+      message: 'Todos os acessos associados a esta credencial também serão removidos.',
+      confirmLabel: 'Excluir credencial',
+    })
+    if (!confirmado) return
+
     try {
       await api.excluirCredencial(id)
       toast.success('Credencial excluída.')

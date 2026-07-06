@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import UserForm, { blankUserForm } from '../components/usuarios/UserForm'
 import UsersTable from '../components/usuarios/UsersTable'
 import { useAuth } from '../contexts/AuthContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Usuarios() {
   const { user: currentUser } = useAuth()
+  const confirmar = useConfirm()
   const toast = useToast()
   const [users, setUsers] = useState([])
   const [departamentos, setDepartamentos] = useState([])
@@ -73,7 +75,13 @@ export default function Usuarios() {
   }
 
   const excluir = async id => {
-    if (!confirm('Excluir este usuário? Todas as férias associadas também serão removidas.')) return
+    const confirmado = await confirmar({
+      title: 'Excluir usuário?',
+      message: 'Todas as férias associadas também serão removidas. Esta ação não pode ser desfeita.',
+      confirmLabel: 'Excluir usuário',
+    })
+    if (!confirmado) return
+
     try {
       await api.excluirUsuario(id)
       toast.success('Usuário excluído.')

@@ -4,12 +4,14 @@ import EditarFeriasModal from '../components/minhasFerias/EditarFeriasModal'
 import ResumoFeriasCards from '../components/minhasFerias/ResumoFeriasCards'
 import TabelaMinhasFerias from '../components/minhasFerias/TabelaMinhasFerias'
 import { useAuth } from '../contexts/AuthContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function MinhasFerias() {
   const { user } = useAuth()
+  const confirmar = useConfirm()
   const toast = useToast()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -23,7 +25,13 @@ export default function MinhasFerias() {
   const saldo = data?.saldo ?? user?.dias_restantes ?? 0
 
   const cancel = async id => {
-    if (!confirm('Cancelar este período de férias?')) return
+    const confirmado = await confirmar({
+      title: 'Cancelar férias?',
+      message: 'O período será removido da sua lista de férias registradas.',
+      confirmLabel: 'Cancelar férias',
+    })
+    if (!confirmado) return
+
     try {
       await api.cancelarFerias(id)
       toast.success('Período de férias cancelado.')

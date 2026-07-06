@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import DocumentosTabela from '../components/documentos/DocumentosTabela'
 import UploadDocumentoForm from '../components/documentos/UploadDocumentoForm'
 import { useAuth } from '../contexts/AuthContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { PageHeader } from '../components/comum/PageHelpers'
 
 export default function Documentos() {
   const { user } = useAuth()
+  const confirmar = useConfirm()
   const toast = useToast()
   const isAdmin = user?.role === 'admin'
 
@@ -75,7 +77,13 @@ export default function Documentos() {
   }
 
   const excluir = async id => {
-    if (!confirm('Excluir este documento?')) return
+    const confirmado = await confirmar({
+      title: 'Excluir documento?',
+      message: 'O arquivo deixará de estar disponível para visualização e download.',
+      confirmLabel: 'Excluir documento',
+    })
+    if (!confirmado) return
+
     try {
       await api.excluirDocumento(id)
       toast.success('Documento excluído.')

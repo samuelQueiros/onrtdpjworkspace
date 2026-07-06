@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import DepartamentoForm, { blankDepartamentoForm } from '../components/departamentos/DepartamentoForm'
 import DepartamentosTabela from '../components/departamentos/DepartamentosTabela'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Departamentos() {
+  const confirmar = useConfirm()
   const toast = useToast()
   const [deps, setDeps] = useState([])
   const [form, setForm] = useState(blankDepartamentoForm)
@@ -41,7 +43,13 @@ export default function Departamentos() {
   }
 
   const excluir = async id => {
-    if (!confirm('Excluir este departamento? Os usuários vinculados ficarão sem setor.')) return
+    const confirmado = await confirmar({
+      title: 'Excluir departamento?',
+      message: 'Os usuários vinculados ficarão sem setor. Esta ação não pode ser desfeita.',
+      confirmLabel: 'Excluir departamento',
+    })
+    if (!confirmado) return
+
     try {
       await api.excluirDepartamento(id)
       toast.success('Departamento excluído.')
