@@ -1,10 +1,10 @@
-/* ── Scrollbar ───────────────────────────── */
+/* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-/* ── Spinner ─────────────────────────────── */
+/* Spinner */
 .loading-screen {
   min-height: 100vh;
   display: flex; align-items: center; justify-content: center;
@@ -26,7 +26,7 @@
   animation: spin .65s linear infinite;
 }
 
-/* ── Divider ─────────────────────────────── */
+/* Divider */
 .divider { height: 1px; background: var(--border); margin: 16px 0; }
 
 .section-label {
@@ -70,7 +70,7 @@
   margin-left: 6px;
 }
 
-/* ── Grid helpers ────────────────────────── */
+/* Grid helpers */
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -81,7 +81,7 @@
 .form-stack { display: flex; flex-direction: column; gap: 16px; }
 .stat-grid-3 { grid-template-columns: repeat(3, 1fr); }
 
-/* ── Summary panel ───────────────────────── */
+/* Summary panel */
 .summary-panel {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -103,7 +103,7 @@
 }
 .summary-panel strong { font-size: 24px; font-weight: 800; line-height: 1.1; }
 
-/* ── Blocked / vacation items ────────────── */
+/* Blocked / vacation items */
 .blocked-list  { display: flex; flex-direction: column; gap: 10px; }
 
 .blocked-item {
@@ -129,7 +129,7 @@
 
 .date-preview { color: var(--muted); font-size: 12px; }
 
-/* ── Quick actions ───────────────────────── */
+/* Quick actions */
 .quick-actions { gap: 10px; display: flex; flex-direction: column; }
 .quick-action {
   display: block;
@@ -153,7 +153,7 @@
 .button-row { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .spaced     { margin-bottom: 14px; }
 
-/* ── Calendar ────────────────────────────── */
+/* Calendar */
 .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .cal-nav h3, .cal-month-title { font-size: 15px; font-weight: 700; text-transform: capitalize; }
 .cal-grid {
@@ -250,7 +250,7 @@
 .cal-grid.mini .cal-day-dots { gap: 1px; margin-top: 1px; }
 .cal-grid.mini .cal-user-dot { width: 4px; height: 4px; }
 
-/* ── Empty state ─────────────────────────── */
+/* Empty state */
 .empty { text-align: center; padding: 56px 24px; color: var(--muted); }
 .empty-icon {
   width: 56px; height: 56px;
@@ -263,7 +263,7 @@
 .empty h3 { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
 .empty p  { font-size: 13px; }
 
-/* ── Avisos / Mural ──────────────────────── */
+/* Avisos / Mural */
 .avisos-lista { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
 .aviso-card {
   border: 1px solid var(--border); border-radius: var(--radius);
@@ -275,7 +275,7 @@
 .aviso-titulo-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .aviso-corpo { font-size: 13.5px; color: var(--text); line-height: 1.6; margin-bottom: 10px; white-space: pre-wrap; }
 
-/* ── Search / filters ────────────────────── */
+/* Search / filters */
 /* .search-input e .select-filter herdam os estilos do bloco de inputs acima */
 .search-input  { min-width: 220px; width: auto; font-size: 13px; padding: 8px 14px; }
 .select-filter { min-width: 200px; width: auto; font-size: 13px; padding: 8px 14px; }
@@ -302,7 +302,7 @@
   min-width: 20px; text-align: center;
 }
 
-/* ── Color picker ────────────────────────── */
+/* Color picker */
 .color-picker { display: flex; flex-direction: column; gap: 8px; }
 .color-swatches { display: flex; gap: 6px; flex-wrap: wrap; }
 .color-swatch {
@@ -325,7 +325,7 @@
 .color-hex-input { width: 90px; }
 .user-form-color-preview { margin-left: 8px; }
 
-/* ── People list ─────────────────────────── */
+/* People list */
 .people-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
 .people-item { display: flex; align-items: center; gap: 10px; font-size: 13px; }
 .people-avatar {
@@ -335,14 +335,14 @@
   font-weight: 700; font-size: 13px; flex-shrink: 0;
 }
 
-/* ── Alert list ──────────────────────────── */
+/* Alert list */
 .alert-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .alert-item { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 13px; }
 .alert-item.amber { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
 .alert-item svg { flex-shrink: 0; margin-top: 1px; }
 .alert-box { border-radius: var(--radius); border: 1.5px solid #fde68a; }
 
-/* ── Misc ────────────────────────────────── */
+/* Misc */
 .action-code {
   font-family: 'Courier New', monospace; font-size: 11px;
   background: #f1f5f9; color: var(--navy);
@@ -353,7 +353,6 @@
 .historico-info.red   { color: #dc2626; }
 .historico-info em    { font-style: italic; opacity: .85; }
 
-.nowrap        { white-space: nowrap; }
 .text-sm       { font-size: 14px !important; }
 .actions-cell  { white-space: nowrap; }
 .actions-cell .btn + .btn { margin-left: 6px; }
@@ -364,7 +363,7 @@
 .form-hint { color: var(--muted); font-size: 12px; margin-top: -4px; }
 textarea   { resize: vertical; min-height: 80px; }
 
-/* ── Birthday modal ──────────────────────── */
+/* Birthday modal */
 .bday-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,.5);

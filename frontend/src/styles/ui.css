@@ -1,4 +1,4 @@
-/* ── Stat cards ──────────────────────────── */
+/* Stat cards */
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -52,7 +52,7 @@
 .stat-value { font-size: 30px; font-weight: 800; line-height: 1.1; color: var(--text); }
 .stat-sub   { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
-/* ── Card ────────────────────────────────── */
+/* Card */
 .card {
   background: white;
   border-radius: var(--radius);
@@ -72,7 +72,7 @@
 .card-title { font-size: 14px; font-weight: 700; }
 .card-body  { padding: 20px; }
 
-/* ── Table ───────────────────────────────── */
+/* Table */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th {
@@ -96,7 +96,7 @@ tr:last-child td { border-bottom: none; }
 tbody tr { transition: background .12s; }
 tbody tr:hover td { background: #f8fafc; }
 
-/* ── Button ──────────────────────────────── */
+/* Button */
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 18px;
@@ -146,7 +146,7 @@ tbody tr:hover td { background: #f8fafc; }
 .btn-lg  { padding: 12px 26px; font-size: 14px; border-radius: 10px; }
 .btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
 
-/* ── Badge ───────────────────────────────── */
+/* Badge */
 .badge {
   display: inline-flex; align-items: center;
   padding: 3px 10px;
@@ -162,7 +162,7 @@ tbody tr:hover td { background: #f8fafc; }
 .badge-navy   { background: #e0e7ff; color: #3730a3; }
 .badge-purple { background: #ede9fe; color: #7c3aed; }
 
-/* ── Form ────────────────────────────────── */
+/* Form */
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
@@ -207,7 +207,7 @@ input:focus, select:focus, textarea:focus,
 }
 input::placeholder { color: #94a3b8; }
 
-/* ── Alert ───────────────────────────────── */
+/* Alert */
 .alert {
   padding: 12px 14px;
   border-radius: var(--radius-sm);
@@ -223,7 +223,7 @@ input::placeholder { color: #94a3b8; }
 .alert a { color: inherit; font-weight: 600; text-decoration: underline; }
 .alert a:hover { opacity: .8; }
 
-/* ── Modal ───────────────────────────────── */
+/* Modal */
 .overlay,
 .modal-overlay {
   position: fixed; inset: 0;
@@ -272,7 +272,7 @@ input::placeholder { color: #94a3b8; }
   border-top: 1px solid var(--border);
 }
 
-/* ── Progress ────────────────────────────── */
+/* Progress */
 .progress-track {
   height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; margin-top: 10px;
 }
@@ -283,7 +283,7 @@ input::placeholder { color: #94a3b8; }
 .progress-fill.amber  { background: var(--amber); }
 .progress-fill.red    { background: var(--red); }
 
-/* ── Utility helpers ─────────────────────── */
+/* Utility helpers */
 .inline-center { display: flex; align-items: center; }
 .inline-start { display: flex; align-items: flex-start; }
 .gap-6 { gap: 6px; }

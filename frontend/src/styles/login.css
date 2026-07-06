@@ -1,4 +1,4 @@
-/* ── Login ───────────────────────────────── */
+/* Login */
 .login-wrap {
   display: flex;
   min-height: 100vh;
@@ -177,8 +177,6 @@
 
 .login-muted,
 .muted { color: var(--muted); font-size: 13px; }
-.login-hint { text-align: center; }
-
 .login-password-input {
   padding-right: 48px;
 }

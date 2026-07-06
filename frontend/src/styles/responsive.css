@@ -1,4 +1,4 @@
-/* ── Responsive ──────────────────────────── */
+/* Responsive */
 @media (max-width: 980px) {
   :root { --sidebar-w: 220px; }
   .grid-2, .grid-2-wide-left { grid-template-columns: 1fr; }
@@ -17,34 +17,3 @@
   .user-pill-name, .user-pill-role { display: none; }
   .year-grid { grid-template-columns: 1fr; }
 }
-
-/* ══════════════════════════════════════════
-   Glass / Ambient — suave por design
-   ══════════════════════════════════════════ */
-
-/* Ambient background orbs (main area only) */
-.main-area { position: relative; }
-.main-area::before,
-.main-area::after {
-  content: '';
-  position: fixed;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-}
-.main-area::before {
-  width: 640px; height: 640px;
-  top: -180px; right: -80px;
-  background: radial-gradient(circle, rgba(34,197,94,.045) 0%, transparent 65%);
-  animation: orb-drift-a 28s ease-in-out infinite;
-}
-.main-area::after {
-  width: 480px; height: 480px;
-  bottom: -120px; left: calc(var(--sidebar-w) + 40px);
-  background: radial-gradient(circle, rgba(14,165,233,.04) 0%, transparent 65%);
-  animation: orb-drift-b 34s ease-in-out infinite;
-}
-
-/* Content stacks above orbs; topbar keeps its own z-index from above */
-.content { position: relative; z-index: 1; }
-
