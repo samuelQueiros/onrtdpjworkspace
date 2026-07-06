@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { api } from '../services/api'
+import { clearToken, getToken, setToken } from '../services/httpClient'
 
 const Ctx = createContext(null)
 
@@ -8,10 +9,10 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (localStorage.getItem('token')) {
+    if (getToken()) {
       api.me()
         .then(setUser)
-        .catch(() => localStorage.removeItem('token'))
+        .catch(clearToken)
         .finally(() => setLoading(false))
     } else {
       setLoading(false)
@@ -20,13 +21,13 @@ export function AuthProvider({ children }) {
 
   const login = async (email, senha) => {
     const data = await api.login(email, senha)
-    localStorage.setItem('token', data.access_token)
+    setToken(data.access_token)
     setUser(data.user)
     return data.user
   }
 
   const logout = () => {
-    localStorage.removeItem('token')
+    clearToken()
     setUser(null)
   }
 

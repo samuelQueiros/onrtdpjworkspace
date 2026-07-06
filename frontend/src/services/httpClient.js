@@ -1,6 +1,8 @@
 const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
-const getToken = () => localStorage.getItem('token')
+export const getToken = () => localStorage.getItem('token')
+export const setToken = token => localStorage.setItem('token', token)
+export const clearToken = () => localStorage.removeItem('token')
 
 function authHeaders() {
   const token = getToken()
@@ -13,7 +15,7 @@ export async function parseJson(res) {
 
 function handleUnauthorized(res) {
   if (res.status === 401) {
-    localStorage.removeItem('token')
+    clearToken()
   }
 }
 
