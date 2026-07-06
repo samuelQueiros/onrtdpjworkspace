@@ -4,7 +4,7 @@ import AvisoForm, { blankAvisoForm } from '../components/mural/AvisoForm'
 import AvisosLista from '../components/mural/AvisosLista'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../services/api'
-import { EmptyState, LoadingCard, PageHeader } from './_helpers'
+import { EmptyState, LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Mural() {
   const { user } = useAuth()

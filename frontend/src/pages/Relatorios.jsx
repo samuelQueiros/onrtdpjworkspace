@@ -3,7 +3,7 @@ import RelatorioResumoCards from '../components/relatorios/RelatorioResumoCards'
 import RelatorioTabela from '../components/relatorios/RelatorioTabela'
 import { api } from '../services/api'
 import { exportRelatorios } from '../utils/relatoriosExport'
-import { LoadingCard, PageHeader } from './_helpers'
+import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Relatorios() {
   const [data, setData] = useState(null)

@@ -3,7 +3,7 @@ import FiltrosAprovacoes from '../components/aprovacoes/FiltrosAprovacoes'
 import RejeitarFeriasModal from '../components/aprovacoes/RejeitarFeriasModal'
 import TabelaAprovacoes from '../components/aprovacoes/TabelaAprovacoes'
 import { api } from '../services/api'
-import { LoadingCard, PageHeader } from './_helpers'
+import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Aprovacoes() {
   const [todas, setTodas] = useState([])

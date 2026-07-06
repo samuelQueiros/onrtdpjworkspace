@@ -4,7 +4,7 @@ import AdminDashboard from '../components/painel/AdminDashboard'
 import UserDashboard from '../components/painel/UserDashboard'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../services/api'
-import { LoadingCard, PageHeader } from './_helpers'
+import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Dashboard() {
   const { user, refreshUser } = useAuth()

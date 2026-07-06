@@ -3,7 +3,7 @@ import UserForm, { blankUserForm } from '../components/usuarios/UserForm'
 import UsersTable from '../components/usuarios/UsersTable'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../services/api'
-import { LoadingCard, PageHeader } from './_helpers'
+import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Usuarios() {
   const { user: currentUser } = useAuth()

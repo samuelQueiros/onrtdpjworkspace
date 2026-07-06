@@ -3,7 +3,7 @@ import LogsActions from '../components/logs/LogsActions'
 import LogsTabela from '../components/logs/LogsTabela'
 import { api } from '../services/api'
 import { exportLogs } from '../utils/logsExport'
-import { LoadingCard, PageHeader } from './_helpers'
+import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Logs() {
   const [logs, setLogs] = useState([])

@@ -1,4 +1,4 @@
-import { StatusBadge } from '../../pages/_helpers'
+import { StatusBadge } from '../comum/PageHelpers'
 import { formatDate } from '../../utils/formatters'
 import UserColorDot from './UserColorDot'
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import DepartamentoForm, { blankDepartamentoForm } from '../components/departamentos/DepartamentoForm'
 import DepartamentosTabela from '../components/departamentos/DepartamentosTabela'
 import { api } from '../services/api'
-import { LoadingCard, PageHeader } from './_helpers'
+import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Departamentos() {
   const [deps, setDeps] = useState([])

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import CredencialCompartilhadaCard from '../components/minhasCredenciais/CredencialCompartilhadaCard'
 import { api } from '../services/api'
-import { EmptyState, LoadingCard, PageHeader } from './_helpers'
+import { EmptyState, LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function MinhasCredenciais() {
   const [credenciais, setCredenciais] = useState([])

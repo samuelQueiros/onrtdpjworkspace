@@ -1,4 +1,4 @@
-import { StatusBadge } from '../../pages/_helpers'
+import { StatusBadge } from '../comum/PageHelpers'
 
 export default function DepartamentosTabela({ departamentos, onDelete, onEdit }) {
   return (

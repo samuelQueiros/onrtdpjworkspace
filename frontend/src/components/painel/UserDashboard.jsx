@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { EmptyState, StatusBadge } from '../../pages/_helpers'
+import { EmptyState, StatusBadge } from '../comum/PageHelpers'
 import { formatDate } from '../../utils/formatters'
 import AvisoCard from './AvisoCard'
 

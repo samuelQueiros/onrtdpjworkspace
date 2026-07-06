@@ -3,7 +3,7 @@ import AvailabilityCalendar from '../components/disponibilidade/AvailabilityCale
 import AvailabilitySidebar from '../components/disponibilidade/AvailabilitySidebar'
 import { findManualBlock, vacationsOnDay } from '../utils/availabilityCalendar'
 import { api } from '../services/api'
-import { LoadingCard, PageHeader } from './_helpers'
+import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Disponibilidade() {
   const [periodos, setPeriodos] = useState([])

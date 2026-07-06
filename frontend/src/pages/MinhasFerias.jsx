@@ -5,7 +5,7 @@ import ResumoFeriasCards from '../components/minhasFerias/ResumoFeriasCards'
 import TabelaMinhasFerias from '../components/minhasFerias/TabelaMinhasFerias'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../services/api'
-import { LoadingCard, PageHeader } from './_helpers'
+import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function MinhasFerias() {
   const { user } = useAuth()

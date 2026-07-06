@@ -1,4 +1,4 @@
-import { EmptyState } from '../../pages/_helpers'
+import { EmptyState } from '../comum/PageHelpers'
 
 export default function CredenciaisTabela({ credenciais, editing, onDelete, onEdit, onNew }) {
   return (

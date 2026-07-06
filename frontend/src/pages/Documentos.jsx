@@ -3,7 +3,7 @@ import DocumentosTabela from '../components/documentos/DocumentosTabela'
 import UploadDocumentoForm from '../components/documentos/UploadDocumentoForm'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../services/api'
-import { PageHeader } from './_helpers'
+import { PageHeader } from '../components/comum/PageHelpers'
 
 export default function Documentos() {
   const { user } = useAuth()

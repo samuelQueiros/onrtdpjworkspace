@@ -1,4 +1,4 @@
-import { EmptyState } from '../../pages/_helpers'
+import { EmptyState } from '../comum/PageHelpers'
 import { formatDateTime } from '../../utils/formatters'
 
 export default function LogsTabela({ logs, search, onSearchChange }) {

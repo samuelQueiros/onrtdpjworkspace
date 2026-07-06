@@ -1,4 +1,4 @@
-import { EmptyState, StatusBadge } from '../../pages/_helpers'
+import { EmptyState, StatusBadge } from '../comum/PageHelpers'
 import { formatDate } from '../../utils/formatters'
 import HistoricoAprovacao from './HistoricoAprovacao'
 import { EMPTY_STATE, FILTER_LABELS, STATUS_LABELS } from './statusAprovacoes'

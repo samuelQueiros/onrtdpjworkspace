@@ -1,4 +1,4 @@
-import { EmptyState, StatusBadge } from '../../pages/_helpers'
+import { EmptyState, StatusBadge } from '../comum/PageHelpers'
 import { formatBytes, formatDate } from '../../utils/formatters'
 import { TIPO_LABEL, TIPO_TONE } from './documentosLabels'
 

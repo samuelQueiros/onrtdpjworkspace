@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import BloqueioForm, { blankBloqueioForm } from '../components/bloqueios/BloqueioForm'
 import BloqueiosTabela from '../components/bloqueios/BloqueiosTabela'
 import { api } from '../services/api'
-import { LoadingCard, PageHeader } from './_helpers'
+import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Bloqueios() {
   const [bloqueios, setBloqueios] = useState([])

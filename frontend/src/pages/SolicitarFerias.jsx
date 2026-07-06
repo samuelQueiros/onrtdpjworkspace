@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { api } from '../services/api'
 import { calcDays, formatDate } from '../utils/formatters'
 import { overlaps, validarDataInicio } from '../utils/feriasValidation'
-import { PageHeader } from './_helpers'
+import { PageHeader } from '../components/comum/PageHelpers'
 
 export default function SolicitarFerias() {
   const navigate = useNavigate()

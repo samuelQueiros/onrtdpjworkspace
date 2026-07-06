@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import CredencialForm, { blankCredencialForm } from '../components/credenciais/CredencialForm'
 import CredenciaisTabela from '../components/credenciais/CredenciaisTabela'
 import { api } from '../services/api'
-import { LoadingCard, PageHeader } from './_helpers'
+import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Credenciais() {
   const [credenciais, setCredenciais] = useState([])
