@@ -1,0 +1,91 @@
+import PermissoesUsuarios from './PermissoesUsuarios'
+
+export const blankCredencialForm = { descricao: '', email: '', senha: '' }
+
+export default function CredencialForm({
+  editing,
+  error,
+  form,
+  mostrarSenha,
+  onCancel,
+  onChange,
+  onSubmit,
+  onToggleSenha,
+  onToggleUsuario,
+  success,
+  userIds,
+  usuarios,
+}) {
+  const updateForm = changes => onChange({ ...form, ...changes })
+
+  return (
+    <form className="card form-card" onSubmit={onSubmit}>
+      <div className="card-header">
+        <h2 className="card-title">{editing === 'nova' ? 'Nova credencial' : 'Editar credencial'}</h2>
+      </div>
+      <div className="card-body form-stack">
+        {error && <div className="alert alert-error">{error}</div>}
+        {success && <div className="alert alert-success">{success}</div>}
+
+        <div className="form-group">
+          <label>Descrição</label>
+          <input
+            type="text"
+            value={form.descricao}
+            onChange={event => updateForm({ descricao: event.target.value })}
+            placeholder="Ex.: Google Workspace, Meta Business..."
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label>E-mail</label>
+          <input
+            type="text"
+            value={form.email}
+            onChange={event => updateForm({ email: event.target.value })}
+            placeholder="usuario@empresa.com"
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Senha</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type={mostrarSenha ? 'text' : 'password'}
+              value={form.senha}
+              onChange={event => updateForm({ senha: event.target.value })}
+              placeholder={editing === 'nova' ? 'Senha de acesso' : 'Deixe em branco para manter a senha atual'}
+              required={editing === 'nova'}
+              style={{ flex: 1 }}
+            />
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={onToggleSenha}
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              {mostrarSenha ? 'Ocultar' : 'Mostrar'}
+            </button>
+          </div>
+        </div>
+
+        <PermissoesUsuarios
+          userIds={userIds}
+          usuarios={usuarios}
+          onToggleUsuario={onToggleUsuario}
+        />
+
+        <div className="button-row">
+          <button className="btn btn-outline" type="button" onClick={onCancel}>
+            Cancelar
+          </button>
+          <button className="btn btn-primary" type="submit">
+            {editing === 'nova' ? 'Criar credencial' : 'Salvar alterações'}
+          </button>
+        </div>
+      </div>
+    </form>
+  )
+}
