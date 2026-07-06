@@ -1,69 +1,15 @@
 import { useEffect, useState } from 'react'
-import { api } from '../services/api'
-import { LoadingCard, PageHeader, StatusBadge } from './_helpers'
-import { formatDate } from '../utils/formatters'
+import UserForm, { blankUserForm } from '../components/users/UserForm'
+import UsersTable from '../components/users/UsersTable'
 import { useAuth } from '../contexts/AuthContext'
-
-const CORES_SUGERIDAS = [
-  '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6',
-  '#06b6d4', '#f97316', '#ec4899', '#10b981', '#6366f1',
-]
-
-const blank = {
-  nome: '', email: '', senha: '', role: 'user',
-  dias_totais: 30, departamento_id: '', data_admissao: '',
-  data_aniversario: '', cor: '',
-}
-
-function ColorPicker({ value, onChange }) {
-  return (
-    <div className="color-picker">
-      <div className="color-swatches">
-        {CORES_SUGERIDAS.map(c => (
-          <button
-            key={c}
-            type="button"
-            className={`color-swatch${value === c ? ' selected' : ''}`}
-            style={{ background: c }}
-            onClick={() => onChange(value === c ? '' : c)}
-            title={c}
-          />
-        ))}
-      </div>
-      <div className="color-custom">
-        <input
-          type="color"
-          value={value || '#3b82f6'}
-          onChange={e => onChange(e.target.value)}
-          title="Cor personalizada"
-        />
-        <input
-          type="text"
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder="#000000"
-          maxLength={7}
-          style={{ width: 90 }}
-        />
-        {value && (
-          <button
-            type="button"
-            className="btn btn-outline btn-sm"
-            onClick={() => onChange('')}
-          >
-            Limpar
-          </button>
-        )}
-      </div>
-    </div>
-  )
-}
+import { api } from '../services/api'
+import { LoadingCard, PageHeader } from './_helpers'
 
 export default function Usuarios() {
   const { user: currentUser } = useAuth()
   const [users, setUsers] = useState([])
   const [departamentos, setDepartamentos] = useState([])
-  const [form, setForm] = useState(blank)
+  const [form, setForm] = useState(blankUserForm)
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -71,10 +17,17 @@ export default function Usuarios() {
 
   const load = () =>
     Promise.all([api.listarUsuarios(), api.listarDepartamentos()])
-      .then(([u, d]) => { setUsers(u); setDepartamentos(d) })
+      .then(([usuarios, deps]) => { setUsers(usuarios); setDepartamentos(deps) })
       .finally(() => setLoading(false))
 
   useEffect(() => { load() }, [])
+
+  const resetForm = () => {
+    setForm(blankUserForm)
+    setEditing(null)
+    setError('')
+    setSuccess('')
+  }
 
   const save = async event => {
     event.preventDefault()
@@ -100,7 +53,7 @@ export default function Usuarios() {
         await api.criarUsuario(payload)
         setSuccess('Usuário criado com sucesso.')
       }
-      setForm(blank)
+      setForm(blankUserForm)
       setEditing(null)
       await load()
     } catch (err) {
@@ -144,183 +97,23 @@ export default function Usuarios() {
       <PageHeader title="Usuários" subtitle="Cadastre colaboradores, ajuste saldos e defina cores de identificação." />
 
       <div className="grid-2 grid-2-wide-left">
-        <section className="card">
-          <div className="card-header"><h2 className="card-title">Colaboradores ({users.length})</h2></div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Cor</th>
-                  <th>Nome</th>
-                  <th>E-mail</th>
-                  <th>Perfil</th>
-                  <th>Departamento</th>
-                  <th>Aniversário</th>
-                  <th>Saldo</th>
-                  <th>Total</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(user => (
-                  <tr key={user.id}>
-                    <td>
-                      <span
-                        style={{
-                          display: 'inline-block', width: 18, height: 18,
-                          borderRadius: '50%', background: user.cor || '#e2e8f0',
-                          border: '1.5px solid rgba(0,0,0,.1)', verticalAlign: 'middle',
-                        }}
-                        title={user.cor || 'Sem cor'}
-                      />
-                    </td>
-                    <td><strong>{user.nome}</strong></td>
-                    <td>{user.email}</td>
-                    <td>
-                      <StatusBadge tone={user.role === 'admin' ? 'navy' : 'gray'}>
-                        {user.role === 'admin' ? 'Admin' : 'Usuário'}
-                      </StatusBadge>
-                    </td>
-                    <td>{user.departamento?.nome || <span className="muted">—</span>}</td>
-                    <td>{user.data_aniversario ? formatDate(user.data_aniversario) : <span className="muted">—</span>}</td>
-                    <td>{user.dias_restantes}</td>
-                    <td>{user.dias_totais}</td>
-                    <td className="actions-cell">
-                      <button className="btn btn-outline btn-sm" onClick={() => startEdit(user)}>
-                        Editar
-                      </button>
-                      {user.id !== currentUser?.id && (
-                        <button className="btn btn-danger btn-sm" onClick={() => excluir(user.id)}>
-                          Excluir
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <UsersTable
+          users={users}
+          currentUserId={currentUser?.id}
+          onEdit={startEdit}
+          onDelete={excluir}
+        />
 
-        <form className="card form-card" onSubmit={save}>
-          <div className="card-header">
-            <h2 className="card-title">{editing ? 'Editar usuário' : 'Novo usuário'}</h2>
-          </div>
-          <div className="card-body form-stack">
-            {error && <div className="alert alert-error">{error}</div>}
-            {success && <div className="alert alert-success">{success}</div>}
-
-            <div className="form-group">
-              <label>Nome</label>
-              <input
-                type="text"
-                value={form.nome}
-                onChange={e => setForm({ ...form, nome: e.target.value })}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>E-mail</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={e => setForm({ ...form, email: e.target.value })}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>{editing ? 'Nova senha (deixe em branco para manter)' : 'Senha'}</label>
-              <input
-                type="password"
-                value={form.senha}
-                onChange={e => setForm({ ...form, senha: e.target.value })}
-                required={!editing}
-              />
-            </div>
-            {!editing && (
-              <div className="form-group">
-                <label>Perfil</label>
-                <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
-                  <option value="user">Usuário</option>
-                  <option value="admin">Administrador</option>
-                </select>
-              </div>
-            )}
-            <div className="form-group">
-              <label>Departamento</label>
-              <select
-                value={form.departamento_id}
-                onChange={e => setForm({ ...form, departamento_id: e.target.value })}
-              >
-                <option value="">Sem departamento</option>
-                {departamentos.map(d => (
-                  <option key={d.id} value={d.id}>{d.nome}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>
-                Cor de identificação
-                {form.cor && (
-                  <span
-                    style={{
-                      display: 'inline-block', width: 14, height: 14,
-                      borderRadius: '50%', background: form.cor,
-                      marginLeft: 8, verticalAlign: 'middle',
-                      border: '1.5px solid rgba(0,0,0,.15)',
-                    }}
-                  />
-                )}
-              </label>
-              <ColorPicker value={form.cor} onChange={cor => setForm({ ...form, cor })} />
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Dias totais</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.dias_totais}
-                  onChange={e => setForm({ ...form, dias_totais: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Data de admissão</label>
-                <input
-                  type="date"
-                  value={form.data_admissao}
-                  onChange={e => setForm({ ...form, data_admissao: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Data de aniversário</label>
-                <input
-                  type="date"
-                  value={form.data_aniversario}
-                  onChange={e => setForm({ ...form, data_aniversario: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="button-row">
-              {editing && (
-                <button
-                  className="btn btn-outline"
-                  type="button"
-                  onClick={() => { setEditing(null); setForm(blank); setError(''); setSuccess('') }}
-                >
-                  Cancelar
-                </button>
-              )}
-              <button className="btn btn-primary" type="submit">
-                {editing ? 'Salvar alterações' : 'Criar usuário'}
-              </button>
-            </div>
-          </div>
-        </form>
+        <UserForm
+          departamentos={departamentos}
+          editing={editing}
+          error={error}
+          form={form}
+          onCancel={resetForm}
+          onChange={setForm}
+          onSubmit={save}
+          success={success}
+        />
       </div>
     </>
   )
