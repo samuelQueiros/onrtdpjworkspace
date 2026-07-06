@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../services/api'
-import { LoadingCard, PageHeader, StatusBadge, formatDate } from './_helpers'
+import { LoadingCard, PageHeader, StatusBadge } from './_helpers'
+import { formatDate } from '../utils/formatters'
 
 function csvCell(value) {
   return `"${String(value ?? '').replace(/"/g, '""')}"`

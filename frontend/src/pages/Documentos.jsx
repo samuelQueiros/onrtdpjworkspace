@@ -1,16 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../services/api'
-import { EmptyState, LoadingCard, PageHeader, StatusBadge, formatDate } from './_helpers'
+import { EmptyState, LoadingCard, PageHeader, StatusBadge } from './_helpers'
+import { formatBytes, formatDate } from '../utils/formatters'
 import { useAuth } from '../context/AuthContext'
 
 const TIPO_LABEL = { atestado: 'Atestado', contracheque: 'Contracheque' }
 const TIPO_TONE = { atestado: 'blue', contracheque: 'green' }
-
-function formatBytes(bytes) {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
 
 export default function Documentos() {
   const { user } = useAuth()

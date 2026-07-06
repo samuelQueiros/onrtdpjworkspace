@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../services/api'
 import { useAuth } from '../context/AuthContext'
-import { EmptyState, LoadingCard, PageHeader, StatusBadge, formatDate } from './_helpers'
+import { EmptyState, LoadingCard, PageHeader, StatusBadge } from './_helpers'
+import { formatDate } from '../utils/formatters'
 
 const STATUS_TONE = { aprovada: 'green', pendente: 'amber', rejeitada: 'red' }
 const STATUS_LABEL = { aprovada: 'Aprovada', pendente: 'Pendente', rejeitada: 'Rejeitada' }

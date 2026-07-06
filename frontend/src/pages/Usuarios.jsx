@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../services/api'
-import { LoadingCard, PageHeader, StatusBadge, formatDate } from './_helpers'
+import { LoadingCard, PageHeader, StatusBadge } from './_helpers'
+import { formatDate } from '../utils/formatters'
 import { useAuth } from '../context/AuthContext'
 
 const CORES_SUGERIDAS = [

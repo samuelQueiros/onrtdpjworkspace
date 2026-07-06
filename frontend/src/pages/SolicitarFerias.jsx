@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
 import { useAuth } from '../context/AuthContext'
-import { PageHeader, calcDays, formatDate } from './_helpers'
+import { PageHeader } from './_helpers'
+import { calcDays, formatDate } from '../utils/formatters'
 
 const NOMES_DIA = ['segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado', 'domingo']
 
