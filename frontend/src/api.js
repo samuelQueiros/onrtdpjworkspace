@@ -1,10 +1,27 @@
 const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
-const token = () => localStorage.getItem('token')
+const getToken = () => localStorage.getItem('token')
+
+function authHeaders() {
+  const token = getToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+async function parseJson(res) {
+  return res.json().catch(() => ({}))
+}
+
+function handleUnauthorized(res) {
+  if (res.status === 401) {
+    localStorage.removeItem('token')
+  }
+}
 
 async function req(method, path, body = null) {
-  const headers = { 'Content-Type': 'application/json' }
-  if (token()) headers.Authorization = `Bearer ${token()}`
+  const headers = {
+    ...authHeaders(),
+    ...(body ? { 'Content-Type': 'application/json' } : {}),
+  }
 
   const res = await fetch(`${BASE}${path}`, {
     method,
@@ -12,24 +29,42 @@ async function req(method, path, body = null) {
     body: body ? JSON.stringify(body) : null,
   })
 
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.detail || 'Erro na requisição')
+  const data = await parseJson(res)
+  if (!res.ok) {
+    handleUnauthorized(res)
+    throw new Error(data.detail || 'Erro na requisicao')
+  }
   return data
 }
 
 async function upload(path, formData) {
-  const headers = {}
-  if (token()) headers.Authorization = `Bearer ${token()}`
-
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
-    headers,
+    headers: authHeaders(),
     body: formData,
   })
 
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.detail || 'Erro no upload')
+  const data = await parseJson(res)
+  if (!res.ok) {
+    handleUnauthorized(res)
+    throw new Error(data.detail || 'Erro no upload')
+  }
   return data
+}
+
+async function download(path) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'GET',
+    headers: authHeaders(),
+  })
+
+  if (!res.ok) {
+    const data = await parseJson(res)
+    handleUnauthorized(res)
+    throw new Error(data.detail || 'Erro ao baixar arquivo')
+  }
+
+  return res.blob()
 }
 
 export const api = {
@@ -39,28 +74,27 @@ export const api = {
     form.append('username', email)
     form.append('password', senha)
     return fetch(`${BASE}/auth/login`, { method: 'POST', body: form }).then(async res => {
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.detail || 'Credenciais inválidas')
+      const data = await parseJson(res)
+      if (!res.ok) throw new Error(data.detail || 'Credenciais invalidas')
       return data
     })
   },
   me: () => req('GET', '/auth/me'),
   updateConfig: body => req('PUT', '/me/configuracoes', body),
 
-  // Férias
+  // Ferias
   minhasFerias: () => req('GET', '/ferias/me'),
   disponibilidade: () => req('GET', '/ferias/disponibilidade'),
   feriados: year => req('GET', `/ferias/feriados/${year}`),
   registrarFerias: body => req('POST', '/ferias', body),
   editarFerias: (id, body) => req('PUT', `/ferias/${id}`, body),
   cancelarFerias: id => req('DELETE', `/ferias/${id}`),
-  // Aprovação (admin)
   feriasPendentes: () => req('GET', '/ferias/pendentes'),
   todasFerias: () => req('GET', '/ferias/todas'),
   aprovarFerias: id => req('PUT', `/ferias/${id}/aprovar`),
   rejeitarFerias: (id, motivo) => req('PUT', `/ferias/${id}/rejeitar`, { motivo_rejeicao: motivo }),
 
-  // Usuários
+  // Usuarios
   listarUsuarios: () => req('GET', '/users'),
   listarAniversariantes: () => req('GET', '/users/aniversariantes'),
   criarUsuario: body => req('POST', '/users', body),
@@ -84,14 +118,15 @@ export const api = {
   meusDocumentos: () => req('GET', '/documentos/me'),
   documentosUsuario: userId => req('GET', `/documentos/usuario/${userId}`),
   uploadDocumento: formData => upload('/documentos/upload', formData),
+  downloadDocumento: id => download(`/documentos/${id}/download`),
   excluirDocumento: id => req('DELETE', `/documentos/${id}`),
 
-  // Relatórios e Logs
+  // Relatorios e Logs
   relatorios: () => req('GET', '/relatorios'),
   dashboard: () => req('GET', '/dashboard'),
   logs: () => req('GET', '/logs'),
 
-  // Importação Excel
+  // Importacao Excel
   importarFerias: formData => upload('/importacao/ferias', formData),
   importarLogs: formData => upload('/importacao/logs', formData),
 

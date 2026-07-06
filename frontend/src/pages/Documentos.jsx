@@ -102,12 +102,7 @@ export default function Documentos() {
 
   const baixar = async id => {
     try {
-      const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
-      const token = localStorage.getItem('token')
-      const res = await fetch(`${BASE}/documentos/${id}/download`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const blob = await res.blob()
+      const blob = await api.downloadDocumento(id)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       const doc = docs.find(d => d.id === id)
@@ -117,8 +112,8 @@ export default function Documentos() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-    } catch {
-      setError('Erro ao baixar o documento.')
+    } catch (err) {
+      setError(err.message)
     }
   }
 
@@ -234,7 +229,7 @@ export default function Documentos() {
 
             <div className="form-group">
               <label>Arquivo (PDF, JPG, PNG — máx. 10 MB)</label>
-              <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png," required />
+              <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" required />
             </div>
 
             <button className="btn btn-primary" type="submit" disabled={uploading}>
