@@ -33,7 +33,7 @@ export default function LoginForm({
         <div>
           <p className="eyebrow">Bem-vindo</p>
           <h2>Acesse sua conta</h2>
-          <p className="login-muted" style={{ marginTop: 4 }}>
+          <p className="login-muted mt-4">
             Use suas credenciais do sistema para continuar.
           </p>
         </div>
@@ -55,7 +55,7 @@ export default function LoginForm({
 
         <div className="form-group">
           <label htmlFor="senha">Senha</label>
-          <div style={{ position: 'relative' }}>
+          <div className="relative-field">
             <input
               id="senha"
               type={showPass ? 'text' : 'password'}
@@ -63,20 +63,13 @@ export default function LoginForm({
               onChange={event => onSenhaChange(event.target.value)}
               placeholder="********"
               autoComplete="current-password"
-              style={{ paddingRight: 48 }}
+              className="login-password-input"
               required
             />
             <button
               type="button"
               onClick={onTogglePassword}
-              style={{
-                position: 'absolute', right: 12, top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none', border: 'none',
-                cursor: 'pointer', color: 'var(--muted)',
-                padding: 4, borderRadius: 6,
-                display: 'flex', alignItems: 'center',
-              }}
+              className="login-password-toggle"
               tabIndex={-1}
             >
               <PasswordIcon visible={showPass} />
@@ -85,16 +78,15 @@ export default function LoginForm({
         </div>
 
         <button
-          className="btn btn-primary btn-lg"
+          className="btn btn-primary btn-lg login-submit"
           type="submit"
           disabled={loading}
-          style={{ width: '100%', justifyContent: 'center', marginTop: 4 }}
         >
           {loading && <span className="inline-spinner" />}
           {loading ? 'Entrando...' : 'Entrar no sistema'}
         </button>
 
-        <p className="login-hint muted" style={{ fontSize: 12, textAlign: 'center', marginTop: 4 }}>
+        <p className="login-hint muted">
           Acesso inicial: <strong>admin@sistema.com</strong> / admin123
         </p>
       </form>

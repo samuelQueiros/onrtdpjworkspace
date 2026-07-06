@@ -14,13 +14,13 @@ export default function AvailabilityCalendar({
   return (
     <section className="card">
       <div className="card-body">
-        <div className="cal-nav" style={{ marginBottom: 16 }}>
+        <div className="cal-nav mb-16">
           <button className="btn btn-outline btn-sm" onClick={() => onChangeYear(-1)}>← Anterior</button>
           <h3 className="cal-month-title">{year}</h3>
           <button className="btn btn-outline btn-sm" onClick={() => onChangeYear(1)}>Próximo →</button>
         </div>
 
-        <div className="cal-legend" style={{ marginBottom: 16 }}>
+        <div className="cal-legend mb-16">
           <span className="cal-legend-item"><span className="cal-legend-dot available" />Disponível</span>
           <span className="cal-legend-item"><span className="cal-legend-dot marked" />Férias marcadas</span>
           <span className="cal-legend-item"><span className="cal-legend-dot blocked" />Limite atingido</span>

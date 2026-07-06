@@ -87,7 +87,7 @@ export default function UserForm({
           <label>
             Cor de identificação
             {form.cor && (
-              <span style={{ marginLeft: 8 }}>
+              <span className="user-form-color-preview">
                 <UserColorDot color={form.cor} size={14} />
               </span>
             )}

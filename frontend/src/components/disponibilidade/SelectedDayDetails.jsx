@@ -5,7 +5,7 @@ export default function SelectedDayDetails({ selectedDay, selectedDayInfo, onClo
   if (!selectedDay || !selectedDayInfo) return null
 
   return (
-    <div className="cal-detail-panel" style={{ marginTop: 16 }}>
+    <div className="cal-detail-panel mt-16">
       <div className="cal-detail-header">
         <strong>
           {new Date(`${selectedDay}T12:00:00`).toLocaleDateString('pt-BR', {
@@ -29,7 +29,7 @@ export default function SelectedDayDetails({ selectedDay, selectedDayInfo, onClo
               <div>
                 <strong>{vacation.nome}</strong>
                 {vacation.ferias_acordo && <StatusBadge tone="blue">Por acordo</StatusBadge>}
-                <div className="muted" style={{ fontSize: 12 }}>
+                <div className="muted text-xs">
                   {formatDate(vacation.data_inicio)} a {formatDate(vacation.data_fim)} - {vacation.dias_usados} dia(s)
                 </div>
               </div>
@@ -37,7 +37,7 @@ export default function SelectedDayDetails({ selectedDay, selectedDayInfo, onClo
           ))}
         </ul>
       ) : !selectedDayInfo.bm ? (
-        <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>Nenhum período de férias marcado neste dia.</p>
+        <p className="muted muted-sm mt-8">Nenhum período de férias marcado neste dia.</p>
       ) : null}
     </div>
   )

@@ -4,9 +4,9 @@ export default function PermissoesUsuarios({ userIds, usuarios, onToggleUsuario 
   return (
     <div className="form-group">
       <label>Permissões</label>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+      <div className="stack-6 mt-4">
         {usuarios.map(usuario => (
-          <label key={usuario.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 'normal' }}>
+          <label key={usuario.id} className="permission-option">
             <input
               type="checkbox"
               checked={userIds.includes(usuario.id)}

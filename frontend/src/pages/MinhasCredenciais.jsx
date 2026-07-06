@@ -50,7 +50,7 @@ export default function MinhasCredenciais() {
           />
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="stack-16">
           {credenciais.map(credencial => (
             <CredencialCompartilhadaCard
               key={credencial.id}

@@ -33,7 +33,7 @@ export default function TabelaAprovacoes({ ferias, filtro, onAprovar, onRejeitar
               {ferias.map(item => (
                 <tr key={item.id}>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div className="inline-center">
                       <UserDot cor={item.cor_usuario} nome={item.nome_usuario} />
                       <strong>{item.nome_usuario}</strong>
                     </div>
@@ -64,7 +64,7 @@ export default function TabelaAprovacoes({ ferias, filtro, onAprovar, onRejeitar
                         </button>
                       </>
                     ) : (
-                      <span className="muted" style={{ fontSize: 12 }}>-</span>
+                      <span className="muted text-xs">-</span>
                     )}
                   </td>
                 </tr>

@@ -51,20 +51,20 @@ export default function CredencialForm({
 
         <div className="form-group">
           <label>Senha</label>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="field-with-action">
             <input
               type={mostrarSenha ? 'text' : 'password'}
               value={form.senha}
               onChange={event => updateForm({ senha: event.target.value })}
               placeholder={editing === 'nova' ? 'Senha de acesso' : 'Deixe em branco para manter a senha atual'}
               required={editing === 'nova'}
-              style={{ flex: 1 }}
+              className="flex-1"
             />
             <button
               type="button"
               className="btn btn-outline btn-sm"
               onClick={onToggleSenha}
-              style={{ whiteSpace: 'nowrap' }}
+              className="nowrap"
             >
               {mostrarSenha ? 'Ocultar' : 'Mostrar'}
             </button>

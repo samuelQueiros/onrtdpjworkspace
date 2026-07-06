@@ -9,11 +9,11 @@ export default function AdminDashboard({ dash, pendentes }) {
     <>
       {dash.alertas_contabilidade?.length > 0 && (
         <div className="alert alert-warning spaced alert-box">
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-            <span style={{ flexShrink: 0, marginTop: 1 }}>{Icon.alert}</span>
+          <div className="inline-start gap-10">
+            <span className="shrink-0 mt-1">{Icon.alert}</span>
             <div>
               <strong>Alerta de contabilidade - férias nos próximos 4 dias:</strong>
-              <ul style={{ marginTop: 6, paddingLeft: 16 }}>
+              <ul className="admin-alert-list">
                 {dash.alertas_contabilidade.map(alerta => (
                   <li key={alerta.ferias_id}>
                     <strong>{alerta.nome_usuario}</strong>: {formatDate(alerta.data_inicio)} a {formatDate(alerta.data_fim)}
@@ -58,7 +58,7 @@ export default function AdminDashboard({ dash, pendentes }) {
           <div className="stat-value">{dash.total_ferias_pendentes}</div>
           <div className="stat-sub">aguardando revisão</div>
           {dash.total_ferias_pendentes > 0 && (
-            <div style={{ marginTop: 8 }}>
+            <div className="mt-8">
               <Link className="btn btn-outline btn-sm" to="/aprovacoes">Revisar →</Link>
             </div>
           )}
@@ -78,7 +78,7 @@ export default function AdminDashboard({ dash, pendentes }) {
           <div className="card-header">
             <h2 className="card-title">
               {Icon.sun}
-              <span style={{ marginLeft: 6 }}>Em férias hoje</span>
+              <span className="dashboard-section-title-icon">Em férias hoje</span>
             </h2>
             <StatusBadge tone={dash.pessoas_em_ferias?.length > 0 ? 'green' : 'gray'}>
               {dash.pessoas_em_ferias?.length ?? 0} pessoa(s)
@@ -94,7 +94,7 @@ export default function AdminDashboard({ dash, pendentes }) {
                     </div>
                     <div>
                       <strong>{pessoa.nome}</strong>
-                      <div className="muted" style={{ fontSize: 12 }}>
+                      <div className="muted text-xs">
                         até {formatDate(pessoa.data_fim)} - {pessoa.dias_restantes} dia(s) restante(s)
                       </div>
                     </div>
@@ -102,7 +102,7 @@ export default function AdminDashboard({ dash, pendentes }) {
                 ))}
               </ul>
             ) : (
-              <p className="muted" style={{ padding: '8px 0' }}>Nenhum colaborador em férias hoje.</p>
+              <p className="muted p-y-8">Nenhum colaborador em férias hoje.</p>
             )}
           </div>
         </section>
@@ -179,7 +179,7 @@ export default function AdminDashboard({ dash, pendentes }) {
                     <span>{Icon.alert}</span>
                     <div>
                       <strong>{alerta.nome_usuario}</strong> - encaminhar à contabilidade
-                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                      <div className="muted-xs">
                         Férias: {formatDate(alerta.data_inicio)} a {formatDate(alerta.data_fim)}
                         {alerta.dias_para_inicio === 0 ? ' (hoje!)' : ` (em ${alerta.dias_para_inicio} dia(s))`}
                       </div>
@@ -188,7 +188,7 @@ export default function AdminDashboard({ dash, pendentes }) {
                 ))}
               </ul>
             ) : (
-              <p className="muted" style={{ padding: '8px 0' }}>Nenhum alerta no momento.</p>
+              <p className="muted p-y-8">Nenhum alerta no momento.</p>
             )}
           </div>
         </section>

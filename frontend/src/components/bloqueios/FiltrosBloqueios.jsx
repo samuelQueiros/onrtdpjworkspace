@@ -6,7 +6,7 @@ const TABS = [
 
 export default function FiltrosBloqueios({ bloqueios, filtro, onChange }) {
   return (
-    <div style={{ display: 'flex', gap: 8 }}>
+    <div className="inline-center gap-8">
       {TABS.map(tab => (
         <button
           key={tab.key}

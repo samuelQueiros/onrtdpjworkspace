@@ -7,7 +7,7 @@ export default function BlockedPeriodsPanel({ bloqueiosManuais, periodos }) {
       <div className="card-body blocked-list">
         {bloqueiosManuais.length > 0 && (
           <>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', color: 'var(--muted)', marginBottom: 4 }}>
+            <div className="section-label">
               Bloqueios e Recessos
             </div>
             {bloqueiosManuais.map((bloqueio, index) => (
@@ -24,7 +24,7 @@ export default function BlockedPeriodsPanel({ bloqueiosManuais, periodos }) {
 
         {periodos.length > 0 && (
           <>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', color: 'var(--muted)', marginBottom: 4 }}>
+            <div className="section-label">
               Limite de equipe atingido
             </div>
             {periodos.map((periodo, index) => (

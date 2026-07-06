@@ -29,6 +29,47 @@
 /* ── Divider ─────────────────────────────── */
 .divider { height: 1px; background: var(--border); margin: 16px 0; }
 
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.credential-field-label {
+  min-width: 60px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.credential-secret {
+  flex: 1;
+  font-family: monospace;
+}
+
+.credential-secret.masked {
+  letter-spacing: 2px;
+}
+
+.permission-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.admin-alert-list {
+  margin-top: 6px;
+  padding-left: 16px;
+}
+
+.dashboard-section-title-icon {
+  margin-left: 6px;
+}
+
 /* ── Grid helpers ────────────────────────── */
 .grid-2 {
   display: grid;
@@ -281,6 +322,8 @@
   border: 1.5px solid var(--border);
   cursor: pointer; flex-shrink: 0;
 }
+.color-hex-input { width: 90px; }
+.user-form-color-preview { margin-left: 8px; }
 
 /* ── People list ─────────────────────────── */
 .people-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }

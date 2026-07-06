@@ -28,7 +28,7 @@ export default function LoginHero() {
         <p>
           O ambiente unificado para a gestão das operações internas.
         </p>
-        <p style={{ marginTop: 12 }}>
+        <p className="mt-12">
           Uma plataforma desenvolvida para centralizar processos administrativos,
           controlar acessos, organizar documentos e apoiar a gestão de pessoas
           em um único lugar.

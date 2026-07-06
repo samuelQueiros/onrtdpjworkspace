@@ -27,11 +27,11 @@ export default function ColorPicker({ value, onChange }) {
         />
         <input
           type="text"
+          className="color-hex-input"
           value={value}
           onChange={event => onChange(event.target.value)}
           placeholder="#000000"
           maxLength={7}
-          style={{ width: 90 }}
         />
         {value && (
           <button

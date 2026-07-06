@@ -179,3 +179,34 @@
 .muted { color: var(--muted); font-size: 13px; }
 .login-hint { text-align: center; }
 
+.login-password-input {
+  padding-right: 48px;
+}
+
+.login-password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.login-submit {
+  width: 100%;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.login-hint {
+  font-size: 12px;
+  text-align: center;
+  margin-top: 4px;
+}
+

@@ -10,10 +10,10 @@ export default function CredencialCompartilhadaCard({
       <div className="card-header">
         <h2 className="card-title">{credencial.descricao}</h2>
       </div>
-      <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ minWidth: 60, color: 'var(--muted)', fontSize: 13 }}>E-mail</span>
-          <span style={{ flex: 1 }}>{credencial.email}</span>
+      <div className="card-body stack-12">
+        <div className="inline-center gap-8">
+          <span className="credential-field-label">E-mail</span>
+          <span className="flex-1">{credencial.email}</span>
           <button
             className="btn btn-outline btn-sm"
             onClick={() => onCopiar(`email-${credencial.id}`, credencial.email)}
@@ -21,9 +21,9 @@ export default function CredencialCompartilhadaCard({
             {copiado[`email-${credencial.id}`] ? 'Copiado!' : 'Copiar'}
           </button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ minWidth: 60, color: 'var(--muted)', fontSize: 13 }}>Senha</span>
-          <span style={{ flex: 1, fontFamily: 'monospace', letterSpacing: visivel ? 0 : 2 }}>
+        <div className="inline-center gap-8">
+          <span className="credential-field-label">Senha</span>
+          <span className={`credential-secret${visivel ? '' : ' masked'}`}>
             {visivel ? credencial.senha : '********'}
           </span>
           <button
