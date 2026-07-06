@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { api } from '../services/api'
-import { EmptyState, LoadingCard, PageHeader, StatusBadge } from './_helpers'
-import { formatBytes, formatDate } from '../utils/formatters'
+import DocumentosTabela from '../components/documentos/DocumentosTabela'
+import UploadDocumentoForm from '../components/documentos/UploadDocumentoForm'
 import { useAuth } from '../contexts/AuthContext'
-
-const TIPO_LABEL = { atestado: 'Atestado', contracheque: 'Contracheque' }
-const TIPO_TONE = { atestado: 'blue', contracheque: 'green' }
+import { api } from '../services/api'
+import { PageHeader } from './_helpers'
 
 export default function Documentos() {
   const { user } = useAuth()
@@ -25,13 +23,11 @@ export default function Documentos() {
   const loadDocs = async (uid = null) => {
     try {
       if (uid && isAdmin) {
-        const data = await api.documentosUsuario(uid)
-        setDocs(data)
+        setDocs(await api.documentosUsuario(uid))
       } else if (isAdmin && !uid) {
         setDocs([])
       } else {
-        const data = await api.meusDocumentos()
-        setDocs(data)
+        setDocs(await api.meusDocumentos())
       }
     } finally {
       setLoading(false)
@@ -40,10 +36,7 @@ export default function Documentos() {
 
   useEffect(() => {
     const init = async () => {
-      if (isAdmin) {
-        const u = await api.listarUsuarios()
-        setUsers(u)
-      }
+      if (isAdmin) setUsers(await api.listarUsuarios())
       await loadDocs(null)
     }
     init()
@@ -55,8 +48,8 @@ export default function Documentos() {
     await loadDocs(uid || null)
   }
 
-  const handleUpload = async e => {
-    e.preventDefault()
+  const handleUpload = async event => {
+    event.preventDefault()
     const file = fileRef.current?.files?.[0]
     if (!file) return setError('Selecione um arquivo.')
 
@@ -68,11 +61,11 @@ export default function Documentos() {
     setUploading(true)
 
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('tipo', tipo)
-      fd.append('user_id', uid)
-      await api.uploadDocumento(fd)
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('tipo', tipo)
+      formData.append('user_id', uid)
+      await api.uploadDocumento(formData)
       setSuccess('Documento enviado com sucesso.')
       if (fileRef.current) fileRef.current.value = ''
       await loadDocs(isAdmin ? selectedUser : null)
@@ -99,13 +92,13 @@ export default function Documentos() {
     try {
       const blob = await api.downloadDocumento(id)
       const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      const doc = docs.find(d => d.id === id)
-      a.href = url
-      a.download = doc?.nome_arquivo || 'documento'
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+      const link = document.createElement('a')
+      const doc = docs.find(item => item.id === id)
+      link.href = url
+      link.download = doc?.nome_arquivo || 'documento'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
       URL.revokeObjectURL(url)
     } catch (err) {
       setError(err.message)
@@ -126,112 +119,28 @@ export default function Documentos() {
       )}
 
       <div className="grid-2 grid-2-wide-left">
-        <section className="card">
-          {isAdmin && (
-            <div className="card-header">
-              <h2 className="card-title">Documentos</h2>
-              <select
-                value={selectedUser}
-                onChange={e => handleUserFilter(e.target.value)}
-                className="select-filter"
-              >
-                <option value="">Selecione um colaborador...</option>
-                {users.map(u => (
-                  <option key={u.id} value={u.id}>{u.nome}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          {!isAdmin && (
-            <div className="card-header"><h2 className="card-title">Meus documentos</h2></div>
-          )}
-          <div className="table-wrap">
-            {loading ? (
-              <div className="empty"><div className="spinner" /><p>Carregando...</p></div>
-            ) : docs.length ? (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Tipo</th>
-                    <th>Arquivo</th>
-                    <th>Tamanho</th>
-                    <th>Enviado por</th>
-                    <th>Data</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {docs.map(doc => (
-                    <tr key={doc.id}>
-                      <td>
-                        <StatusBadge tone={TIPO_TONE[doc.tipo] || 'gray'}>
-                          {TIPO_LABEL[doc.tipo] || doc.tipo}
-                        </StatusBadge>
-                      </td>
-                      <td>{doc.nome_arquivo}</td>
-                      <td>{formatBytes(doc.tamanho)}</td>
-                      <td>{doc.criado_por_nome}</td>
-                      <td>{formatDate(doc.criado_em)}</td>
-                      <td className="actions-cell">
-                        <button className="btn btn-outline btn-sm" onClick={() => baixar(doc.id)}>
-                          Download
-                        </button>
-                        {isAdmin && (
-                          <button className="btn btn-danger btn-sm" onClick={() => excluir(doc.id)}>
-                            Excluir
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <EmptyState
-                title="Nenhum documento"
-                text={isAdmin && !selectedUser ? 'Selecione um colaborador para ver seus documentos.' : 'Nenhum documento encontrado.'}
-              />
-            )}
-          </div>
-        </section>
+        <DocumentosTabela
+          docs={docs}
+          isAdmin={isAdmin}
+          loading={loading}
+          onDelete={excluir}
+          onDownload={baixar}
+          onUserFilter={handleUserFilter}
+          selectedUser={selectedUser}
+          users={users}
+        />
 
-        <form className="card form-card" onSubmit={handleUpload}>
-          <div className="card-header"><h2 className="card-title">Enviar documento</h2></div>
-          <div className="card-body form-stack">
-            <div className="form-group">
-              <label>Tipo de documento</label>
-              <select value={tipo} onChange={e => setTipo(e.target.value)}>
-                <option value="atestado">Atestado médico</option>
-                {isAdmin && <option value="contracheque">Contracheque</option>}
-              </select>
-            </div>
-
-            {isAdmin && (
-              <div className="form-group">
-                <label>Colaborador</label>
-                <select
-                  value={targetUser}
-                  onChange={e => setTargetUser(e.target.value)}
-                  required
-                >
-                  <option value="">Selecione...</option>
-                  {users.map(u => (
-                    <option key={u.id} value={u.id}>{u.nome}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <div className="form-group">
-              <label>Arquivo (PDF, JPG, PNG — máx. 10 MB)</label>
-              <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" required />
-            </div>
-
-            <button className="btn btn-primary" type="submit" disabled={uploading}>
-              {uploading ? 'Enviando...' : 'Enviar documento'}
-            </button>
-          </div>
-        </form>
+        <UploadDocumentoForm
+          fileRef={fileRef}
+          isAdmin={isAdmin}
+          onSubmit={handleUpload}
+          onTargetUserChange={setTargetUser}
+          onTipoChange={setTipo}
+          targetUser={targetUser}
+          tipo={tipo}
+          uploading={uploading}
+          users={users}
+        />
       </div>
     </>
   )
