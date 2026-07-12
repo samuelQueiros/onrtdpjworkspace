@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import '../styles/pages/logs.css'
 import LogsActions from '../components/logs/LogsActions'
 import LogsTabela from '../components/logs/LogsTabela'
 import { useToast } from '../contexts/ToastContext'

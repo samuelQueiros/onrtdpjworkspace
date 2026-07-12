@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import '../styles/pages/disponibilidade.css'
 import AvailabilityCalendar from '../components/disponibilidade/AvailabilityCalendar'
 import AvailabilitySidebar from '../components/disponibilidade/AvailabilitySidebar'
 import { findManualBlock, vacationsOnDay } from '../utils/availabilityCalendar'

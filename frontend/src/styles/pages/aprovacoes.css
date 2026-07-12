@@ -1,0 +1,4 @@
+.historico-info { font-size: 12px; display: block; line-height: 1.5; }
+.historico-info.green { color: #15803d; }
+.historico-info.red { color: #dc2626; }
+.historico-info em { font-style: italic; opacity: .85; }

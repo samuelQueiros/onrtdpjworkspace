@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import '../styles/pages/solicitar-ferias.css'
 import { useNavigate } from 'react-router-dom'
 import BlockedPeriodsPanel from '../components/solicitacaoFerias/BlockedPeriodsPanel'
 import VacationRequestForm from '../components/solicitacaoFerias/VacationRequestForm'

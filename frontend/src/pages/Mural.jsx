@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import '../styles/pages/mural.css'
 import AniversariantesMes from '../components/mural/AniversariantesMes'
 import AvisoForm, { blankAvisoForm } from '../components/mural/AvisoForm'
 import AvisosLista from '../components/mural/AvisosLista'

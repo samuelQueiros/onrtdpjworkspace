@@ -1,7 +1,11 @@
-@import './styles/base.css';
-@import './styles/layout.css';
-@import './styles/ui.css';
-@import './styles/login.css';
-@import './styles/features.css';
-@import './styles/responsive.css';
-@import './styles/effects.css';
+/* Global foundations */
+@import './styles/common/base.css';
+
+/* Reusable UI and application shell */
+@import './styles/components/ui.css';
+@import './styles/components/features.css';
+@import './styles/layout/app-layout.css';
+
+/* Global overrides must remain last in the cascade. */
+@import './styles/common/responsive.css';
+@import './styles/common/effects.css';

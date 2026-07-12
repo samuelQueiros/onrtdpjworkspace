@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import '../styles/pages/documentos.css'
 import DocumentosTabela from '../components/documentos/DocumentosTabela'
 import UploadDocumentoForm from '../components/documentos/UploadDocumentoForm'
 import { useAuth } from '../contexts/AuthContext'

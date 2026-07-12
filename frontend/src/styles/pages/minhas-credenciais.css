@@ -1,0 +1,3 @@
+.credential-field-label { min-width: 60px; color: var(--muted); font-size: 13px; }
+.credential-secret { flex: 1; font-family: monospace; }
+.credential-secret.masked { letter-spacing: 2px; }

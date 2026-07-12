@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import '../styles/pages/credenciais.css'
 import CredencialForm, { blankCredencialForm } from '../components/credenciais/CredencialForm'
 import CredenciaisTabela from '../components/credenciais/CredenciaisTabela'
 import { useConfirm } from '../contexts/ConfirmContext'

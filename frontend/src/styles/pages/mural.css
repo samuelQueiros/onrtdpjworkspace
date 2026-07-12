@@ -1,0 +1,14 @@
+.aviso-titulo-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.birthday-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+.birthday-card {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 16px 20px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: #f8fafc; min-width: 140px; text-align: center;
+}
+.birthday-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.birthday-nome { font-size: .9rem; font-weight: 600; color: var(--text); }
+.birthday-data { font-size: .8rem; color: var(--muted); }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import '../styles/pages/login.css'
 import { Navigate, useNavigate } from 'react-router-dom'
 import LoginForm from '../components/login/LoginForm'
 import LoginHero from '../components/login/LoginHero'

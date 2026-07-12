@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import '../styles/pages/aprovacoes.css'
 import FiltrosAprovacoes from '../components/aprovacoes/FiltrosAprovacoes'
 import RejeitarFeriasModal from '../components/aprovacoes/RejeitarFeriasModal'
 import TabelaAprovacoes from '../components/aprovacoes/TabelaAprovacoes'

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import '../styles/pages/relatorios.css'
 import RelatorioResumoCards from '../components/relatorios/RelatorioResumoCards'
 import RelatorioTabela from '../components/relatorios/RelatorioTabela'
 import { api } from '../services/api'

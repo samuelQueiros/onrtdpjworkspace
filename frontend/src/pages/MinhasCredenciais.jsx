@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import '../styles/pages/minhas-credenciais.css'
 import CredencialCompartilhadaCard from '../components/minhasCredenciais/CredencialCompartilhadaCard'
 import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'

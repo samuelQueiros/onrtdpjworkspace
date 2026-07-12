@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import '../styles/pages/usuarios.css'
 import UserForm, { blankUserForm } from '../components/usuarios/UserForm'
 import UsersTable from '../components/usuarios/UsersTable'
 import { useAuth } from '../contexts/AuthContext'

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import '../styles/pages/dashboard.css'
 import { Link } from 'react-router-dom'
 import AdminDashboard from '../components/painel/AdminDashboard'
 import UserDashboard from '../components/painel/UserDashboard'

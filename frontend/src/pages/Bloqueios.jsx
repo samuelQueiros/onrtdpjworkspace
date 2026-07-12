@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import '../styles/pages/bloqueios.css'
 import BloqueioForm, { blankBloqueioForm } from '../components/bloqueios/BloqueioForm'
 import BloqueiosTabela from '../components/bloqueios/BloqueiosTabela'
 import { useConfirm } from '../contexts/ConfirmContext'

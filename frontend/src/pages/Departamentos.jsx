@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import '../styles/pages/departamentos.css'
 import DepartamentoForm, { blankDepartamentoForm } from '../components/departamentos/DepartamentoForm'
 import DepartamentosTabela from '../components/departamentos/DepartamentosTabela'
 import { useConfirm } from '../contexts/ConfirmContext'

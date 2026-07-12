@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import '../styles/pages/minhas-ferias.css'
 import { Link } from 'react-router-dom'
 import EditarFeriasModal from '../components/minhasFerias/EditarFeriasModal'
 import ResumoFeriasCards from '../components/minhasFerias/ResumoFeriasCards'

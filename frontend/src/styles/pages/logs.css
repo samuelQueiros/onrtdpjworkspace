@@ -1,0 +1,5 @@
+.action-code {
+  font-family: 'Courier New', monospace; font-size: 11px;
+  background: #f1f5f9; color: var(--navy);
+  padding: 2px 7px; border-radius: 4px; white-space: nowrap;
+}
