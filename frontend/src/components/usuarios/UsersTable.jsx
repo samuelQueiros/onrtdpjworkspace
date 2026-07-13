@@ -4,7 +4,7 @@ import UserColorDot from './UserColorDot'
 
 export default function UsersTable({ users, currentUserId, onEdit, onDelete, onReactivate }) {
   return (
-    <section className="card">
+    <section className="card users-table-card">
       <div className="card-header"><h2 className="card-title">Colaboradores ({users.length})</h2></div>
       <div className="table-wrap">
         <table>

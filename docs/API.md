@@ -296,7 +296,10 @@ Body:
   "email": "maria@example.com",
   "senha": "senha123",
   "role": "user",
-  "dias_totais": 30
+  "dias_totais": 30,
+  "telefone": "(11) 99999-9999",
+  "telefone_emergencia": "(11) 98888-8888",
+  "telefone_emergencia_2": "(11) 97777-7777"
 }
 ```
 
@@ -330,7 +333,8 @@ Body:
 }
 ```
 
-Observacao: a rota atual nao altera `role` nem senha.
+Observacao: a rota permite alterar a senha, mas nao altera o `role`. Telefones de emergencia,
+endereco e dados bancarios são retornados apenas pela rota administrativa de dados sensiveis.
 
 ### PUT `/me/configuracoes`
 

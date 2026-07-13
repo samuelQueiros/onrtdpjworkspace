@@ -26,12 +26,14 @@ export default function ColorPicker({ value, onChange }) {
           title="Cor personalizada"
         />
         <input
+          id="user-cor"
           type="text"
           className="color-hex-input"
           value={value}
           onChange={event => onChange(event.target.value)}
           placeholder="#000000"
           maxLength={7}
+          required
         />
         {value && (
           <button

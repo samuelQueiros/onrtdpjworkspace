@@ -1,5 +1,7 @@
 import unittest
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+
+from pydantic import ValidationError
 
 from app.schemas.auth import AuthUserOut, TokenOut
 from app.schemas.common import MensagemOut
@@ -22,8 +24,15 @@ class SchemasDtoTests(unittest.TestCase):
             nome="Gabriel",
             email="gabriel@sistema.com",
             senha="segura123",
+            role="user",
+            dias_totais=30,
+            departamento_id=1,
+            data_admissao=date(2025, 1, 10),
+            data_aniversario=date(1990, 5, 20),
+            cor="#3b82f6",
             telefone="(11) 99999-9999",
             telefone_emergencia="(11) 98888-8888",
+            telefone_emergencia_2="(11) 97777-7777",
             endereco={
                 "logradouro": "Rua Exemplo",
                 "numero": "10",
@@ -43,8 +52,13 @@ class SchemasDtoTests(unittest.TestCase):
         )
 
         self.assertEqual(user.cargo, "Desenvolvedor")
+        self.assertEqual(user.telefone_emergencia_2, "(11) 97777-7777")
         self.assertEqual(user.endereco.numero, "10")
         self.assertEqual(user.dados_bancarios.agencia, "1234")
+
+    def test_user_create_rejeita_cadastro_incompleto(self):
+        with self.assertRaises(ValidationError):
+            UserCreate(nome="Gabriel", email="gabriel@sistema.com", senha="segura123")
 
     def test_token_out_aceita_formato_do_login(self):
         token = TokenOut(

@@ -7,6 +7,20 @@ import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
+import { useModalFocusTrap } from '../utils/useModalFocusTrap'
+import { maskCpf, maskPhone } from '../utils/inputMasks'
+
+function UserModal({ onClose, ...formProps }) {
+  const modalRef = useModalFocusTrap(onClose)
+
+  return (
+    <div className="modal-overlay user-modal-overlay" role="presentation" onMouseDown={event => event.target === event.currentTarget && onClose()}>
+      <div ref={modalRef} className="modal user-modal" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
+        <UserForm {...formProps} onCancel={onClose} />
+      </div>
+    </div>
+  )
+}
 
 export default function Usuarios() {
   const { user: currentUser } = useAuth()
@@ -17,6 +31,7 @@ export default function Usuarios() {
   const [cargos, setCargos] = useState([])
   const [form, setForm] = useState(blankUserForm)
   const [editing, setEditing] = useState(null)
+  const [modalOpen, setModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const load = () =>
@@ -36,6 +51,16 @@ export default function Usuarios() {
     setEditing(null)
   }
 
+  const closeModal = () => {
+    setModalOpen(false)
+    resetForm()
+  }
+
+  const startCreate = () => {
+    resetForm()
+    setModalOpen(true)
+  }
+
   const save = async event => {
     event.preventDefault()
     try {
@@ -47,11 +72,12 @@ export default function Usuarios() {
         data_admissao: form.data_admissao || null,
         data_aniversario: form.data_aniversario || null,
         cor: form.cor || null,
-        telefone: form.telefone || null,
-        telefone_emergencia: form.telefone_emergencia || null,
+        telefone: maskPhone(form.telefone) || null,
+        telefone_emergencia: maskPhone(form.telefone_emergencia) || null,
+        telefone_emergencia_2: maskPhone(form.telefone_emergencia_2) || null,
         endereco: Object.values(form.endereco).some(value => value.trim()) ? form.endereco : null,
         dados_bancarios: Object.values(form.dados_bancarios).some(value => value.trim())
-          ? form.dados_bancarios
+          ? { ...form.dados_bancarios, cpf_titular: maskCpf(form.dados_bancarios.cpf_titular) }
           : null,
         cargo: form.cargo || null,
       }
@@ -65,8 +91,7 @@ export default function Usuarios() {
         await api.criarUsuario(payload)
         toast.success('Usuário criado com sucesso.')
       }
-      setForm(blankUserForm)
-      setEditing(null)
+      closeModal()
       await load()
     } catch (err) {
       toast.error(err.message)
@@ -87,8 +112,9 @@ export default function Usuarios() {
       data_admissao: user.data_admissao || '',
       data_aniversario: user.data_aniversario || '',
       cor: user.cor || '',
-      telefone: user.telefone || '',
-      telefone_emergencia: sensitive.telefone_emergencia || '',
+      telefone: maskPhone(user.telefone),
+      telefone_emergencia: maskPhone(sensitive.telefone_emergencia),
+      telefone_emergencia_2: maskPhone(sensitive.telefone_emergencia_2),
       endereco: {
         ...blankUserForm.endereco,
         ...(sensitive.endereco || {}),
@@ -96,9 +122,11 @@ export default function Usuarios() {
       dados_bancarios: {
         ...blankUserForm.dados_bancarios,
         ...(sensitive.dados_bancarios || {}),
+        cpf_titular: maskCpf(sensitive.dados_bancarios?.cpf_titular),
       },
       cargo: user.cargo || '',
       })
+      setModalOpen(true)
     } catch (error) {
       toast.error(error.message)
     }
@@ -135,27 +163,31 @@ export default function Usuarios() {
 
   return (
     <>
-      <PageHeader title="Usuários" subtitle="Cadastre colaboradores, ajuste saldos e defina cores de identificação." />
+      <PageHeader
+        title="Usuários"
+        subtitle="Cadastre colaboradores, ajuste saldos e defina cores de identificação."
+        action={<button className="btn btn-primary" type="button" onClick={startCreate}>+ Cadastrar Colaborador</button>}
+      />
 
-      <div className="grid-2 grid-2-wide-left">
-        <UsersTable
-          users={users}
-          currentUserId={currentUser?.id}
-          onEdit={startEdit}
-          onDelete={excluir}
-          onReactivate={reativar}
-        />
+      <UsersTable
+        users={users}
+        currentUserId={currentUser?.id}
+        onEdit={startEdit}
+        onDelete={excluir}
+        onReactivate={reativar}
+      />
 
-        <UserForm
+      {modalOpen && (
+        <UserModal
           departamentos={departamentos}
           cargos={cargos}
           editing={editing}
           form={form}
-          onCancel={resetForm}
+          onClose={closeModal}
           onChange={setForm}
           onSubmit={save}
         />
-      </div>
+      )}
     </>
   )
 }

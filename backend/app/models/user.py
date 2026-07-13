@@ -19,6 +19,7 @@ class User(Base):
     cor = Column(String, nullable=True)  # cor HEX para identificação visual
     telefone = Column(String, nullable=True)
     telefone_emergencia = Column(String, nullable=True)
+    telefone_emergencia_2 = Column(String, nullable=True)
     endereco = Column(String, nullable=True)
     dados_bancarios = Column(String, nullable=True)
     cargo_id = Column(Integer, ForeignKey("cargos.id", ondelete="SET NULL"), nullable=True)

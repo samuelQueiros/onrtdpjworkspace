@@ -47,6 +47,7 @@ def formatar_usuario(user: User, db: Session, dias_restantes: int | None = None)
 def formatar_dados_sensiveis(user: User) -> dict:
     return {
         "telefone_emergencia": user.telefone_emergencia,
+        "telefone_emergencia_2": user.telefone_emergencia_2,
         "endereco": _desserializar_endereco(user.endereco),
         "dados_bancarios": _desserializar_dados_bancarios(user.dados_bancarios),
     }
@@ -166,6 +167,7 @@ def criar_usuario(db: Session, payload: UserCreate, current_user: User) -> dict:
         cor=payload.cor,
         telefone=payload.telefone,
         telefone_emergencia=payload.telefone_emergencia,
+        telefone_emergencia_2=payload.telefone_emergencia_2,
         endereco=_serializar_endereco(payload.endereco),
         dados_bancarios=_serializar_dados_bancarios(payload.dados_bancarios),
         cargo_id=cargo.id if cargo else None,
@@ -212,6 +214,12 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
         user.telefone_emergencia = (
             payload.telefone_emergencia.strip()
             if payload.telefone_emergencia and payload.telefone_emergencia.strip()
+            else None
+        )
+    if "telefone_emergencia_2" in payload.model_fields_set:
+        user.telefone_emergencia_2 = (
+            payload.telefone_emergencia_2.strip()
+            if payload.telefone_emergencia_2 and payload.telefone_emergencia_2.strip()
             else None
         )
     if "endereco" in payload.model_fields_set:

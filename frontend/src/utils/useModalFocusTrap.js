@@ -10,7 +10,8 @@ export function useModalFocusTrap(onClose) {
   useEffect(() => {
     const previousFocus = document.activeElement
     const focusable = [...(modalRef.current?.querySelectorAll(FOCUSABLE) || [])]
-    focusable[0]?.focus()
+    const initialFocus = modalRef.current?.querySelector('[data-autofocus]') || focusable[0]
+    initialFocus?.focus()
     const onKeyDown = event => {
       if (event.key === 'Escape') closeRef.current()
       if (event.key !== 'Tab' || !focusable.length) return

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import ColorPicker from './ColorPicker'
 import UserColorDot from './UserColorDot'
+import { maskCpf, maskPhone } from '../../utils/inputMasks'
 
 export const blankUserForm = {
   nome: '',
@@ -14,6 +15,7 @@ export const blankUserForm = {
   cor: '',
   telefone: '',
   telefone_emergencia: '',
+  telefone_emergencia_2: '',
   endereco: { logradouro: '', numero: '', bairro: '', cidade: '', cep: '' },
   dados_bancarios: {
     banco: '', agencia: '', conta: '', cpf_titular: '', nome_titular: '', chave_pix: '',
@@ -32,7 +34,11 @@ export default function UserForm({
 }) {
   const [bankingOpen, setBankingOpen] = useState(false)
   const [addressOpen, setAddressOpen] = useState(false)
-  const updateForm = changes => onChange({ ...form, ...changes })
+  const [validationError, setValidationError] = useState('')
+  const updateForm = changes => {
+    setValidationError('')
+    onChange({ ...form, ...changes })
+  }
   const updateBanking = changes => updateForm({
     dados_bancarios: { ...form.dados_bancarios, ...changes },
   })
@@ -40,17 +46,60 @@ export default function UserForm({
     endereco: { ...form.endereco, ...changes },
   })
 
+  const handleSubmit = event => {
+    event.preventDefault()
+    const requiredFields = [
+      ['Nome', form.nome, 'user-nome'],
+      ['E-mail', form.email, 'user-email'],
+      ...(!editing ? [['Senha', form.senha, 'user-senha']] : []),
+      ['Perfil', form.role, 'user-role'],
+      ['Departamento', form.departamento_id, 'user-departamento'],
+      ['Cargo', form.cargo, 'user-cargo'],
+      ['Telefone', form.telefone, 'user-telefone'],
+      ['Telefone de emergência', form.telefone_emergencia, 'user-telefone-emergencia'],
+      ['Telefone de emergência 2', form.telefone_emergencia_2, 'user-telefone-emergencia-2'],
+      ['Rua/Avenida', form.endereco.logradouro, 'user-logradouro', 'address'],
+      ['Número', form.endereco.numero, 'user-numero', 'address'],
+      ['Bairro', form.endereco.bairro, 'user-bairro', 'address'],
+      ['Cidade', form.endereco.cidade, 'user-cidade', 'address'],
+      ['CEP', form.endereco.cep, 'user-cep', 'address'],
+      ['Banco', form.dados_bancarios.banco, 'user-banco', 'banking'],
+      ['Agência', form.dados_bancarios.agencia, 'user-agencia', 'banking'],
+      ['Conta', form.dados_bancarios.conta, 'user-conta', 'banking'],
+      ['CPF do titular', form.dados_bancarios.cpf_titular, 'user-cpf-titular', 'banking'],
+      ['Nome do titular', form.dados_bancarios.nome_titular, 'user-nome-titular', 'banking'],
+      ['Chave Pix', form.dados_bancarios.chave_pix, 'user-chave-pix', 'banking'],
+      ['Cor de identificação', form.cor, 'user-cor'],
+      ['Dias totais', form.dias_totais, 'user-dias-totais'],
+      ['Data de admissão', form.data_admissao, 'user-data-admissao'],
+      ['Data de aniversário', form.data_aniversario, 'user-data-aniversario'],
+    ]
+    const missing = requiredFields.find(([, value]) => value === '' || value === null || value === undefined)
+    if (missing) {
+      const [label, , fieldId, section] = missing
+      if (section === 'address') setAddressOpen(true)
+      if (section === 'banking') setBankingOpen(true)
+      setValidationError(`O campo "${label}" deve ser preenchido.`)
+      setTimeout(() => document.getElementById(fieldId)?.focus(), 0)
+      return
+    }
+    onSubmit(event)
+  }
+
   return (
-    <form className="card form-card" onSubmit={onSubmit}>
-      <div className="card-header">
-        <h2 className="card-title">{editing ? 'Editar usuário' : 'Novo usuário'}</h2>
+    <form className="user-modal-form" onSubmit={handleSubmit} noValidate>
+      <div className="modal-header">
+        <h2 id="user-modal-title" className="modal-title">{editing ? 'Editar colaborador' : 'Cadastrar colaborador'}</h2>
+        <button className="modal-close" type="button" onClick={onCancel} aria-label="Fechar">×</button>
       </div>
-      <div className="card-body form-stack">
+      <div className="modal-body user-modal-body form-stack">
+        {validationError && <div className="user-form-error" role="alert">{validationError}</div>}
         <div className="form-group">
           <label htmlFor="user-nome">Nome</label>
           <input
             id="user-nome"
             name="nome"
+            data-autofocus
             type="text"
             value={form.nome}
             onChange={event => updateForm({ nome: event.target.value })}
@@ -85,7 +134,7 @@ export default function UserForm({
         {!editing && (
           <div className="form-group">
             <label htmlFor="user-role">Perfil</label>
-            <select id="user-role" name="role" value={form.role} onChange={event => updateForm({ role: event.target.value })}>
+            <select id="user-role" name="role" value={form.role} onChange={event => updateForm({ role: event.target.value })} required>
               <option value="user">Usuário</option>
               <option value="admin">Administrador</option>
             </select>
@@ -98,6 +147,7 @@ export default function UserForm({
             name="departamento_id"
             value={form.departamento_id}
             onChange={event => updateForm({ departamento_id: event.target.value })}
+            required
           >
             <option value="">Sem departamento</option>
             {departamentos.map(departamento => (
@@ -108,7 +158,7 @@ export default function UserForm({
 
         <div className="form-group">
           <label htmlFor="user-cargo">Cargo</label>
-          <select id="user-cargo" name="cargo" value={form.cargo} onChange={event => updateForm({ cargo: event.target.value })}>
+          <select id="user-cargo" name="cargo" value={form.cargo} onChange={event => updateForm({ cargo: event.target.value })} required>
             <option value="">Selecione um cargo</option>
             {cargos.map(cargo => <option key={cargo.id} value={cargo.nome}>{cargo.nome}</option>)}
           </select>
@@ -122,9 +172,12 @@ export default function UserForm({
               name="telefone"
               autoComplete="tel"
               type="tel"
-              value={form.telefone}
-              onChange={event => updateForm({ telefone: event.target.value })}
+              inputMode="numeric"
+              maxLength="15"
+              value={maskPhone(form.telefone)}
+              onChange={event => updateForm({ telefone: maskPhone(event.target.value) })}
               placeholder="(00) 00000-0000"
+              required
             />
           </div>
           <div className="form-group">
@@ -133,11 +186,29 @@ export default function UserForm({
               id="user-telefone-emergencia"
               name="telefone_emergencia"
               type="tel"
-              value={form.telefone_emergencia}
-              onChange={event => updateForm({ telefone_emergencia: event.target.value })}
+              inputMode="numeric"
+              maxLength="15"
+              value={maskPhone(form.telefone_emergencia)}
+              onChange={event => updateForm({ telefone_emergencia: maskPhone(event.target.value) })}
               placeholder="(00) 00000-0000"
+              required
             />
           </div>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="user-telefone-emergencia-2">Telefone de emergência 2</label>
+          <input
+            id="user-telefone-emergencia-2"
+            name="telefone_emergencia_2"
+            type="tel"
+            inputMode="numeric"
+            maxLength="15"
+            value={maskPhone(form.telefone_emergencia_2)}
+            onChange={event => updateForm({ telefone_emergencia_2: maskPhone(event.target.value) })}
+            placeholder="(00) 00000-0000"
+            required
+          />
         </div>
 
         <div className="disclosure-field">
@@ -210,7 +281,7 @@ export default function UserForm({
               </div>
               <div className="form-group">
                 <label htmlFor="user-cpf-titular">CPF do titular</label>
-                <input id="user-cpf-titular" name="cpf_titular" inputMode="numeric" maxLength="14" value={form.dados_bancarios.cpf_titular} onChange={event => updateBanking({ cpf_titular: event.target.value })} placeholder="000.000.000-00" />
+                <input id="user-cpf-titular" name="cpf_titular" inputMode="numeric" maxLength="14" value={maskCpf(form.dados_bancarios.cpf_titular)} onChange={event => updateBanking({ cpf_titular: maskCpf(event.target.value) })} placeholder="000.000.000-00" />
               </div>
               <div className="form-group">
                 <label htmlFor="user-nome-titular">Nome do titular</label>
@@ -272,13 +343,9 @@ export default function UserForm({
         </div>
 
         <div className="button-row">
-          {editing && (
-            <button className="btn btn-outline" type="button" onClick={onCancel}>
-              Cancelar
-            </button>
-          )}
+          <button className="btn btn-outline" type="button" onClick={onCancel}>Cancelar</button>
           <button className="btn btn-primary" type="submit">
-            {editing ? 'Salvar alterações' : 'Criar usuário'}
+            {editing ? 'Salvar alterações' : 'Cadastrar colaborador'}
           </button>
         </div>
       </div>
