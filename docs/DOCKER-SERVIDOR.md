@@ -24,11 +24,13 @@ Isso evita perder o banco ao recriar containers e deixa os arquivos acessiveis d
 Os documentos sao organizados dentro da pasta `uploads/` por envio administrativo e recebimento:
 
 ```text
-uploads/enviados/nome-admin/nome-destinatario/arquivo
-uploads/recebidos/nome-destinatario/arquivo
+uploads/enviados/nome-administrador/nome-colaborador/arquivo
+uploads/recebidos/nome-colaborador/arquivo
 ```
 
-Quando um colaborador envia seu proprio documento, o arquivo fica apenas em `uploads/recebidos/nome-colaborador/arquivo`.
+Quando um administrador envia um contracheque, o arquivo fica apenas em `uploads/enviados/nome-administrador/nome-colaborador/arquivo`.
+Quando uma pessoa envia um atestado, inclusive se ela possuir perfil administrador, o arquivo fica apenas em `uploads/recebidos/nome-colaborador/arquivo`.
+Cada upload gera somente um arquivo fisico.
 
 ## Arquivos Docker
 

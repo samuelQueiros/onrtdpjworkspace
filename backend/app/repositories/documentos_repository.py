@@ -22,6 +22,33 @@ def listar_documentos_por_usuario(db: Session, user_id: int) -> list[Documento]:
     )
 
 
+def listar_documentos_criados_por(db: Session, user_id: int, tipo: str) -> list[Documento]:
+    return (
+        db.query(Documento)
+        .filter(Documento.criado_por_id == user_id, Documento.tipo == tipo)
+        .order_by(Documento.criado_em.desc())
+        .all()
+    )
+
+
+def listar_documentos_recebidos_por(db: Session, user_id: int, excluir_criador_id: int) -> list[Documento]:
+    return (
+        db.query(Documento)
+        .filter(Documento.user_id == user_id, Documento.criado_por_id != excluir_criador_id)
+        .order_by(Documento.criado_em.desc())
+        .all()
+    )
+
+
+def listar_documentos_recebidos_por_administradores(db: Session) -> list[Documento]:
+    return (
+        db.query(Documento)
+        .filter(Documento.tipo == "atestado")
+        .order_by(Documento.criado_em.desc())
+        .all()
+    )
+
+
 def salvar_documento_com_log(db: Session, doc: Documento, log: Log) -> Documento:
     db.add(doc)
     db.flush()

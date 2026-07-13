@@ -50,7 +50,7 @@ O **ONRTDPJ Workspace** é um sistema web full-stack desenvolvido internamente p
 | **Documentos** | Upload e download de atestados e documentos pessoais |
 | **Minhas Credenciais** | Visualização das credenciais de sistemas compartilhados que o colaborador tem acesso, com opção de copiar e mostrar/ocultar senhas |
 
-Os documentos são armazenados em pasta persistente configurada por `UPLOAD_DIR`. Envios feitos por administradores geram uma cópia em `enviados/nome-admin/nome-destinatario/arquivo` e outra em `recebidos/nome-destinatario/arquivo`; envios feitos pelo próprio colaborador ficam apenas em `recebidos/nome-colaborador/arquivo`.
+Os documentos são armazenados em pasta persistente configurada por `UPLOAD_DIR`. Contracheques enviados por administradores ficam somente em `enviados/nome-administrador/nome-colaborador/arquivo`; atestados ficam somente em `recebidos/nome-colaborador/arquivo`. Cada upload gera uma única cópia física.
 
 ### Exclusivo para Administradores
 
@@ -585,6 +585,7 @@ O token é obtido via `POST /auth/login` e expira após `ACCESS_TOKEN_EXPIRE_MIN
 | `GET` | `/avisos` | ✓ | Listar avisos do mural |
 | `POST` | `/avisos` | Admin | Criar aviso |
 | `POST` | `/documentos/upload` | ✓ | Upload de documento |
+| `GET` | `/documentos/historico` | ✓ | Históricos separados de recebidos e enviados |
 | `GET` | `/documentos/{id}/download` | ✓ | Download de documento |
 | `POST` | `/importacao` | Admin | Importar colaboradores via Excel |
 

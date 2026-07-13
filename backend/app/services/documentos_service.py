@@ -68,28 +68,35 @@ def listar_documentos_usuario(db: Session, user_id: int) -> list[Documento]:
     return documentos_repository.listar_documentos_por_usuario(db, user_id)
 
 
+def listar_historico_documentos(db: Session, current_user: User) -> dict[str, list[Documento]]:
+    if current_user.role == "admin":
+        enviados = documentos_repository.listar_documentos_criados_por(db, current_user.id, "contracheque")
+        recebidos = documentos_repository.listar_documentos_recebidos_por_administradores(db)
+    else:
+        enviados = documentos_repository.listar_documentos_criados_por(db, current_user.id, "atestado")
+        recebidos = documentos_repository.listar_documentos_recebidos_por(db, current_user.id, current_user.id)
+    return {"recebidos": recebidos, "enviados": enviados}
+
+
 def salvar_arquivo_upload(
     arquivo_bytes: bytes,
     nome_original: str | None,
     mime: str,
     target_user: User,
     current_user: User,
+    tipo: str,
 ) -> tuple[str, str | None, Path, Path | None]:
     nome_armazenado = gerar_nome_armazenamento(nome_original, mime)
     upload_dir = obter_upload_dir()
 
-    caminho_recebido = obter_diretorio_recebido(target_user) / nome_armazenado
-    caminho_recebido.write_bytes(arquivo_bytes)
-    caminho_recebido_relativo = caminho_recebido.relative_to(upload_dir).as_posix()
+    if tipo == "contracheque":
+        caminho_principal = obter_diretorio_enviado(current_user, target_user) / nome_armazenado
+    else:
+        caminho_principal = obter_diretorio_recebido(target_user) / nome_armazenado
 
-    caminho_enviado = None
-    caminho_enviado_relativo = None
-    if current_user.role == "admin":
-        caminho_enviado = obter_diretorio_enviado(current_user, target_user) / nome_armazenado
-        caminho_enviado.write_bytes(arquivo_bytes)
-        caminho_enviado_relativo = caminho_enviado.relative_to(upload_dir).as_posix()
-
-    return caminho_recebido_relativo, caminho_enviado_relativo, caminho_recebido, caminho_enviado
+    caminho_principal.write_bytes(arquivo_bytes)
+    caminho_relativo = caminho_principal.relative_to(upload_dir).as_posix()
+    return caminho_relativo, None, caminho_principal, None
 
 
 async def criar_documento_upload(
@@ -107,16 +114,17 @@ async def criar_documento_upload(
     validar_arquivo_upload(arquivo_bytes, mime)
 
     (
-        caminho_recebido_relativo,
-        caminho_enviado_relativo,
-        caminho_recebido,
-        caminho_enviado,
+        caminho_relativo,
+        caminho_legado_relativo,
+        caminho_principal,
+        caminho_legado,
     ) = salvar_arquivo_upload(
         arquivo_bytes=arquivo_bytes,
         nome_original=file.filename,
         mime=mime,
         target_user=target_user,
         current_user=current_user,
+        tipo=tipo,
     )
 
     doc = Documento(
@@ -124,8 +132,8 @@ async def criar_documento_upload(
         tipo=tipo,
         nome_arquivo=corrigir_nome_arquivo(file.filename),
         mime_type=mime,
-        caminho_arquivo=caminho_recebido_relativo,
-        caminho_enviado=caminho_enviado_relativo,
+        caminho_arquivo=caminho_relativo,
+        caminho_enviado=caminho_legado_relativo,
         tamanho=len(arquivo_bytes),
         criado_por_id=current_user.id,
     )
@@ -139,9 +147,9 @@ async def criar_documento_upload(
         documentos_repository.salvar_documento_com_log(db, doc, log)
     except Exception:
         db.rollback()
-        if caminho_enviado:
-            caminho_enviado.unlink(missing_ok=True)
-        caminho_recebido.unlink(missing_ok=True)
+        if caminho_legado:
+            caminho_legado.unlink(missing_ok=True)
+        caminho_principal.unlink(missing_ok=True)
         raise
 
     return doc

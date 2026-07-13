@@ -433,9 +433,18 @@ Observacoes:
 - Usuarios comuns podem enviar apenas documentos para si mesmos.
 - Apenas administradores podem enviar `contracheque`.
 - Os arquivos sao salvos em pasta local configurada por `UPLOAD_DIR`.
-- Envios feitos por administradores geram uma copia em `enviados/nome-admin/nome-destinatario/arquivo`.
-- Todos os documentos recebidos ficam em `recebidos/nome-destinatario/arquivo`.
-- Quando um colaborador envia seu proprio documento, o arquivo fica apenas em `recebidos/nome-colaborador/arquivo`.
+- Contracheques enviados por administradores ficam apenas em `enviados/nome-administrador/nome-colaborador/arquivo`.
+- Atestados ficam apenas em `recebidos/nome-colaborador/arquivo`, inclusive quando o remetente possui perfil administrador.
+- Cada upload gera exatamente um arquivo fisico.
+
+### GET `/documentos/historico`
+
+Retorna os documentos em duas listas: `recebidos` e `enviados`.
+
+Acesso: autenticado.
+
+- Para administradores, `enviados` contem os contracheques encaminhados pelo administrador autenticado; `recebidos` contem os atestados encaminhados por colaboradores e administradores.
+- Para colaboradores, `enviados` contem os proprios atestados; `recebidos` contem os documentos destinados a eles.
 
 ### GET `/documentos/{doc_id}/download`
 

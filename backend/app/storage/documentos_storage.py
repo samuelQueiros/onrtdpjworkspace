@@ -37,8 +37,8 @@ def nome_pasta_usuario(user: User) -> str:
     return nome or "usuario"
 
 
-def obter_diretorio_enviado(criado_por: User, destinatario: User) -> Path:
-    diretorio = obter_upload_dir() / "enviados" / nome_pasta_usuario(criado_por) / nome_pasta_usuario(destinatario)
+def obter_diretorio_enviado(remetente: User, destinatario: User) -> Path:
+    diretorio = obter_upload_dir() / "enviados" / nome_pasta_usuario(remetente) / nome_pasta_usuario(destinatario)
     diretorio.mkdir(parents=True, exist_ok=True)
     return diretorio
 

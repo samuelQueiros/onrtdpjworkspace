@@ -1,1 +1,43 @@
-/* Documentos currently uses only shared form, filter and table components. */
+.documents-header {
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.documents-tabs {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.documents-tab {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #dbe3ef);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted, #5f718d);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.documents-tab:hover {
+  background: var(--surface-soft, #f3f6fa);
+}
+
+.documents-tab.active {
+  border-color: var(--primary, #2563eb);
+  background: var(--primary, #2563eb);
+  color: #fff;
+}
+
+@media (max-width: 720px) {
+  .documents-header,
+  .documents-tabs {
+    flex-direction: column;
+  }
+
+  .documents-header .select-filter,
+  .documents-tab {
+    width: 100%;
+  }
+}

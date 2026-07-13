@@ -59,6 +59,17 @@ class DocumentosStorageTests(unittest.TestCase):
         self.assertTrue((upload_dir / "enviados").is_dir())
         self.assertTrue((upload_dir / "recebidos").is_dir())
 
+    def test_diretorio_enviado_separa_administrador_e_colaborador(self):
+        remetente = SimpleNamespace(nome="Administrador")
+        destinatario = SimpleNamespace(nome="Maria da Silva")
+
+        diretorio = documentos_storage.obter_diretorio_enviado(remetente, destinatario)
+
+        self.assertEqual(
+            diretorio.relative_to(Path(self.upload_dir.name)).as_posix(),
+            "enviados/administrador/maria-da-silva",
+        )
+
     def test_caminho_documento_rejeita_path_traversal(self):
         doc = Documento(caminho_arquivo="../segredo.pdf")
 

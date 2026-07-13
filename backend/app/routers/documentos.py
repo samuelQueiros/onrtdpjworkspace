@@ -7,13 +7,14 @@ from app.database import get_db
 from app.models.documento import Documento
 from app.models.user import User
 from app.schemas.common import MensagemOut
-from app.schemas.documento import DocumentoOut
+from app.schemas.documento import DocumentoOut, HistoricoDocumentosOut
 from app.services.documentos_service import (
     buscar_documento,
     buscar_usuario,
     criar_documento_upload,
     excluir_documento_admin,
     listar_documentos_usuario,
+    listar_historico_documentos,
     validar_acesso_documento,
 )
 from app.storage.documentos_storage import (
@@ -32,7 +33,9 @@ def _fmt(doc: Documento) -> dict:
         "nome_arquivo": doc.nome_arquivo,
         "mime_type": doc.mime_type,
         "tamanho": doc.tamanho,
+        "criado_por_id": doc.criado_por_id,
         "criado_por_nome": doc.criado_por.nome if doc.criado_por else "Sistema",
+        "destinatario_nome": doc.usuario.nome if doc.usuario else "Colaborador",
         "criado_em": doc.criado_em,
     }
 
@@ -54,6 +57,18 @@ def meus_documentos(
 ):
     docs = listar_documentos_usuario(db, current_user.id)
     return [_fmt(d) for d in docs]
+
+
+@router.get("/historico", response_model=HistoricoDocumentosOut)
+def historico_documentos(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    historico = listar_historico_documentos(db, current_user)
+    return {
+        "recebidos": [_fmt(doc) for doc in historico["recebidos"]],
+        "enviados": [_fmt(doc) for doc in historico["enviados"]],
+    }
 
 
 @router.get("/usuario/{user_id}", response_model=list[DocumentoOut])

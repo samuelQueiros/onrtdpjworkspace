@@ -1,6 +1,7 @@
 import { download, req, upload } from '../httpClient'
 
 export const documentosService = {
+  historicoDocumentos: () => req('GET', '/documentos/historico'),
   meusDocumentos: () => req('GET', '/documentos/me'),
   documentosUsuario: userId => req('GET', `/documentos/usuario/${userId}`),
   uploadDocumento: formData => upload('/documentos/upload', formData),

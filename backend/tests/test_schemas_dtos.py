@@ -102,7 +102,9 @@ class SchemasDtoTests(unittest.TestCase):
             nome_arquivo="arquivo.pdf",
             mime_type="application/pdf",
             tamanho=123,
+            criado_por_id=2,
             criado_por_nome="Gabriel",
+            destinatario_nome="Gabriel",
             criado_em=datetime.now(UTC),
         )
 

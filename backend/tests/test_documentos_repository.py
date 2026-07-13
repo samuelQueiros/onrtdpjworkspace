@@ -71,6 +71,22 @@ class DocumentosRepositoryTests(unittest.TestCase):
         self.assertTrue(db.last_query.filtered)
         self.assertTrue(db.last_query.ordered)
 
+    def test_listar_documentos_criados_por_filtra_autor_e_tipo(self):
+        docs = [SimpleNamespace(id=1)]
+        db = FakeDb(query_result=docs)
+
+        self.assertEqual(documentos_repository.listar_documentos_criados_por(db, 1, "atestado"), docs)
+        self.assertTrue(db.last_query.filtered)
+        self.assertTrue(db.last_query.ordered)
+
+    def test_listar_documentos_recebidos_por_administradores_filtra_atestados(self):
+        docs = [SimpleNamespace(id=1)]
+        db = FakeDb(query_result=docs)
+
+        self.assertEqual(documentos_repository.listar_documentos_recebidos_por_administradores(db), docs)
+        self.assertTrue(db.last_query.filtered)
+        self.assertTrue(db.last_query.ordered)
+
     def test_salvar_documento_com_log_persiste_e_atualiza_documento(self):
         doc = SimpleNamespace(id=None)
         log = SimpleNamespace(id=None)

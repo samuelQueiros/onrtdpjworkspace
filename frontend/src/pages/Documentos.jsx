@@ -14,7 +14,8 @@ export default function Documentos() {
   const toast = useToast()
   const isAdmin = user?.role === 'admin'
 
-  const [docs, setDocs] = useState([])
+  const [historico, setHistorico] = useState({ recebidos: [], enviados: [] })
+  const [aba, setAba] = useState('recebidos')
   const [users, setUsers] = useState([])
   const [selectedUser, setSelectedUser] = useState('')
   const [loading, setLoading] = useState(true)
@@ -23,15 +24,9 @@ export default function Documentos() {
   const [targetUser, setTargetUser] = useState('')
   const fileRef = useRef(null)
 
-  const loadDocs = async (uid = null) => {
+  const loadDocs = async () => {
     try {
-      if (uid && isAdmin) {
-        setDocs(await api.documentosUsuario(uid))
-      } else if (isAdmin && !uid) {
-        setDocs([])
-      } else {
-        setDocs(await api.meusDocumentos())
-      }
+      setHistorico(await api.historicoDocumentos())
     } finally {
       setLoading(false)
     }
@@ -40,15 +35,13 @@ export default function Documentos() {
   useEffect(() => {
     const init = async () => {
       if (isAdmin) setUsers(await api.listarUsuarios())
-      await loadDocs(null)
+      await loadDocs()
     }
     init()
   }, [])
 
-  const handleUserFilter = async uid => {
+  const handleUserFilter = uid => {
     setSelectedUser(uid)
-    setLoading(true)
-    await loadDocs(uid || null)
   }
 
   const handleUpload = async event => {
@@ -69,7 +62,7 @@ export default function Documentos() {
       await api.uploadDocumento(formData)
       toast.success('Documento enviado com sucesso.')
       if (fileRef.current) fileRef.current.value = ''
-      await loadDocs(isAdmin ? selectedUser : null)
+      await loadDocs()
     } catch (err) {
       toast.error(err.message)
     } finally {
@@ -88,7 +81,7 @@ export default function Documentos() {
     try {
       await api.excluirDocumento(id)
       toast.success('Documento excluído.')
-      await loadDocs(isAdmin ? selectedUser : null)
+      await loadDocs()
     } catch (err) {
       toast.error(err.message)
     }
@@ -99,7 +92,7 @@ export default function Documentos() {
       const blob = await api.downloadDocumento(id)
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
-      const doc = docs.find(item => item.id === id)
+      const doc = [...historico.recebidos, ...historico.enviados].find(item => item.id === id)
       link.href = url
       link.download = doc?.nome_arquivo || 'documento'
       document.body.appendChild(link)
@@ -111,6 +104,10 @@ export default function Documentos() {
     }
   }
 
+  const docs = historico[aba].filter(doc => (
+    !isAdmin || !selectedUser || String(doc.user_id) === String(selectedUser)
+  ))
+
   return (
     <>
       <PageHeader
@@ -121,10 +118,12 @@ export default function Documentos() {
       <div className="grid-2 grid-2-wide-left">
         <DocumentosTabela
           docs={docs}
+          aba={aba}
           isAdmin={isAdmin}
           loading={loading}
           onDelete={excluir}
           onDownload={baixar}
+          onAbaChange={setAba}
           onUserFilter={handleUserFilter}
           selectedUser={selectedUser}
           users={users}

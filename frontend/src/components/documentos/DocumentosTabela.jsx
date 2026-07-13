@@ -4,33 +4,55 @@ import { TIPO_LABEL, TIPO_TONE } from './documentosLabels'
 
 export default function DocumentosTabela({
   docs,
+  aba,
   isAdmin,
   loading,
   onDelete,
   onDownload,
+  onAbaChange,
   onUserFilter,
   selectedUser,
   users,
 }) {
   return (
     <section className="card">
-      {isAdmin ? (
-        <div className="card-header">
-          <h2 className="card-title">Documentos</h2>
+      <div className="card-header documents-header">
+        <div>
+          <h2 className="card-title">Histórico de documentos</h2>
+          <div className="documents-tabs" role="tablist" aria-label="Histórico de documentos">
+            <button
+              type="button"
+              className={`documents-tab ${aba === 'recebidos' ? 'active' : ''}`}
+              onClick={() => onAbaChange('recebidos')}
+              role="tab"
+              aria-selected={aba === 'recebidos'}
+            >
+              Documentos recebidos
+            </button>
+            <button
+              type="button"
+              className={`documents-tab ${aba === 'enviados' ? 'active' : ''}`}
+              onClick={() => onAbaChange('enviados')}
+              role="tab"
+              aria-selected={aba === 'enviados'}
+            >
+              Documentos enviados
+            </button>
+          </div>
+        </div>
+        {isAdmin && (
           <select
             value={selectedUser}
             onChange={event => onUserFilter(event.target.value)}
             className="select-filter"
           >
-            <option value="">Selecione um colaborador...</option>
+            <option value="">Todos os colaboradores</option>
             {users.map(user => (
               <option key={user.id} value={user.id}>{user.nome}</option>
             ))}
           </select>
-        </div>
-      ) : (
-        <div className="card-header"><h2 className="card-title">Meus documentos</h2></div>
-      )}
+        )}
+      </div>
 
       <div className="table-wrap">
         {loading ? (
@@ -42,7 +64,7 @@ export default function DocumentosTabela({
                 <th>Tipo</th>
                 <th>Arquivo</th>
                 <th>Tamanho</th>
-                <th>Enviado por</th>
+                <th>{aba === 'recebidos' ? 'Enviado por' : 'Enviado para'}</th>
                 <th>Data</th>
                 <th></th>
               </tr>
@@ -57,7 +79,7 @@ export default function DocumentosTabela({
                   </td>
                   <td>{doc.nome_arquivo}</td>
                   <td>{formatBytes(doc.tamanho)}</td>
-                  <td>{doc.criado_por_nome}</td>
+                  <td>{aba === 'recebidos' ? doc.criado_por_nome : doc.destinatario_nome}</td>
                   <td>{formatDate(doc.criado_em)}</td>
                   <td className="actions-cell">
                     <button className="btn btn-outline btn-sm" onClick={() => onDownload(doc.id)}>
@@ -75,8 +97,8 @@ export default function DocumentosTabela({
           </table>
         ) : (
           <EmptyState
-            title="Nenhum documento"
-            text={isAdmin && !selectedUser ? 'Selecione um colaborador para ver seus documentos.' : 'Nenhum documento encontrado.'}
+            title={`Nenhum documento ${aba === 'recebidos' ? 'recebido' : 'enviado'}`}
+            text={selectedUser ? 'Nenhum documento encontrado para o colaborador selecionado.' : 'Ainda não há documentos neste histórico.'}
           />
         )}
       </div>
