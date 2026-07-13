@@ -20,7 +20,7 @@ class Settings:
 
     @property
     def frontend_url(self) -> str:
-        return os.getenv("FRONTEND_URL", "http://localhost:5173")
+        return os.getenv("FRONTEND_URL", "http://chat-server:83")
 
     @property
     def admin_email(self) -> str | None:

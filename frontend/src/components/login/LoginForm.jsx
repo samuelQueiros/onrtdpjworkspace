@@ -89,7 +89,7 @@ export default function LoginForm({
         </button>
 
         <p className="login-hint muted">
-          Acesso inicial: <strong>admin@sistema.com</strong> / admin123
+          Acesso inicial: <strong>admin@sistema.com</strong> / Teste@123456
         </p>
       </form>
     </section>
