@@ -1,21 +1,23 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import PrivateRoute from '../components/PrivateRoute'
 import AppLayout from '../layouts/AppLayout'
-import Aprovacoes from '../pages/Aprovacoes'
-import Bloqueios from '../pages/Bloqueios'
-import Credenciais from '../pages/Credenciais'
-import MinhasCredenciais from '../pages/MinhasCredenciais'
-import Dashboard from '../pages/Dashboard'
-import Departamentos from '../pages/Departamentos'
-import Disponibilidade from '../pages/Disponibilidade'
-import Documentos from '../pages/Documentos'
-import Login from '../pages/Login'
-import Logs from '../pages/Logs'
-import MinhasFerias from '../pages/MinhasFerias'
-import Mural from '../pages/Mural'
-import Relatorios from '../pages/Relatorios'
-import SolicitarFerias from '../pages/SolicitarFerias'
-import Usuarios from '../pages/Usuarios'
+const Aprovacoes = lazy(() => import('../pages/Aprovacoes'))
+const Bloqueios = lazy(() => import('../pages/Bloqueios'))
+const Credenciais = lazy(() => import('../pages/Credenciais'))
+const MinhasCredenciais = lazy(() => import('../pages/MinhasCredenciais'))
+const Dashboard = lazy(() => import('../pages/Dashboard'))
+const Departamentos = lazy(() => import('../pages/Departamentos'))
+const Disponibilidade = lazy(() => import('../pages/Disponibilidade'))
+const Documentos = lazy(() => import('../pages/Documentos'))
+const Login = lazy(() => import('../pages/Login'))
+const Logs = lazy(() => import('../pages/Logs'))
+const MinhasFerias = lazy(() => import('../pages/MinhasFerias'))
+const Mural = lazy(() => import('../pages/Mural'))
+const Relatorios = lazy(() => import('../pages/Relatorios'))
+const SolicitarFerias = lazy(() => import('../pages/SolicitarFerias'))
+const Usuarios = lazy(() => import('../pages/Usuarios'))
+const Configuracoes = lazy(() => import('../pages/Configuracoes'))
 
 function Shell({ children, adminOnly = false }) {
   return (
@@ -27,7 +29,8 @@ function Shell({ children, adminOnly = false }) {
 
 export default function AppRoutes() {
   return (
-    <Routes>
+    <Suspense fallback={<div className="loading-screen"><div className="spinner" /><span>Carregando...</span></div>}>
+      <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<Shell><Dashboard /></Shell>} />
       <Route path="/minhas-ferias" element={<Shell><MinhasFerias /></Shell>} />
@@ -42,8 +45,10 @@ export default function AppRoutes() {
       <Route path="/relatorios" element={<Shell adminOnly><Relatorios /></Shell>} />
       <Route path="/logs" element={<Shell adminOnly><Logs /></Shell>} />
       <Route path="/credenciais" element={<Shell adminOnly><Credenciais /></Shell>} />
+      <Route path="/configuracoes" element={<Shell adminOnly><Configuracoes /></Shell>} />
       <Route path="/minhas-credenciais" element={<Shell><MinhasCredenciais /></Shell>} />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   )
 }

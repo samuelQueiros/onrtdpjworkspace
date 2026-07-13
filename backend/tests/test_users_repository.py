@@ -18,6 +18,9 @@ class FakeQuery:
         self.ordered = True
         return self
 
+    def options(self, *_args):
+        return self
+
     def first(self):
         return self.result
 
@@ -83,15 +86,15 @@ class UsersRepositoryTests(unittest.TestCase):
         self.assertTrue(db.committed)
         self.assertEqual(db.refreshed, user)
 
-    def test_excluir_usuario_com_log_registra_log_e_exclui(self):
+    def test_atualizar_usuario_com_log_registra_log(self):
         user = SimpleNamespace(id=1)
         log = SimpleNamespace(user_id=2)
         db = FakeDb()
 
-        users_repository.excluir_usuario_com_log(db, user, log)
+        users_repository.atualizar_usuario_com_log(db, user, log)
 
         self.assertEqual(db.added, [log])
-        self.assertEqual(db.deleted, [user])
+        self.assertEqual(db.deleted, [])
         self.assertTrue(db.committed)
 
 

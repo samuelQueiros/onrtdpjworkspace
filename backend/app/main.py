@@ -1,11 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Request
+from uuid import uuid4
+import logging
+import time
 
 from app.core.config import settings
 from app.database import SessionLocal
 from app.routers import auth, users, ferias, relatorios
-from app.routers import departamentos, avisos, documentos, importacao, bloqueios, alertas, credenciais
+from app.routers import departamentos, avisos, documentos, importacao, bloqueios, alertas, credenciais, cargos
 from app.services import bootstrap_service
+
+logger = logging.getLogger("app.http")
 
 app = FastAPI(
     title="Gestão RH",
@@ -22,6 +28,27 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def security_and_request_id(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID") or uuid4().hex
+    inicio = time.perf_counter()
+    response = await call_next(request)
+    duracao_ms = round((time.perf_counter() - inicio) * 1000, 2)
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    logger.info(
+        "request method=%s path=%s status=%s duration_ms=%s request_id=%s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duracao_ms,
+        request_id,
+    )
+    return response
+
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(ferias.router)
@@ -33,6 +60,7 @@ app.include_router(importacao.router)
 app.include_router(bloqueios.router)
 app.include_router(alertas.router)
 app.include_router(credenciais.router)
+app.include_router(cargos.router)
 
 
 @app.on_event("startup")

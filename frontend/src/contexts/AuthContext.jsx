@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { api } from '../services/api'
-import { clearToken, getToken, setToken } from '../services/httpClient'
 
 const Ctx = createContext(null)
 
@@ -9,26 +8,24 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (getToken()) {
-      api.me()
-        .then(setUser)
-        .catch(clearToken)
-        .finally(() => setLoading(false))
-    } else {
-      setLoading(false)
-    }
+    api.me().then(setUser).catch(() => setUser(null)).finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    const unauthorized = () => setUser(null)
+    window.addEventListener('auth:unauthorized', unauthorized)
+    return () => window.removeEventListener('auth:unauthorized', unauthorized)
   }, [])
 
   const login = async (email, senha) => {
     const data = await api.login(email, senha)
-    setToken(data.access_token)
     setUser(data.user)
     return data.user
   }
 
   const logout = () => {
-    clearToken()
     setUser(null)
+    api.logout().catch(() => {})
   }
 
   const refreshUser = () =>

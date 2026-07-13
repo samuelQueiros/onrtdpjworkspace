@@ -64,7 +64,7 @@ def validar_assinatura_arquivo(arquivo_bytes: bytes, mime: str) -> bool:
 
 def corrigir_nome_arquivo(nome: str | None) -> str:
     nome = Path(nome or "arquivo").name
-    nome = nome.replace("\r", "").replace("\n", "").strip()
+    nome = nome.replace("\r", "").replace("\n", "").replace('"', "").replace("\\", "-").strip()
     return nome or "arquivo"
 
 

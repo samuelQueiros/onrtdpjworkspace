@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.departamento import Departamento
 from app.models.log import Log
@@ -6,13 +6,18 @@ from app.models.user import User
 
 
 def listar_usuarios(db: Session) -> list[User]:
-    return db.query(User).order_by(User.nome).all()
+    return (
+        db.query(User)
+        .options(selectinload(User.departamento), selectinload(User.cargo))
+        .order_by(User.nome)
+        .all()
+    )
 
 
 def listar_usuarios_com_aniversario(db: Session) -> list[User]:
     return (
         db.query(User)
-        .filter(User.data_aniversario.isnot(None))
+        .filter(User.data_aniversario.isnot(None), User.ativo.is_(True))
         .order_by(User.data_aniversario)
         .all()
     )

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 const ConfirmContext = createContext(null)
 
@@ -12,18 +12,30 @@ const DEFAULT_OPTIONS = {
 
 export function ConfirmProvider({ children }) {
   const [dialog, setDialog] = useState(null)
+  const previousFocus = useRef(null)
 
   const close = useCallback(result => {
     setDialog(current => {
       if (current?.resolve) current.resolve(result)
       return null
     })
+    window.setTimeout(() => previousFocus.current?.focus?.(), 0)
   }, [])
 
   const confirmar = useCallback(options =>
     new Promise(resolve => {
+      previousFocus.current = document.activeElement
       setDialog({ ...DEFAULT_OPTIONS, ...options, resolve })
     }), [])
+
+  useEffect(() => {
+    if (!dialog) return undefined
+    const onKeyDown = event => {
+      if (event.key === 'Escape') close(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [dialog, close])
 
   const value = useMemo(() => ({ confirmar }), [confirmar])
 

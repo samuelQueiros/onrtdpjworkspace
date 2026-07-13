@@ -8,5 +8,6 @@ export const authService = {
     return postForm('/auth/login', form)
   },
   me: () => req('GET', '/auth/me'),
+  logout: () => req('POST', '/auth/logout'),
   updateConfig: body => req('PUT', '/me/configuracoes', body),
 }

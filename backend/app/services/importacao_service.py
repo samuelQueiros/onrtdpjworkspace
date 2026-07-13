@@ -8,6 +8,9 @@ from app.models.ferias import Ferias
 from app.models.log import Log
 from app.models.user import User
 from app.repositories import importacao_repository
+from app.services import ferias_service
+
+MAX_IMPORT_SIZE = 5 * 1024 * 1024
 
 
 def parse_date(value) -> date | None:
@@ -41,8 +44,21 @@ def parse_datetime(value) -> datetime | None:
 
 
 def validar_extensao_planilha(filename: str | None) -> None:
-    if not filename or not filename.endswith((".xlsx", ".xls")):
-        raise HTTPException(status_code=400, detail="Arquivo deve ser .xlsx ou .xls")
+    if not filename or not filename.lower().endswith(".xlsx"):
+        raise HTTPException(status_code=400, detail="Arquivo deve ser .xlsx")
+
+
+def parse_bool(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    texto = str(value).strip().lower()
+    if texto in {"1", "sim", "s", "true", "verdadeiro"}:
+        return True
+    if texto in {"0", "nao", "não", "n", "false", "falso", ""}:
+        return False
+    raise ValueError(f"valor booleano invalido: {value}")
 
 
 def carregar_linhas_planilha(conteudo: bytes) -> list[tuple]:
@@ -81,7 +97,11 @@ def importar_ferias(db: Session, filename: str | None, conteudo: bytes, current_
             continue
 
         email_val, inicio_val, fim_val = row[0], row[1], row[2]
-        ferias_acordo = bool(row[3]) if len(row) > 3 else False
+        try:
+            ferias_acordo = parse_bool(row[3] if len(row) > 3 else None)
+        except ValueError as exc:
+            erros.append(f"Linha {i}: {exc}")
+            continue
 
         user = importacao_repository.obter_usuario_por_email(db, str(email_val).strip())
         if not user:
@@ -102,7 +122,20 @@ def importar_ferias(db: Session, filename: str | None, conteudo: bytes, current_
             erros.append(f"Linha {i}: periodo {data_inicio}-{data_fim} ja existe para {email_val}")
             continue
 
-        dias = (data_fim - data_inicio).days + 1
+        try:
+            ferias_service.bloquear_regras_ferias(db, user)
+            ferias_service.verificar_regras_data(data_inicio, data_fim)
+            ferias_service.verificar_bloqueio_datas(db, data_inicio, data_fim)
+            dias = ferias_service.calcular_dias(data_inicio, data_fim)
+            if not ferias_acordo:
+                if ferias_service.verificar_sobreposicao_departamento(db, user, data_inicio, data_fim):
+                    raise HTTPException(status_code=400, detail="limite simultaneo do departamento atingido")
+                saldo = ferias_service.calcular_saldo(db, user)
+                if saldo < dias:
+                    raise HTTPException(status_code=400, detail=f"saldo insuficiente ({saldo} dias)")
+        except HTTPException as exc:
+            erros.append(f"Linha {i}: {exc.detail}")
+            continue
         importacao_repository.adicionar_ferias(
             db,
             Ferias(
@@ -111,7 +144,7 @@ def importar_ferias(db: Session, filename: str | None, conteudo: bytes, current_
                 data_fim=data_fim,
                 dias_usados=dias,
                 status="aprovada",
-                ferias_acordo=ferias_acordo if isinstance(ferias_acordo, bool) else False,
+                ferias_acordo=ferias_acordo,
             ),
         )
         inseridos += 1

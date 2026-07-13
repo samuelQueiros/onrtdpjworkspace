@@ -14,13 +14,19 @@ export default function Usuarios() {
   const toast = useToast()
   const [users, setUsers] = useState([])
   const [departamentos, setDepartamentos] = useState([])
+  const [cargos, setCargos] = useState([])
   const [form, setForm] = useState(blankUserForm)
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const load = () =>
-    Promise.all([api.listarUsuarios(), api.listarDepartamentos()])
-      .then(([usuarios, deps]) => { setUsers(usuarios); setDepartamentos(deps) })
+    Promise.all([api.listarUsuarios(), api.listarDepartamentos(), api.listarCargos()])
+      .then(([usuarios, deps, listaCargos]) => {
+        setUsers(usuarios)
+        setDepartamentos(deps)
+        setCargos(listaCargos)
+      })
+      .catch(error => toast.error(error.message))
       .finally(() => setLoading(false))
 
   useEffect(() => { load() }, [])
@@ -41,6 +47,11 @@ export default function Usuarios() {
         data_admissao: form.data_admissao || null,
         data_aniversario: form.data_aniversario || null,
         cor: form.cor || null,
+        telefone: form.telefone || null,
+        telefone_emergencia: form.telefone_emergencia || null,
+        endereco: form.endereco || null,
+        dados_bancarios: form.dados_bancarios || null,
+        cargo: form.cargo || null,
       }
       if (editing) {
         if (form.senha) payload.senha = form.senha
@@ -60,9 +71,11 @@ export default function Usuarios() {
     }
   }
 
-  const startEdit = user => {
-    setEditing(user.id)
-    setForm({
+  const startEdit = async user => {
+    try {
+      const sensitive = await api.obterDadosSensiveisUsuario(user.id)
+      setEditing(user.id)
+      setForm({
       nome: user.nome,
       email: user.email,
       senha: '',
@@ -72,23 +85,41 @@ export default function Usuarios() {
       data_admissao: user.data_admissao || '',
       data_aniversario: user.data_aniversario || '',
       cor: user.cor || '',
-    })
+      telefone: user.telefone || '',
+      telefone_emergencia: sensitive.telefone_emergencia || '',
+      endereco: sensitive.endereco || '',
+      dados_bancarios: sensitive.dados_bancarios || '',
+      cargo: user.cargo || '',
+      })
+    } catch (error) {
+      toast.error(error.message)
+    }
   }
 
   const excluir = async id => {
     const confirmado = await confirmar({
-      title: 'Excluir usuário?',
-      message: 'Todas as férias associadas também serão removidas. Esta ação não pode ser desfeita.',
-      confirmLabel: 'Excluir usuário',
+      title: 'Desativar colaborador?',
+      message: 'O acesso será bloqueado, mas o histórico e os documentos serão preservados.',
+      confirmLabel: 'Desativar colaborador',
     })
     if (!confirmado) return
 
     try {
       await api.excluirUsuario(id)
-      toast.success('Usuário excluído.')
+      toast.success('Colaborador desativado.')
       await load()
     } catch (err) {
       toast.error(err.message)
+    }
+  }
+
+  const reativar = async id => {
+    try {
+      await api.editarUsuario(id, { ativo: true })
+      toast.success('Colaborador reativado.')
+      await load()
+    } catch (error) {
+      toast.error(error.message)
     }
   }
 
@@ -104,10 +135,12 @@ export default function Usuarios() {
           currentUserId={currentUser?.id}
           onEdit={startEdit}
           onDelete={excluir}
+          onReactivate={reativar}
         />
 
         <UserForm
           departamentos={departamentos}
+          cargos={cargos}
           editing={editing}
           form={form}
           onCancel={resetForm}

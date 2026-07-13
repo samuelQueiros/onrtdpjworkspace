@@ -5,5 +5,6 @@ export const usersService = {
   listarAniversariantes: () => req('GET', '/users/aniversariantes'),
   criarUsuario: body => req('POST', '/users', body),
   editarUsuario: (id, body) => req('PUT', `/users/${id}`, body),
+  obterDadosSensiveisUsuario: id => req('GET', `/users/${id}/dados-sensiveis`),
   excluirUsuario: id => req('DELETE', `/users/${id}`),
 }

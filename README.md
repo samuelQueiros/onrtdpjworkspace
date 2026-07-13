@@ -64,6 +64,16 @@ Os documentos são armazenados em pasta persistente configurada por `UPLOAD_DIR`
 | **Acessos / Senhas** | Gerenciamento de credenciais compartilhadas (sistemas externos, painéis, etc.) com controle granular de acesso por colaborador |
 | **Relatórios** | Relatório consolidado por colaborador exportável |
 | **Logs do Sistema** | Auditoria completa de todas as ações com exportação em CSV |
+| **Configurações** | Catálogo administrativo de cargos, com criação, edição e desativação de vínculos |
+
+### Segurança e integridade
+
+- A sessão web usa cookie JWT `HttpOnly` e `SameSite=Lax`.
+- Dados bancários são criptografados em repouso com `CREDENTIALS_ENCRYPTION_KEY`.
+- Colaboradores são desativados em vez de excluídos, preservando histórico e documentos.
+- Alterações concorrentes de férias são serializadas no PostgreSQL.
+- Login possui limitação de tentativas por origem.
+- Uploads possuem validação de assinatura e limites de tamanho.
 
 ---
 

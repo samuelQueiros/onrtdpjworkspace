@@ -1,8 +1,11 @@
 import bcrypt
+import threading
+import time
+from collections import defaultdict, deque
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -14,7 +17,11 @@ SECRET_KEY = settings.secret_key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+_login_attempts: dict[str, deque[float]] = defaultdict(deque)
+_login_lock = threading.Lock()
+LOGIN_WINDOW_SECONDS = 15 * 60
+LOGIN_MAX_ATTEMPTS = 5
 
 
 def hash_senha(senha: str) -> str:
@@ -32,7 +39,27 @@ def criar_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def verificar_limite_login(chave: str) -> None:
+    agora = time.monotonic()
+    with _login_lock:
+        tentativas = _login_attempts[chave]
+        while tentativas and agora - tentativas[0] > LOGIN_WINDOW_SECONDS:
+            tentativas.popleft()
+        if len(tentativas) >= LOGIN_MAX_ATTEMPTS:
+            raise HTTPException(status_code=429, detail="Muitas tentativas. Tente novamente mais tarde.")
+
+
+def registrar_falha_login(chave: str) -> None:
+    with _login_lock:
+        _login_attempts[chave].append(time.monotonic())
+
+
+def limpar_falhas_login(chave: str) -> None:
+    with _login_lock:
+        _login_attempts.pop(chave, None)
+
+
+def get_current_user(request: Request, token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     from app.models.user import User
 
     credentials_exception = HTTPException(
@@ -41,14 +68,17 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        auth_token = token or request.cookies.get("access_token")
+        if not auth_token:
+            raise credentials_exception
+        payload = jwt.decode(auth_token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
 
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    user = db.query(User).filter(User.id == int(user_id), User.ativo.is_(True)).first()
     if user is None:
         raise credentials_exception
     return user

@@ -1,33 +1,24 @@
 const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
-export const getToken = () => localStorage.getItem('token')
-export const setToken = token => localStorage.setItem('token', token)
-export const clearToken = () => localStorage.removeItem('token')
-
-function authHeaders() {
-  const token = getToken()
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
 export async function parseJson(res) {
   return res.json().catch(() => ({}))
 }
 
 function handleUnauthorized(res) {
   if (res.status === 401) {
-    clearToken()
+    window.dispatchEvent(new Event('auth:unauthorized'))
   }
 }
 
 export async function req(method, path, body = null) {
   const headers = {
-    ...authHeaders(),
     ...(body ? { 'Content-Type': 'application/json' } : {}),
   }
 
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers,
+    credentials: 'include',
     body: body ? JSON.stringify(body) : null,
   })
 
@@ -42,7 +33,7 @@ export async function req(method, path, body = null) {
 export async function upload(path, formData) {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
-    headers: authHeaders(),
+    credentials: 'include',
     body: formData,
   })
 
@@ -57,7 +48,7 @@ export async function upload(path, formData) {
 export async function download(path) {
   const res = await fetch(`${BASE}${path}`, {
     method: 'GET',
-    headers: authHeaders(),
+    credentials: 'include',
   })
 
   if (!res.ok) {
@@ -70,7 +61,7 @@ export async function download(path) {
 }
 
 export async function postForm(path, form) {
-  const res = await fetch(`${BASE}${path}`, { method: 'POST', body: form })
+  const res = await fetch(`${BASE}${path}`, { method: 'POST', body: form, credentials: 'include' })
   const data = await parseJson(res)
   if (!res.ok) throw new Error(data.detail || 'Credenciais inválidas')
   return data

@@ -4,10 +4,12 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_senha, verificar_senha
+from app.core.crypto import criptografar_dado_sensivel, descriptografar_dado_sensivel
 from app.models.log import Log
 from app.models.user import User
 from app.repositories import users_repository
 from app.schemas.user import UserConfigUpdate, UserCreate, UserUpdate
+from app.services import cargos_service
 
 
 def calcular_dias_restantes(user: User, db: Session) -> int:
@@ -19,7 +21,7 @@ def calcular_dias_restantes(user: User, db: Session) -> int:
 def formatar_usuario(user: User, db: Session) -> dict:
     departamento = None
     if user.departamento_id:
-        dep = users_repository.obter_departamento_por_id(db, user.departamento_id)
+        dep = user.departamento
         departamento = {"id": dep.id, "nome": dep.nome} if dep else None
 
     return {
@@ -34,7 +36,18 @@ def formatar_usuario(user: User, db: Session) -> dict:
         "data_admissao": user.data_admissao,
         "data_aniversario": user.data_aniversario,
         "cor": user.cor,
+        "telefone": user.telefone,
+        "cargo": user.cargo.nome if user.cargo else None,
+        "ativo": user.ativo,
         "criado_em": user.criado_em,
+    }
+
+
+def formatar_dados_sensiveis(user: User) -> dict:
+    return {
+        "telefone_emergencia": user.telefone_emergencia,
+        "endereco": user.endereco,
+        "dados_bancarios": descriptografar_dado_sensivel(user.dados_bancarios),
     }
 
 
@@ -69,6 +82,7 @@ def listar_usuarios(db: Session) -> list[dict]:
 def criar_usuario(db: Session, payload: UserCreate, current_user: User) -> dict:
     validar_email_disponivel(db, payload.email)
     validar_departamento(db, payload.departamento_id)
+    cargo = cargos_service.obter_cargo_por_nome(db, payload.cargo)
 
     novo_user = User(
         nome=payload.nome,
@@ -80,6 +94,15 @@ def criar_usuario(db: Session, payload: UserCreate, current_user: User) -> dict:
         data_admissao=payload.data_admissao,
         data_aniversario=payload.data_aniversario,
         cor=payload.cor,
+        telefone=payload.telefone,
+        telefone_emergencia=payload.telefone_emergencia,
+        endereco=payload.endereco,
+        dados_bancarios=(
+            criptografar_dado_sensivel(payload.dados_bancarios.strip())
+            if payload.dados_bancarios and payload.dados_bancarios.strip()
+            else None
+        ),
+        cargo_id=cargo.id if cargo else None,
     )
 
     log = Log(
@@ -116,6 +139,27 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
         user.senha_hash = hash_senha(payload.senha)
     if payload.cor is not None:
         user.cor = payload.cor if payload.cor.strip() else None
+    if "telefone" in payload.model_fields_set:
+        user.telefone = payload.telefone.strip() if payload.telefone and payload.telefone.strip() else None
+    if "telefone_emergencia" in payload.model_fields_set:
+        user.telefone_emergencia = (
+            payload.telefone_emergencia.strip()
+            if payload.telefone_emergencia and payload.telefone_emergencia.strip()
+            else None
+        )
+    if "endereco" in payload.model_fields_set:
+        user.endereco = payload.endereco.strip() if payload.endereco and payload.endereco.strip() else None
+    if "dados_bancarios" in payload.model_fields_set:
+        user.dados_bancarios = (
+            criptografar_dado_sensivel(payload.dados_bancarios.strip())
+            if payload.dados_bancarios and payload.dados_bancarios.strip()
+            else None
+        )
+    if "cargo" in payload.model_fields_set:
+        cargo = cargos_service.obter_cargo_por_nome(db, payload.cargo)
+        user.cargo_id = cargo.id if cargo else None
+    if payload.ativo is not None:
+        user.ativo = payload.ativo
 
     log = Log(
         user_id=current_user.id,
@@ -139,17 +183,20 @@ def listar_aniversariantes(db: Session) -> list[dict]:
     ]
 
 
-def excluir_usuario(db: Session, user_id: int, current_user: User) -> None:
+def desativar_usuario(db: Session, user_id: int, current_user: User) -> None:
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Voce nao pode excluir sua propria conta")
 
     user = buscar_usuario(db, user_id)
+    if not user.ativo:
+        return
+    user.ativo = False
     log = Log(
         user_id=current_user.id,
-        acao="USUARIO_EXCLUIDO",
-        detalhes=f"Usuario {user.nome} ({user.email}) excluido por {current_user.nome}",
+        acao="USUARIO_DESATIVADO",
+        detalhes=f"Usuario {user.nome} ({user.email}) desativado por {current_user.nome}",
     )
-    users_repository.excluir_usuario_com_log(db, user, log)
+    users_repository.atualizar_usuario_com_log(db, user, log)
 
 
 def atualizar_configuracoes(db: Session, payload: UserConfigUpdate, current_user: User) -> dict:

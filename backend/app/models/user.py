@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Date, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -17,11 +17,18 @@ class User(Base):
     data_admissao = Column(Date, nullable=True)
     data_aniversario = Column(Date, nullable=True)
     cor = Column(String, nullable=True)  # cor HEX para identificação visual
+    telefone = Column(String, nullable=True)
+    telefone_emergencia = Column(String, nullable=True)
+    endereco = Column(String, nullable=True)
+    dados_bancarios = Column(String, nullable=True)
+    cargo_id = Column(Integer, ForeignKey("cargos.id", ondelete="SET NULL"), nullable=True)
+    ativo = Column(Boolean, nullable=False, default=True)
     criado_em = Column(DateTime, default=datetime.utcnow)
 
     ferias = relationship("Ferias", back_populates="usuario", foreign_keys="[Ferias.user_id]", cascade="all, delete-orphan")
     logs = relationship("Log", back_populates="usuario")
     departamento = relationship("Departamento", back_populates="usuarios")
+    cargo = relationship("Cargo", back_populates="usuarios")
     documentos = relationship(
         "Documento",
         back_populates="usuario",

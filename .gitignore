@@ -16,6 +16,7 @@ ferias.db
 backend/data/uploads/
 data/uploads/
 uploads/
+backups/
 
 .DS_Store
 

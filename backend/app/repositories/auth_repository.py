@@ -5,7 +5,7 @@ from app.models.user import User
 
 
 def obter_usuario_por_email(db: Session, email: str) -> User | None:
-    return db.query(User).filter(User.email == email).first()
+    return db.query(User).filter(User.email == email, User.ativo.is_(True)).first()
 
 
 def obter_departamento_por_id(db: Session, departamento_id: int) -> Departamento | None:

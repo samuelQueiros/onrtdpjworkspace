@@ -18,6 +18,7 @@ const PAGES = {
   '/logs': 'Logs do Sistema',
   '/credenciais': 'Acessos / Senhas',
   '/minhas-credenciais': 'Minhas Credenciais',
+  '/configuracoes': 'Configurações',
 }
 
 export default function Topbar({ user, pathname, dropOpen, dropRef, onToggleDrop, onLogout }) {

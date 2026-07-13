@@ -3,8 +3,11 @@ import unittest
 
 from app.core.crypto import (
     CREDENTIAL_PREFIX,
+    SENSITIVE_PREFIX,
     criptografar_credencial,
+    criptografar_dado_sensivel,
     descriptografar_credencial,
+    descriptografar_dado_sensivel,
 )
 from app.schemas.credencial import CredencialCreate
 from app.services.credenciais_service import criar_credencial, formatar_credencial
@@ -66,6 +69,13 @@ class CredenciaisCryptoTests(unittest.TestCase):
         self.assertNotEqual(db.saved.senha, "senha-original")
         self.assertTrue(db.saved.senha.startswith(CREDENTIAL_PREFIX))
         self.assertNotIn("senha", response)
+
+    def test_criptografa_e_descriptografa_dado_sensivel(self):
+        valor = "Banco 001, conta 123"
+        protegido = criptografar_dado_sensivel(valor)
+        self.assertTrue(protegido.startswith(SENSITIVE_PREFIX))
+        self.assertNotEqual(protegido, valor)
+        self.assertEqual(descriptografar_dado_sensivel(protegido), valor)
 
     def test_fmt_credencial_descriptografa_somente_quando_solicitado(self):
         db = FakeDb()

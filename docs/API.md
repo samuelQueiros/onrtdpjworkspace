@@ -14,7 +14,7 @@ http://chat-server:8000/docs
 
 ## Autenticacao
 
-As rotas protegidas exigem header:
+O frontend usa um cookie de sessão `HttpOnly`, definido no login. Clientes de API também podem usar o header:
 
 ```http
 Authorization: Bearer <access_token>
@@ -66,7 +66,6 @@ Resposta:
 
 ```json
 {
-  "access_token": "jwt",
   "token_type": "bearer",
   "user": {
     "id": 1,
@@ -78,6 +77,21 @@ Resposta:
   }
 }
 ```
+
+### POST `/auth/logout`
+
+Encerra a sessão e remove o cookie de autenticação.
+
+## Cargos
+
+- `GET /cargos`: lista cargos para usuários autenticados.
+- `POST /cargos`: cria um cargo (administrador).
+- `PUT /cargos/{id}`: renomeia um cargo (administrador).
+- `DELETE /cargos/{id}`: exclui um cargo e remove os vínculos (administrador).
+
+## Dados sensíveis de colaboradores
+
+`GET /users/{id}/dados-sensiveis` é restrito a administradores. Dados bancários são armazenados criptografados e não são retornados na listagem geral de usuários.
 
 ### GET `/auth/me`
 

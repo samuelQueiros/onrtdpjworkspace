@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 import holidays as holidays_lib
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app.models.ferias import Ferias
 from app.models.log import Log
@@ -12,6 +13,16 @@ from app.schemas.ferias import FeriasAprovar, FeriasCreate, FeriasUpdate
 
 LIMITE_SIMULTANEO_GLOBAL = 2
 NOMES_DIA = ["segunda-feira", "terca-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sabado", "domingo"]
+
+
+def bloquear_regras_ferias(db: Session, user: User) -> None:
+    """Serializa alterações que disputam saldo ou limite do mesmo departamento."""
+    dialect = getattr(getattr(db, "bind", None), "dialect", None)
+    if getattr(dialect, "name", None) != "postgresql":
+        return
+    chaves = sorted((1_000_000 + user.id, 2_000_000 + (user.departamento_id or 0)))
+    for chave in chaves:
+        db.execute(text("SELECT pg_advisory_xact_lock(:chave)"), {"chave": chave})
 
 
 def feriados_br(anos: set) -> set:
@@ -220,13 +231,13 @@ def disponibilidade(db: Session, current_user: User) -> dict:
     data_max = max(f.data_fim for f in todas_ferias)
 
     bloqueados = []
+    colegas_ids = (
+        {u.id for u in ferias_repository.listar_users_por_departamento(db, current_user.departamento_id)}
+        if current_user.departamento_id
+        else None
+    )
     current_day = data_min
     while current_day <= data_max:
-        if current_user.departamento_id:
-            colegas_ids = {u.id for u in ferias_repository.listar_users_por_departamento(db, current_user.departamento_id)}
-        else:
-            colegas_ids = None
-
         count = sum(
             1
             for f in todas_ferias
@@ -253,6 +264,7 @@ def disponibilidade(db: Session, current_user: User) -> dict:
 
 
 def registrar_ferias(db: Session, payload: FeriasCreate, current_user: User) -> dict:
+    bloquear_regras_ferias(db, current_user)
     verificar_regras_data(payload.data_inicio, payload.data_fim)
     dias_solicitados = calcular_dias(payload.data_inicio, payload.data_fim)
     verificar_bloqueio_datas(db, payload.data_inicio, payload.data_fim)
@@ -294,6 +306,7 @@ def aprovar_ferias(db: Session, ferias_id: int, current_user: User) -> dict:
         raise HTTPException(status_code=400, detail=f"Solicitacao nao esta pendente (status atual: {ferias.status})")
 
     owner = ferias_repository.obter_user_por_id(db, ferias.user_id)
+    bloquear_regras_ferias(db, owner)
     if not ferias.ferias_acordo:
         if verificar_sobreposicao_departamento(db, owner, ferias.data_inicio, ferias.data_fim, excluir_ferias_id=ferias_id):
             limite = get_limite_departamento(owner, db)
@@ -339,6 +352,7 @@ def editar_ferias(db: Session, ferias_id: int, payload: FeriasUpdate, current_us
             raise HTTPException(status_code=403, detail="Apenas ferias pendentes podem ser editadas pelo colaborador")
 
     owner = ferias_repository.obter_user_por_id(db, ferias.user_id)
+    bloquear_regras_ferias(db, owner)
     nova_inicio = payload.data_inicio if payload.data_inicio is not None else ferias.data_inicio
     nova_fim = payload.data_fim if payload.data_fim is not None else ferias.data_fim
 

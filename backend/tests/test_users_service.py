@@ -28,7 +28,7 @@ class UsersServiceTests(unittest.TestCase):
         current_user = SimpleNamespace(id=1)
 
         with self.assertRaises(HTTPException) as exc:
-            users_service.excluir_usuario(SimpleNamespace(), 1, current_user)
+            users_service.desativar_usuario(SimpleNamespace(), 1, current_user)
 
         self.assertEqual(exc.exception.status_code, 400)
 

@@ -102,7 +102,7 @@ async def criar_documento_upload(
     validar_permissao_upload(tipo, user_id, current_user)
 
     target_user = buscar_usuario(db, user_id)
-    arquivo_bytes = await file.read()
+    arquivo_bytes = await file.read(MAX_SIZE + 1)
     mime = file.content_type or "application/octet-stream"
     validar_arquivo_upload(arquivo_bytes, mime)
 

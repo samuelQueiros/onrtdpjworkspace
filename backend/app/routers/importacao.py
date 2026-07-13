@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.security import require_admin
@@ -16,7 +16,9 @@ async def importar_ferias(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    conteudo = await file.read()
+    conteudo = await file.read(importacao_service.MAX_IMPORT_SIZE + 1)
+    if len(conteudo) > importacao_service.MAX_IMPORT_SIZE:
+        raise HTTPException(status_code=400, detail="Planilha muito grande. Limite: 5 MB")
     return importacao_service.importar_ferias(db, file.filename, conteudo, current_user)
 
 
@@ -26,5 +28,7 @@ async def importar_logs(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    conteudo = await file.read()
+    conteudo = await file.read(importacao_service.MAX_IMPORT_SIZE + 1)
+    if len(conteudo) > importacao_service.MAX_IMPORT_SIZE:
+        raise HTTPException(status_code=400, detail="Planilha muito grande. Limite: 5 MB")
     return importacao_service.importar_logs(db, file.filename, conteudo, current_user)

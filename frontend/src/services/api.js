@@ -3,6 +3,7 @@ import { authService } from './dominios/authService'
 import { avisosService } from './dominios/avisosService'
 import { bloqueiosService } from './dominios/bloqueiosService'
 import { credenciaisService } from './dominios/credenciaisService'
+import { cargosService } from './dominios/cargosService'
 import { departamentosService } from './dominios/departamentosService'
 import { documentosService } from './dominios/documentosService'
 import { feriasService } from './dominios/feriasService'
@@ -22,4 +23,5 @@ export const api = {
   ...bloqueiosService,
   ...alertasService,
   ...credenciaisService,
+  ...cargosService,
 }

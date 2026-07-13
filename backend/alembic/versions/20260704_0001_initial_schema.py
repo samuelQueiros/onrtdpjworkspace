@@ -9,8 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 
-from app.database import Base
-from app import models  # noqa: F401
+from app.schema_20260704 import metadata
 
 revision: str = "20260704_0001"
 down_revision: Union[str, None] = None
@@ -20,7 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     bind = op.get_bind()
-    Base.metadata.create_all(bind=bind)
+    metadata.create_all(bind=bind)
 
     if bind.dialect.name == "postgresql":
         op.execute("ALTER TABLE documentos ADD COLUMN IF NOT EXISTS caminho_arquivo VARCHAR")
@@ -32,4 +31,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    Base.metadata.drop_all(bind=op.get_bind())
+    metadata.drop_all(bind=op.get_bind())

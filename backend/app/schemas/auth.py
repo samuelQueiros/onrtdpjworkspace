@@ -20,6 +20,5 @@ class AuthUserOut(BaseModel):
 
 
 class TokenOut(BaseModel):
-    access_token: str
     token_type: str
     user: AuthUserOut

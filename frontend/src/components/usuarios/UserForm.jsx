@@ -11,10 +11,16 @@ export const blankUserForm = {
   data_admissao: '',
   data_aniversario: '',
   cor: '',
+  telefone: '',
+  telefone_emergencia: '',
+  endereco: '',
+  dados_bancarios: '',
+  cargo: '',
 }
 
 export default function UserForm({
   departamentos,
+  cargos,
   editing,
   form,
   onCancel,
@@ -51,6 +57,7 @@ export default function UserForm({
           <label>{editing ? 'Nova senha (deixe em branco para manter)' : 'Senha'}</label>
           <input
             type="password"
+            minLength="8"
             value={form.senha}
             onChange={event => updateForm({ senha: event.target.value })}
             required={!editing}
@@ -76,6 +83,55 @@ export default function UserForm({
               <option key={departamento.id} value={departamento.id}>{departamento.nome}</option>
             ))}
           </select>
+        </div>
+
+        <div className="form-group">
+          <label>Cargo</label>
+          <select value={form.cargo} onChange={event => updateForm({ cargo: event.target.value })}>
+            <option value="">Selecione um cargo</option>
+            {cargos.map(cargo => <option key={cargo.id} value={cargo.nome}>{cargo.nome}</option>)}
+          </select>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label>Telefone</label>
+            <input
+              type="tel"
+              value={form.telefone}
+              onChange={event => updateForm({ telefone: event.target.value })}
+              placeholder="(00) 00000-0000"
+            />
+          </div>
+          <div className="form-group">
+            <label>Telefone de emergência</label>
+            <input
+              type="tel"
+              value={form.telefone_emergencia}
+              onChange={event => updateForm({ telefone_emergencia: event.target.value })}
+              placeholder="(00) 00000-0000"
+            />
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label>Endereço</label>
+          <textarea
+            value={form.endereco}
+            onChange={event => updateForm({ endereco: event.target.value })}
+            placeholder="Rua, número, complemento, bairro, cidade e CEP"
+            rows="3"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Dados bancários</label>
+          <textarea
+            value={form.dados_bancarios}
+            onChange={event => updateForm({ dados_bancarios: event.target.value })}
+            placeholder="Banco, agência, conta e chave Pix"
+            rows="3"
+          />
         </div>
 
         <div className="form-group">

@@ -7,10 +7,24 @@ from app.schemas.documento import DocumentoOut
 from app.schemas.ferias import DisponibilidadeOut, FeriasOut, MinhasFeriasOut
 from app.schemas.importacao import ImportacaoOut
 from app.schemas.relatorio import DashboardOut, LogDetalhadoOut, RelatorioColaboradoresOut
-from app.schemas.user import AniversarianteOut, UserResponse
+from app.schemas.user import AniversarianteOut, UserCreate, UserResponse
 
 
 class SchemasDtoTests(unittest.TestCase):
+    def test_user_create_aceita_novos_dados_do_colaborador(self):
+        user = UserCreate(
+            nome="Gabriel",
+            email="gabriel@sistema.com",
+            senha="segura123",
+            telefone="(11) 99999-9999",
+            telefone_emergencia="(11) 98888-8888",
+            endereco="Rua Exemplo, 10",
+            dados_bancarios="Banco, agencia e conta",
+            cargo="Desenvolvedor",
+        )
+
+        self.assertEqual(user.cargo, "Desenvolvedor")
+
     def test_token_out_aceita_formato_do_login(self):
         token = TokenOut(
             access_token="token",
