@@ -39,7 +39,12 @@ def autenticar_usuario(db: Session, email: str, senha: str) -> dict:
             detail="E-mail ou senha incorretos",
         )
 
-    token_data = {"sub": str(user.id), "role": user.role, "nome": user.nome}
+    token_data = {
+        "sub": str(user.id),
+        "role": user.role,
+        "nome": user.nome,
+        "token_version": user.token_version,
+    }
     return {
         "access_token": criar_token(token_data),
         "token_type": "bearer",

@@ -39,9 +39,9 @@ def editar_usuario(
 def dados_sensiveis_usuario(
     user_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_admin),
+    current_user: User = Depends(require_admin),
 ):
-    return users_service.formatar_dados_sensiveis(users_service.buscar_usuario(db, user_id))
+    return users_service.consultar_dados_sensiveis(db, user_id, current_user)
 
 
 @router.get("/users/aniversariantes", response_model=list[AniversarianteOut])
@@ -60,6 +60,15 @@ def excluir_usuario(
 ):
     users_service.desativar_usuario(db, user_id, current_user)
     return {"detail": "Usuario desativado com sucesso"}
+
+
+@router.post("/users/{user_id}/reativar", response_model=UserResponse)
+def reativar_usuario(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    return users_service.reativar_usuario(db, user_id, current_user)
 
 
 @router.put("/me/configuracoes", response_model=UserResponse)

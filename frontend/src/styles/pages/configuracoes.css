@@ -1,1 +1,17 @@
-/* Configurações usa os componentes compartilhados de formulário e tabela. */
+.settings-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-groups .grid-2 {
+  align-items: start;
+}
+
+.settings-groups .grid-2 > section.card {
+  overflow: hidden;
+}
+
+.settings-groups .disclosure-button-card {
+  border-radius: 0;
+}

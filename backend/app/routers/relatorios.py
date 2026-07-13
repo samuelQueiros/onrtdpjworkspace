@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.security import require_admin
 from app.database import get_db
-from app.schemas.relatorio import DashboardOut, LogDetalhadoOut, RelatorioColaboradoresOut
+from app.schemas.relatorio import DashboardOut, LogsPageOut, RelatorioColaboradoresOut
 from app.services import relatorios_service
 
 router = APIRouter(tags=["Relatorios e Logs"])
@@ -19,6 +19,11 @@ def dashboard_admin(db: Session = Depends(get_db), _=Depends(require_admin)):
     return relatorios_service.dashboard_admin(db)
 
 
-@router.get("/logs", response_model=list[LogDetalhadoOut])
-def listar_logs(db: Session = Depends(get_db), _=Depends(require_admin)):
-    return relatorios_service.listar_logs(db)
+@router.get("/logs", response_model=LogsPageOut)
+def listar_logs(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
+):
+    return relatorios_service.listar_logs(db, page, page_size)

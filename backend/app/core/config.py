@@ -50,6 +50,13 @@ class Settings:
         return int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
 
     @property
+    def cookie_secure(self) -> bool:
+        valor = os.getenv("COOKIE_SECURE")
+        if valor is None:
+            return self.environment == "production"
+        return valor.strip().lower() in {"1", "true", "sim", "yes", "on"}
+
+    @property
     def credentials_encryption_key(self) -> str:
         secret = os.getenv("CREDENTIALS_ENCRYPTION_KEY")
         if secret:

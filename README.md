@@ -69,11 +69,14 @@ Os documentos são armazenados em pasta persistente configurada por `UPLOAD_DIR`
 ### Segurança e integridade
 
 - A sessão web usa cookie JWT `HttpOnly` e `SameSite=Lax`.
+- Trocas de senha e logout global revogam tokens emitidos anteriormente.
 - Dados bancários são criptografados em repouso com `CREDENTIALS_ENCRYPTION_KEY`.
 - Colaboradores são desativados em vez de excluídos, preservando histórico e documentos.
 - Alterações concorrentes de férias são serializadas no PostgreSQL.
 - Login possui limitação de tentativas por origem.
 - Uploads possuem validação de assinatura e limites de tamanho.
+
+O frontend publicado pelo Docker acessa a API pelo proxy interno `/api`. Para instalações HTTP controladas, configure `COOKIE_SECURE=false`; em produção com HTTPS, use `COOKIE_SECURE=true`.
 
 ---
 
@@ -319,6 +322,7 @@ ENVIRONMENT=production
 SECRET_KEY=cole-aqui-uma-chave-de-64-caracteres-ou-mais-gerada-aleatoriamente
 CREDENTIALS_ENCRYPTION_KEY=cole-aqui-outra-chave-longa-para-criptografar-credenciais
 ACCESS_TOKEN_EXPIRE_MINUTES=480
+COOKIE_SECURE=false
 BACKEND_PORT=8000
 UPLOAD_DIR=/app/uploads
 ADMIN_NAME=Administrador
@@ -327,7 +331,7 @@ ADMIN_PASSWORD=troque-por-uma-senha-forte
 
 # ── Frontend ───────────────────────────────────
 # Troque pelo IP ou domínio público do servidor
-VITE_API_URL=http://SEU_IP_OU_DOMINIO:8000
+VITE_API_URL=/api
 FRONTEND_URL=http://SEU_IP_OU_DOMINIO
 FRONTEND_PORT=80
 ```
@@ -410,11 +414,9 @@ docker stats
 # Acessar o banco de dados pela rede interna do Docker
 docker compose exec db psql -U ferias -d ferias
 
-# Backup do banco de dados
-docker compose exec -T db pg_dump -U ferias ferias > backup_$(date +%Y%m%d).sql
-
-# Restaurar backup
-cat backup_20240101.sql | docker compose exec -T db psql -U ferias -d ferias
+# Backup e restauração segura (PowerShell)
+.\scripts\backup.ps1
+.\scripts\restore.ps1 -BackupFile .\backups\ferias-AAAAMMDD-HHMMSS.dump
 ```
 
 #### 7. Configurar domínio com HTTPS (Nginx Proxy + Certbot)
@@ -471,10 +473,11 @@ server {
 | `SECRET_KEY` | Chave de assinatura JWT (**trocar em produção!**) | `troque-esta-chave-em-producao` |
 | `CREDENTIALS_ENCRYPTION_KEY` | Chave usada para criptografar senhas compartilhadas | — |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Duração da sessão em minutos | `480` (8h) |
+| `COOKIE_SECURE` | Exige HTTPS para o cookie de sessão | `true` em HTTPS; `false` em HTTP controlado |
 | `ADMIN_NAME` | Nome do administrador inicial criado no primeiro startup | `Administrador` |
 | `ADMIN_EMAIL` | E-mail do administrador inicial | — |
 | `ADMIN_PASSWORD` | Senha do administrador inicial | — |
-| `VITE_API_URL` | URL pública da API (usada no build do React) | `http://chat-server:8000` |
+| `VITE_API_URL` | URL usada pelo frontend para acessar a API | `/api` no Docker |
 | `FRONTEND_URL` | URL do frontend (CORS) | `http://chat-server` |
 | `BACKEND_PORT` | Porta exposta do backend | `8000` |
 | `FRONTEND_PORT` | Porta exposta do frontend | `80` |
@@ -498,7 +501,7 @@ server {
 
 | Variável | Descrição | Padrão |
 |----------|-----------|--------|
-| `VITE_API_URL` | URL base da API | `http://chat-server:8000` |
+| `VITE_API_URL` | URL base da API | `http://127.0.0.1:8000` |
 
 ---
 
@@ -701,7 +704,7 @@ Confirme que existe `frontend/.env` com o valor correto:
 ```env
 VITE_API_URL=http://127.0.0.1:8000
 ```
-Em produção com Docker, confirme que `VITE_API_URL` no `.env` raiz aponta para o IP/domínio acessível publicamente.
+Em produção com Docker, use `VITE_API_URL=/api`; o Nginx encaminha as requisições internamente ao backend.
 
 ### Erro de CORS
 
@@ -730,10 +733,10 @@ FRONTEND_PORT=8080
 
 ```bash
 # Backup
-docker compose exec -T db pg_dump -U ferias ferias > backup_$(date +%Y%m%d_%H%M).sql
+.\scripts\backup.ps1
 
-# Restaurar em container novo
-docker compose exec -T db psql -U ferias -d ferias < backup_20240101_1200.sql
+# Restaurar com backend pausado e migrations ao final
+.\scripts\restore.ps1 -BackupFile .\backups\ferias-AAAAMMDD-HHMMSS.dump
 ```
 
 ### Exportação de Logs

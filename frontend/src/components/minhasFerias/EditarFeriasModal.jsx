@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useToast } from '../../contexts/ToastContext'
 import { api } from '../../services/api'
+import { useModalFocusTrap } from '../../utils/useModalFocusTrap'
 
 export default function EditarFeriasModal({ ferias, onClose, onSaved }) {
   const toast = useToast()
   const [dataInicio, setDataInicio] = useState(ferias.data_inicio)
   const [dataFim, setDataFim] = useState(ferias.data_fim)
   const [saving, setSaving] = useState(false)
+  const modalRef = useModalFocusTrap(onClose)
 
   const submit = async event => {
     event.preventDefault()
@@ -23,21 +25,21 @@ export default function EditarFeriasModal({ ferias, onClose, onSaved }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={event => event.stopPropagation()}>
+      <div ref={modalRef} className="modal" role="dialog" aria-modal="true" aria-labelledby="editar-ferias-title" onClick={event => event.stopPropagation()}>
         <div className="modal-header">
-          <h3>Editar solicitação</h3>
-          <button className="btn-close" onClick={onClose}>×</button>
+          <h3 id="editar-ferias-title">Editar solicitação</h3>
+          <button className="btn-close" onClick={onClose} aria-label="Fechar">×</button>
         </div>
         <form onSubmit={submit}>
           <div className="modal-body form-stack">
             <div className="form-row">
               <div className="form-group">
-                <label>Data de início</label>
-                <input type="date" value={dataInicio} onChange={event => setDataInicio(event.target.value)} required />
+                <label htmlFor="editar-ferias-inicio">Data de início</label>
+                <input id="editar-ferias-inicio" name="data_inicio" type="date" value={dataInicio} onChange={event => setDataInicio(event.target.value)} required />
               </div>
               <div className="form-group">
-                <label>Data de fim</label>
-                <input type="date" value={dataFim} onChange={event => setDataFim(event.target.value)} required />
+                <label htmlFor="editar-ferias-fim">Data de fim</label>
+                <input id="editar-ferias-fim" name="data_fim" type="date" value={dataFim} onChange={event => setDataFim(event.target.value)} required />
               </div>
             </div>
           </div>

@@ -11,8 +11,9 @@ export default function AvisoForm({ editing, form, onCancel, onChange, onSubmit 
       <form onSubmit={onSubmit}>
         <div className="card-body form-stack">
           <div className="form-group">
-            <label>Título</label>
+            <label htmlFor="aviso-titulo">Título</label>
             <input
+              id="aviso-titulo" name="titulo"
               type="text"
               value={form.titulo}
               onChange={event => updateForm({ titulo: event.target.value })}
@@ -21,8 +22,9 @@ export default function AvisoForm({ editing, form, onCancel, onChange, onSubmit 
             />
           </div>
           <div className="form-group">
-            <label>Conteúdo</label>
+            <label htmlFor="aviso-conteudo">Conteúdo</label>
             <textarea
+              id="aviso-conteudo" name="conteudo"
               value={form.conteudo}
               onChange={event => updateForm({ conteudo: event.target.value })}
               rows={4}
@@ -32,8 +34,9 @@ export default function AvisoForm({ editing, form, onCancel, onChange, onSubmit 
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label>Data de expiração (opcional)</label>
+              <label htmlFor="aviso-expiracao">Data de expiração (opcional)</label>
               <input
+                id="aviso-expiracao" name="data_expiracao"
                 type="date"
                 value={form.data_expiracao}
                 onChange={event => updateForm({ data_expiracao: event.target.value })}
@@ -43,6 +46,7 @@ export default function AvisoForm({ editing, form, onCancel, onChange, onSubmit 
               <label>&nbsp;</label>
               <label className="checkbox-label">
                 <input
+                  id="aviso-fixado" name="fixado"
                   type="checkbox"
                   checked={form.fixado}
                   onChange={event => updateForm({ fixado: event.target.checked })}

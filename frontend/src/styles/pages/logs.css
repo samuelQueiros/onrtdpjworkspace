@@ -3,3 +3,12 @@
   background: #f1f5f9; color: var(--navy);
   padding: 2px 7px; border-radius: 4px; white-space: nowrap;
 }
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}

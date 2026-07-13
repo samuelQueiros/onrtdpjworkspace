@@ -7,7 +7,7 @@ export default function AdminDashboard({ dash, pendentes }) {
   const alertas = dash.alertas_contabilidade || []
 
   return (
-    <>
+    <div className="admin-dashboard-sections">
       <AdminDashboardAlerts alertas={alertas} pendentes={pendentes} />
       <AdminStats dash={dash} />
       <AdminVacationOverview
@@ -15,6 +15,6 @@ export default function AdminDashboard({ dash, pendentes }) {
         proximasFerias={dash.proximas_ferias || []}
       />
       <AdminActionsAndAlerts alertas={alertas} pendentes={pendentes} />
-    </>
+    </div>
   )
 }

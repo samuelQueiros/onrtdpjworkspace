@@ -32,7 +32,9 @@ export default function AppLayout({ children }) {
 
   useEffect(() => {
     if (user?.role === 'admin') {
-      api.feriasPendentes().then(list => setPendentes(list.length)).catch(() => {})
+      api.feriasPendentes()
+        .then(list => setPendentes(list.length))
+        .catch(error => console.error('Falha ao carregar aprovações pendentes', error))
     }
   }, [user, location.pathname])
 

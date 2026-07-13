@@ -11,3 +11,19 @@
 .summary-panel strong { font-size: 24px; font-weight: 800; line-height: 1.1; }
 .date-preview { color: var(--muted); font-size: 12px; }
 @media (max-width: 980px) { .summary-panel { grid-template-columns: 1fr; } }
+
+.requests-stack { display: flex; flex-direction: column; gap: 16px; }
+.request-disclosure { overflow: hidden; }
+.request-disclosure-button { padding: 16px 20px; }
+.request-disclosure-content {
+  padding: 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+.request-disclosure-content > .card { margin: 0; }
+.request-placeholder {
+  padding: 22px 20px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+}
+.request-placeholder strong { display: block; margin-bottom: 6px; color: var(--text); }

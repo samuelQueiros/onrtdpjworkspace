@@ -90,5 +90,9 @@ def listar_alertas_contabilidade(db: Session, hoje: date, limite: date) -> list[
     )
 
 
-def listar_logs(db: Session) -> list[Log]:
-    return db.query(Log).order_by(Log.criado_em.desc()).all()
+def listar_logs(db: Session, offset: int = 0, limit: int = 50) -> list[Log]:
+    return db.query(Log).order_by(Log.criado_em.desc()).offset(offset).limit(limit).all()
+
+
+def contar_logs(db: Session) -> int:
+    return db.query(Log).count()

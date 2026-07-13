@@ -13,6 +13,7 @@ const DEFAULT_OPTIONS = {
 export function ConfirmProvider({ children }) {
   const [dialog, setDialog] = useState(null)
   const previousFocus = useRef(null)
+  const dialogRef = useRef(null)
 
   const close = useCallback(result => {
     setDialog(current => {
@@ -32,6 +33,21 @@ export function ConfirmProvider({ children }) {
     if (!dialog) return undefined
     const onKeyDown = event => {
       if (event.key === 'Escape') close(false)
+      if (event.key === 'Tab' && dialogRef.current) {
+        const focusable = [...dialogRef.current.querySelectorAll(
+          'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+        )]
+        if (!focusable.length) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault()
+          last.focus()
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault()
+          first.focus()
+        }
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
@@ -45,6 +61,7 @@ export function ConfirmProvider({ children }) {
       {dialog && (
         <div className="confirm-overlay" role="presentation" onClick={() => close(false)}>
           <section
+            ref={dialogRef}
             className="confirm-dialog"
             role="dialog"
             aria-modal="true"

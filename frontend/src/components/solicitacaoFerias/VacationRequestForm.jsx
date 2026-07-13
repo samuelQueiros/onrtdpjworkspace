@@ -23,8 +23,9 @@ export default function VacationRequestForm({
       <div className="card-body form-stack">
         <div className="form-row">
           <div className="form-group">
-            <label>Data de início</label>
+            <label htmlFor="ferias-inicio">Data de início</label>
             <input
+              id="ferias-inicio" name="data_inicio"
               type="date"
               value={dataInicio}
               onChange={event => onDataInicioChange(event.target.value)}
@@ -35,8 +36,9 @@ export default function VacationRequestForm({
             </small>
           </div>
           <div className="form-group">
-            <label>Data de fim</label>
+            <label htmlFor="ferias-fim">Data de fim</label>
             <input
+              id="ferias-fim" name="data_fim"
               type="date"
               value={dataFim}
               onChange={event => onDataFimChange(event.target.value)}

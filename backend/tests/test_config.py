@@ -17,6 +17,7 @@ class SettingsTests(unittest.TestCase):
             "ACCESS_TOKEN_EXPIRE_MINUTES",
             "CREDENTIALS_ENCRYPTION_KEY",
             "UPLOAD_DIR",
+            "COOKIE_SECURE",
         ]
         self.old_values = {key: os.environ.get(key) for key in self.keys}
 
@@ -38,6 +39,12 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.access_token_expire_minutes, 480)
         self.assertEqual(settings.secret_key, "chave-secreta-padrao-troque-em-producao")
         self.assertEqual(settings.credentials_encryption_key, "chave-local-para-credenciais")
+        self.assertFalse(settings.cookie_secure)
+
+    def test_cookie_secure_pode_ser_configurado_em_http_controlado(self):
+        os.environ["ENVIRONMENT"] = "production"
+        os.environ["COOKIE_SECURE"] = "false"
+        self.assertFalse(Settings().cookie_secure)
 
     def test_producao_exige_secret_key(self):
         os.environ["ENVIRONMENT"] = "production"

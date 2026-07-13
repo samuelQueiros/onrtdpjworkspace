@@ -8,9 +8,15 @@ from app.schemas.ferias import DisponibilidadeOut, FeriasOut, MinhasFeriasOut
 from app.schemas.importacao import ImportacaoOut
 from app.schemas.relatorio import DashboardOut, LogDetalhadoOut, RelatorioColaboradoresOut
 from app.schemas.user import AniversarianteOut, UserCreate, UserResponse
+from app.schemas.cargo import CargoCreate
 
 
 class SchemasDtoTests(unittest.TestCase):
+    def test_cargo_normaliza_espacos_antes_de_validar(self):
+        self.assertEqual(CargoCreate(nome="  Analista   de BI  ").nome, "Analista de BI")
+        with self.assertRaises(ValueError):
+            CargoCreate(nome="   ")
+
     def test_user_create_aceita_novos_dados_do_colaborador(self):
         user = UserCreate(
             nome="Gabriel",
@@ -18,12 +24,27 @@ class SchemasDtoTests(unittest.TestCase):
             senha="segura123",
             telefone="(11) 99999-9999",
             telefone_emergencia="(11) 98888-8888",
-            endereco="Rua Exemplo, 10",
-            dados_bancarios="Banco, agencia e conta",
+            endereco={
+                "logradouro": "Rua Exemplo",
+                "numero": "10",
+                "bairro": "Centro",
+                "cidade": "São Paulo",
+                "cep": "01000-000",
+            },
+            dados_bancarios={
+                "banco": "Banco Exemplo",
+                "agencia": "1234",
+                "conta": "56789-0",
+                "cpf_titular": "123.456.789-00",
+                "nome_titular": "Gabriel",
+                "chave_pix": "gabriel@sistema.com",
+            },
             cargo="Desenvolvedor",
         )
 
         self.assertEqual(user.cargo, "Desenvolvedor")
+        self.assertEqual(user.endereco.numero, "10")
+        self.assertEqual(user.dados_bancarios.agencia, "1234")
 
     def test_token_out_aceita_formato_do_login(self):
         token = TokenOut(

@@ -39,7 +39,7 @@ Resposta:
 
 ### POST `/auth/login`
 
-Realiza login.
+Realiza login OAuth2 e retorna `access_token` para Swagger, scripts e integrações.
 
 Content-Type:
 
@@ -78,9 +78,21 @@ Resposta:
 }
 ```
 
+### POST `/auth/session`
+
+Realiza o login da aplicação web e grava o token em cookie `HttpOnly`. A resposta não expõe o token ao JavaScript.
+
 ### POST `/auth/logout`
 
 Encerra a sessão e remove o cookie de autenticação.
+
+### POST `/auth/logout-all`
+
+Revoga todos os tokens emitidos anteriormente para o usuário autenticado.
+
+## Logs
+
+`GET /logs?page=1&page_size=50` retorna `items`, `page`, `page_size` e `total`. O tamanho máximo da página é 200.
 
 ## Cargos
 

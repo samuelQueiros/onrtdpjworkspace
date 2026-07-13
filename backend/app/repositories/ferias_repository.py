@@ -85,6 +85,10 @@ def obter_ferias_por_id(db: Session, ferias_id: int) -> Ferias | None:
     return db.query(Ferias).filter(Ferias.id == ferias_id).first()
 
 
+def obter_ferias_por_id_para_atualizar(db: Session, ferias_id: int) -> Ferias | None:
+    return db.query(Ferias).filter(Ferias.id == ferias_id).with_for_update().first()
+
+
 def salvar_ferias_com_log(db: Session, ferias: Ferias, log: Log) -> Ferias:
     db.add(ferias)
     db.flush()

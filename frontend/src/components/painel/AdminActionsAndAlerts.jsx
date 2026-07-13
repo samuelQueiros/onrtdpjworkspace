@@ -27,9 +27,9 @@ function AdminQuickActions({ pendentes = [] }) {
           <strong>Calendário</strong>
           <span>Visualizar férias marcadas.</span>
         </Link>
-        <Link className="quick-action" to="/departamentos">
-          <strong>Departamentos</strong>
-          <span>Gerencie equipes e limites.</span>
+        <Link className="quick-action" to="/configuracoes">
+          <strong>Configurações</strong>
+          <span>Gerencie cargos, equipes e limites.</span>
         </Link>
       </div>
     </section>

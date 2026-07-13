@@ -21,6 +21,12 @@ class FakeQuery:
     def all(self):
         return self.result
 
+    def offset(self, _value):
+        return self
+
+    def limit(self, _value):
+        return self
+
     def count(self):
         return self.result
 

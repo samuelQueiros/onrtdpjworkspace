@@ -23,6 +23,7 @@ class User(Base):
     dados_bancarios = Column(String, nullable=True)
     cargo_id = Column(Integer, ForeignKey("cargos.id", ondelete="SET NULL"), nullable=True)
     ativo = Column(Boolean, nullable=False, default=True)
+    token_version = Column(Integer, nullable=False, default=0)
     criado_em = Column(DateTime, default=datetime.utcnow)
 
     ferias = relationship("Ferias", back_populates="usuario", foreign_keys="[Ferias.user_id]", cascade="all, delete-orphan")

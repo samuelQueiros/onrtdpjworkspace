@@ -116,8 +116,8 @@ def dashboard_admin(db: Session) -> dict:
     }
 
 
-def listar_logs(db: Session) -> list[dict]:
-    return [
+def listar_logs(db: Session, page: int = 1, page_size: int = 50) -> dict:
+    items = [
         {
             "id": log.id,
             "user_id": log.user_id,
@@ -127,5 +127,6 @@ def listar_logs(db: Session) -> list[dict]:
             "detalhes": log.detalhes,
             "criado_em": log.criado_em,
         }
-        for log in relatorios_repository.listar_logs(db)
+        for log in relatorios_repository.listar_logs(db, (page - 1) * page_size, page_size)
     ]
+    return {"items": items, "page": page, "page_size": page_size, "total": relatorios_repository.contar_logs(db)}

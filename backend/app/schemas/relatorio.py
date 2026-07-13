@@ -85,3 +85,10 @@ class LogDetalhadoOut(BaseModel):
     acao: str
     detalhes: Optional[str]
     criado_em: datetime
+
+
+class LogsPageOut(BaseModel):
+    items: list[LogDetalhadoOut]
+    page: int
+    page_size: int
+    total: int

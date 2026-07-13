@@ -1,6 +1,39 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Literal, Optional
 from datetime import datetime, date
+
+
+class DadosBancarios(BaseModel):
+    banco: Optional[str] = Field(default=None, max_length=100)
+    agencia: Optional[str] = Field(default=None, max_length=30)
+    conta: Optional[str] = Field(default=None, max_length=30)
+    cpf_titular: Optional[str] = Field(default=None, max_length=14)
+    nome_titular: Optional[str] = Field(default=None, max_length=150)
+    chave_pix: Optional[str] = Field(default=None, max_length=150)
+
+    @field_validator("banco", "agencia", "conta", "cpf_titular", "nome_titular", "chave_pix", mode="before")
+    @classmethod
+    def normalizar_campos(cls, valor):
+        if valor is None:
+            return None
+        texto = " ".join(str(valor).split())
+        return texto or None
+
+
+class Endereco(BaseModel):
+    logradouro: Optional[str] = Field(default=None, max_length=200)
+    numero: Optional[str] = Field(default=None, max_length=20)
+    bairro: Optional[str] = Field(default=None, max_length=100)
+    cidade: Optional[str] = Field(default=None, max_length=100)
+    cep: Optional[str] = Field(default=None, max_length=9)
+
+    @field_validator("logradouro", "numero", "bairro", "cidade", "cep", mode="before")
+    @classmethod
+    def normalizar_campos(cls, valor):
+        if valor is None:
+            return None
+        texto = " ".join(str(valor).split())
+        return texto or None
 
 
 class UserCreate(BaseModel):
@@ -15,9 +48,17 @@ class UserCreate(BaseModel):
     cor: Optional[str] = None
     telefone: Optional[str] = Field(default=None, max_length=30)
     telefone_emergencia: Optional[str] = Field(default=None, max_length=30)
-    endereco: Optional[str] = Field(default=None, max_length=500)
-    dados_bancarios: Optional[str] = Field(default=None, max_length=500)
+    endereco: Optional[Endereco] = None
+    dados_bancarios: Optional[DadosBancarios] = None
     cargo: Optional[str] = Field(default=None, max_length=100)
+
+    @field_validator("nome", "telefone", "telefone_emergencia", "cargo", mode="before")
+    @classmethod
+    def normalizar_textos(cls, valor):
+        if valor is None:
+            return None
+        texto = " ".join(str(valor).split())
+        return texto or None
 
 
 class UserUpdate(BaseModel):
@@ -31,17 +72,24 @@ class UserUpdate(BaseModel):
     cor: Optional[str] = None
     telefone: Optional[str] = Field(default=None, max_length=30)
     telefone_emergencia: Optional[str] = Field(default=None, max_length=30)
-    endereco: Optional[str] = Field(default=None, max_length=500)
-    dados_bancarios: Optional[str] = Field(default=None, max_length=500)
+    endereco: Optional[Endereco] = None
+    dados_bancarios: Optional[DadosBancarios] = None
     cargo: Optional[str] = Field(default=None, max_length=100)
-    ativo: Optional[bool] = None
+
+    @field_validator("nome", "telefone", "telefone_emergencia", "cargo", mode="before")
+    @classmethod
+    def normalizar_textos(cls, valor):
+        if valor is None:
+            return None
+        texto = " ".join(str(valor).split())
+        return texto or None
 
 
 class UserConfigUpdate(BaseModel):
     nome: Optional[str] = None
     email: Optional[EmailStr] = None
     senha_atual: Optional[str] = None
-    nova_senha: Optional[str] = None
+    nova_senha: Optional[str] = Field(default=None, min_length=8, max_length=128)
 
 
 class UserOut(BaseModel):
@@ -93,8 +141,8 @@ class UserResponse(BaseModel):
 
 class UserSensitiveResponse(BaseModel):
     telefone_emergencia: Optional[str] = None
-    endereco: Optional[str] = None
-    dados_bancarios: Optional[str] = None
+    endereco: Optional[Endereco] = None
+    dados_bancarios: Optional[DadosBancarios] = None
 
 
 class AniversarianteOut(BaseModel):

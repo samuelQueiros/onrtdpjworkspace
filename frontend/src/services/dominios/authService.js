@@ -5,7 +5,7 @@ export const authService = {
     const form = new URLSearchParams()
     form.append('username', email)
     form.append('password', senha)
-    return postForm('/auth/login', form)
+    return postForm('/auth/session', form)
   },
   me: () => req('GET', '/auth/me'),
   logout: () => req('POST', '/auth/logout'),

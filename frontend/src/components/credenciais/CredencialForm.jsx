@@ -23,8 +23,9 @@ export default function CredencialForm({
       </div>
       <div className="card-body form-stack">
         <div className="form-group">
-          <label>Descrição</label>
+          <label htmlFor="credencial-descricao">Descrição</label>
           <input
+            id="credencial-descricao" name="descricao"
             type="text"
             value={form.descricao}
             onChange={event => updateForm({ descricao: event.target.value })}
@@ -34,8 +35,9 @@ export default function CredencialForm({
         </div>
 
         <div className="form-group">
-          <label>E-mail</label>
+          <label htmlFor="credencial-email">E-mail</label>
           <input
+            id="credencial-email" name="email" autoComplete="username"
             type="text"
             value={form.email}
             onChange={event => updateForm({ email: event.target.value })}
@@ -45,9 +47,10 @@ export default function CredencialForm({
         </div>
 
         <div className="form-group">
-          <label>Senha</label>
+          <label htmlFor="credencial-senha">Senha</label>
           <div className="field-with-action">
             <input
+              id="credencial-senha" name="senha" autoComplete="new-password"
               type={mostrarSenha ? 'text' : 'password'}
               value={form.senha}
               onChange={event => updateForm({ senha: event.target.value })}

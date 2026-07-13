@@ -14,8 +14,8 @@ export default function UploadDocumentoForm({
       <div className="card-header"><h2 className="card-title">Enviar documento</h2></div>
       <div className="card-body form-stack">
         <div className="form-group">
-          <label>Tipo de documento</label>
-          <select value={tipo} onChange={event => onTipoChange(event.target.value)}>
+          <label htmlFor="documento-tipo">Tipo de documento</label>
+          <select id="documento-tipo" name="tipo" value={tipo} onChange={event => onTipoChange(event.target.value)}>
             <option value="atestado">Atestado médico</option>
             {isAdmin && <option value="contracheque">Contracheque</option>}
           </select>
@@ -23,8 +23,9 @@ export default function UploadDocumentoForm({
 
         {isAdmin && (
           <div className="form-group">
-            <label>Colaborador</label>
+            <label htmlFor="documento-usuario">Colaborador</label>
             <select
+              id="documento-usuario" name="user_id"
               value={targetUser}
               onChange={event => onTargetUserChange(event.target.value)}
               required
@@ -38,8 +39,8 @@ export default function UploadDocumentoForm({
         )}
 
         <div className="form-group">
-          <label>Arquivo (PDF, JPG, PNG - máx. 10 MB)</label>
-          <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" required />
+          <label htmlFor="documento-arquivo">Arquivo (PDF, JPG, PNG - máx. 10 MB)</label>
+          <input id="documento-arquivo" name="file" ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" required />
         </div>
 
         <button className="btn btn-primary" type="submit" disabled={uploading}>

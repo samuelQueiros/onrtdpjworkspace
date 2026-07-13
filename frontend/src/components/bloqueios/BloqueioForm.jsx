@@ -10,16 +10,17 @@ export default function BloqueioForm({ editing, form, onCancel, onChange, onSubm
       </div>
       <div className="card-body form-stack">
         <div className="form-group">
-          <label>Tipo</label>
-          <select value={form.tipo} onChange={event => updateForm({ tipo: event.target.value })}>
+          <label htmlFor="bloqueio-tipo">Tipo</label>
+          <select id="bloqueio-tipo" name="tipo" value={form.tipo} onChange={event => updateForm({ tipo: event.target.value })}>
             <option value="bloqueio">Bloqueio - impede novas solicitações</option>
             <option value="recesso">Recesso - período coletivo de folga</option>
           </select>
         </div>
 
         <div className="form-group">
-          <label>Motivo / Descrição</label>
+          <label htmlFor="bloqueio-motivo">Motivo / Descrição</label>
           <input
+            id="bloqueio-motivo" name="motivo"
             type="text"
             value={form.motivo}
             onChange={event => updateForm({ motivo: event.target.value })}
@@ -30,8 +31,9 @@ export default function BloqueioForm({ editing, form, onCancel, onChange, onSubm
 
         <div className="form-row">
           <div className="form-group">
-            <label>Data início</label>
+            <label htmlFor="bloqueio-inicio">Data início</label>
             <input
+              id="bloqueio-inicio" name="data_inicio"
               type="date"
               value={form.data_inicio}
               onChange={event => updateForm({ data_inicio: event.target.value })}
@@ -39,8 +41,9 @@ export default function BloqueioForm({ editing, form, onCancel, onChange, onSubm
             />
           </div>
           <div className="form-group">
-            <label>Data fim</label>
+            <label htmlFor="bloqueio-fim">Data fim</label>
             <input
+              id="bloqueio-fim" name="data_fim"
               type="date"
               value={form.data_fim}
               onChange={event => updateForm({ data_fim: event.target.value })}

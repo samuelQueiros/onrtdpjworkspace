@@ -76,11 +76,15 @@ class RelatoriosServiceTests(unittest.TestCase):
             criado_em=datetime(2026, 7, 5),
         )
 
-        with patch("app.services.relatorios_service.relatorios_repository.listar_logs", return_value=[log]):
+        with (
+            patch("app.services.relatorios_service.relatorios_repository.listar_logs", return_value=[log]),
+            patch("app.services.relatorios_service.relatorios_repository.contar_logs", return_value=1),
+        ):
             response = relatorios_service.listar_logs(SimpleNamespace())
 
-        self.assertEqual(response[0]["nome_usuario"], "Sistema")
-        self.assertIsNone(response[0]["email_usuario"])
+        self.assertEqual(response["items"][0]["nome_usuario"], "Sistema")
+        self.assertIsNone(response["items"][0]["email_usuario"])
+        self.assertEqual(response["total"], 1)
 
 
 if __name__ == "__main__":

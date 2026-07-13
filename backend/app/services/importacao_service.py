@@ -147,18 +147,18 @@ def importar_ferias(db: Session, filename: str | None, conteudo: bytes, current_
                 ferias_acordo=ferias_acordo,
             ),
         )
-        inseridos += 1
-
-    if inseridos:
         importacao_repository.adicionar_log(
             db,
             Log(
                 user_id=current_user.id,
-                acao="FERIAS_IMPORTADAS",
-                detalhes=f"{inseridos} periodo(s) importado(s) via Excel",
+                acao="FERIAS_IMPORTADA",
+                detalhes=f"Periodo de {data_inicio} a {data_fim} importado para usuario #{user.id}",
             ),
         )
+        # Cada linha usa sua propria transacao para liberar advisory locks e
+        # impedir deadlocks entre lotes processados em ordens diferentes.
         importacao_repository.commit(db)
+        inseridos += 1
 
     return {
         "inseridos": inseridos,

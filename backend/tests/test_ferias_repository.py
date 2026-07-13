@@ -9,6 +9,7 @@ class FakeQuery:
         self.result = result
         self.filtered = False
         self.ordered = False
+        self.locked = False
 
     def filter(self, *_args):
         self.filtered = True
@@ -20,6 +21,10 @@ class FakeQuery:
 
     def first(self):
         return self.result
+
+    def with_for_update(self):
+        self.locked = True
+        return self
 
     def all(self):
         return self.result
@@ -70,6 +75,12 @@ class FeriasRepositoryTests(unittest.TestCase):
 
         self.assertEqual(ferias_repository.obter_ferias_por_id(db, 1), ferias)
         self.assertTrue(db.last_query.filtered)
+
+    def test_obter_ferias_para_atualizar_bloqueia_linha(self):
+        ferias = SimpleNamespace(id=1)
+        db = FakeDb(query_result=ferias)
+        self.assertEqual(ferias_repository.obter_ferias_por_id_para_atualizar(db, 1), ferias)
+        self.assertTrue(db.last_query.locked)
 
     def test_salvar_ferias_com_log_persiste(self):
         ferias = SimpleNamespace(id=1)

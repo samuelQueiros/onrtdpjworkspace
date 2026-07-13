@@ -300,8 +300,15 @@ def buscar_ferias(db: Session, ferias_id: int) -> Ferias:
     return ferias
 
 
+def buscar_ferias_para_atualizar(db: Session, ferias_id: int) -> Ferias:
+    ferias = ferias_repository.obter_ferias_por_id_para_atualizar(db, ferias_id)
+    if not ferias:
+        raise HTTPException(status_code=404, detail="Ferias nao encontradas")
+    return ferias
+
+
 def aprovar_ferias(db: Session, ferias_id: int, current_user: User) -> dict:
-    ferias = buscar_ferias(db, ferias_id)
+    ferias = buscar_ferias_para_atualizar(db, ferias_id)
     if ferias.status != "pendente":
         raise HTTPException(status_code=400, detail=f"Solicitacao nao esta pendente (status atual: {ferias.status})")
 
@@ -325,7 +332,7 @@ def aprovar_ferias(db: Session, ferias_id: int, current_user: User) -> dict:
 
 
 def rejeitar_ferias(db: Session, ferias_id: int, payload: FeriasAprovar, current_user: User) -> dict:
-    ferias = buscar_ferias(db, ferias_id)
+    ferias = buscar_ferias_para_atualizar(db, ferias_id)
     if ferias.status != "pendente":
         raise HTTPException(status_code=400, detail=f"Solicitacao nao esta pendente (status atual: {ferias.status})")
 
@@ -343,7 +350,7 @@ def rejeitar_ferias(db: Session, ferias_id: int, payload: FeriasAprovar, current
 
 
 def editar_ferias(db: Session, ferias_id: int, payload: FeriasUpdate, current_user: User) -> dict:
-    ferias = buscar_ferias(db, ferias_id)
+    ferias = buscar_ferias_para_atualizar(db, ferias_id)
 
     if current_user.role != "admin":
         if ferias.user_id != current_user.id:
@@ -388,7 +395,7 @@ def editar_ferias(db: Session, ferias_id: int, payload: FeriasUpdate, current_us
 
 
 def cancelar_ferias(db: Session, ferias_id: int, current_user: User) -> None:
-    ferias = buscar_ferias(db, ferias_id)
+    ferias = buscar_ferias_para_atualizar(db, ferias_id)
     if current_user.role != "admin" and ferias.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Sem permissao para cancelar ferias de outro usuario")
 

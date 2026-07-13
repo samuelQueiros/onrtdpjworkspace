@@ -21,6 +21,8 @@ export default function SolicitarFerias() {
   const [bloqueiosManuais, setBloqueiosManuais] = useState([])
   const [feriadosSet, setFeriadosSet] = useState(new Set())
   const [saving, setSaving] = useState(false)
+  const [feriasOpen, setFeriasOpen] = useState(false)
+  const [maquinaOpen, setMaquinaOpen] = useState(false)
 
   useEffect(() => {
     api.disponibilidade()
@@ -28,7 +30,11 @@ export default function SolicitarFerias() {
         setPeriodos(data.periodos_bloqueados || [])
         setBloqueiosManuais(data.bloqueios_manuais || [])
       })
-      .catch(() => { setPeriodos([]); setBloqueiosManuais([]) })
+      .catch(error => {
+        console.error('Falha ao carregar disponibilidade', error)
+        setPeriodos([])
+        setBloqueiosManuais([])
+      })
 
     const anoAtual = new Date().getFullYear()
     Promise.all([
@@ -38,7 +44,7 @@ export default function SolicitarFerias() {
       .then(([f1, f2]) => {
         setFeriadosSet(new Set([...f1, ...f2].map(feriado => feriado.data)))
       })
-      .catch(() => {})
+      .catch(error => console.error('Falha ao carregar feriados', error))
   }, [])
 
   const dias = calcDays(dataInicio, dataFim)
@@ -80,31 +86,47 @@ export default function SolicitarFerias() {
 
   return (
     <>
-      <PageHeader title="Solicitar Férias" subtitle="Escolha um período e acompanhe o impacto no saldo antes de enviar." />
+      <PageHeader title="Solicitações" subtitle="Escolha o tipo de solicitação que deseja enviar." />
 
-      <div className="grid-2 grid-2-wide-left">
-        <VacationRequestForm
-          bloqueado={bloqueado}
-          bloqueioManual={bloqueioManual}
-          dataFim={dataFim}
-          dataInicio={dataInicio}
-          dias={dias}
-          erroDatas={erroDatas}
-          feriasAcordo={feriasAcordo}
-          onDataFimChange={setDataFim}
-          onDataInicioChange={setDataInicio}
-          onFeriasAcordoChange={setFeriasAcordo}
-          onSubmit={submit}
-          podeSolicitar={podeSolicitar}
-          saldoInsuficiente={saldoInsuficiente}
-          saving={saving}
-          user={user}
-        />
+      <div className="requests-stack">
+        <section className="card request-disclosure">
+          <button className="disclosure-button request-disclosure-button" type="button" aria-expanded={feriasOpen} aria-controls="solicitacao-ferias" onClick={() => setFeriasOpen(open => !open)}>
+            <span>Solicitar férias</span>
+            <span className="disclosure-chevron" aria-hidden="true">{feriasOpen ? '−' : '+'}</span>
+          </button>
+          {feriasOpen && <div id="solicitacao-ferias" className="request-disclosure-content grid-2 grid-2-wide-left">
+            <VacationRequestForm
+              bloqueado={bloqueado}
+              bloqueioManual={bloqueioManual}
+              dataFim={dataFim}
+              dataInicio={dataInicio}
+              dias={dias}
+              erroDatas={erroDatas}
+              feriasAcordo={feriasAcordo}
+              onDataFimChange={setDataFim}
+              onDataInicioChange={setDataInicio}
+              onFeriasAcordoChange={setFeriasAcordo}
+              onSubmit={submit}
+              podeSolicitar={podeSolicitar}
+              saldoInsuficiente={saldoInsuficiente}
+              saving={saving}
+              user={user}
+            />
 
-        <BlockedPeriodsPanel
-          bloqueiosManuais={bloqueiosManuais}
-          periodos={periodos}
-        />
+            <BlockedPeriodsPanel bloqueiosManuais={bloqueiosManuais} periodos={periodos} />
+          </div>}
+        </section>
+
+        <section className="card request-disclosure">
+          <button className="disclosure-button request-disclosure-button" type="button" aria-expanded={maquinaOpen} aria-controls="autorizacao-maquina" onClick={() => setMaquinaOpen(open => !open)}>
+            <span>Autorização de máquina</span>
+            <span className="disclosure-chevron" aria-hidden="true">{maquinaOpen ? '−' : '+'}</span>
+          </button>
+          {maquinaOpen && <div id="autorizacao-maquina" className="request-placeholder">
+            <strong>Autorização para levar uma máquina para casa</strong>
+            <p>Este formulário estará disponível em breve.</p>
+          </div>}
+        </section>
       </div>
     </>
   )

@@ -11,11 +11,13 @@ class BootstrapServiceTests(unittest.TestCase):
         self.old_admin_email = os.environ.get("ADMIN_EMAIL")
         self.old_admin_password = os.environ.get("ADMIN_PASSWORD")
         self.old_admin_name = os.environ.get("ADMIN_NAME")
+        self.old_environment = os.environ.get("ENVIRONMENT")
 
     def tearDown(self):
         self._restore_env("ADMIN_EMAIL", self.old_admin_email)
         self._restore_env("ADMIN_PASSWORD", self.old_admin_password)
         self._restore_env("ADMIN_NAME", self.old_admin_name)
+        self._restore_env("ENVIRONMENT", self.old_environment)
 
     def _restore_env(self, key, value):
         if value is None:
@@ -43,6 +45,7 @@ class BootstrapServiceTests(unittest.TestCase):
         self.assertEqual(response, "admin_nao_configurado")
 
     def test_garantir_admin_inicial_cria_admin_com_log(self):
+        os.environ["ENVIRONMENT"] = "development"
         os.environ["ADMIN_EMAIL"] = "admin@sistema.com"
         os.environ["ADMIN_PASSWORD"] = "senha-segura"
         os.environ["ADMIN_NAME"] = "Administrador"
@@ -60,6 +63,14 @@ class BootstrapServiceTests(unittest.TestCase):
         self.assertEqual(admin.email, "admin@sistema.com")
         self.assertEqual(admin.senha_hash, "hash")
         self.assertEqual(log.acao, "USUARIO_CRIADO")
+
+    def test_producao_rejeita_senha_admin_fraca(self):
+        os.environ["ENVIRONMENT"] = "production"
+        os.environ["ADMIN_EMAIL"] = "admin@sistema.com"
+        os.environ["ADMIN_PASSWORD"] = "admin123"
+        with patch("app.services.bootstrap_service.bootstrap_repository.obter_admin", return_value=None):
+            with self.assertRaises(RuntimeError):
+                bootstrap_service.garantir_admin_inicial(SimpleNamespace())
 
 
 if __name__ == "__main__":

@@ -49,8 +49,10 @@ export default function Usuarios() {
         cor: form.cor || null,
         telefone: form.telefone || null,
         telefone_emergencia: form.telefone_emergencia || null,
-        endereco: form.endereco || null,
-        dados_bancarios: form.dados_bancarios || null,
+        endereco: Object.values(form.endereco).some(value => value.trim()) ? form.endereco : null,
+        dados_bancarios: Object.values(form.dados_bancarios).some(value => value.trim())
+          ? form.dados_bancarios
+          : null,
         cargo: form.cargo || null,
       }
       if (editing) {
@@ -87,8 +89,14 @@ export default function Usuarios() {
       cor: user.cor || '',
       telefone: user.telefone || '',
       telefone_emergencia: sensitive.telefone_emergencia || '',
-      endereco: sensitive.endereco || '',
-      dados_bancarios: sensitive.dados_bancarios || '',
+      endereco: {
+        ...blankUserForm.endereco,
+        ...(sensitive.endereco || {}),
+      },
+      dados_bancarios: {
+        ...blankUserForm.dados_bancarios,
+        ...(sensitive.dados_bancarios || {}),
+      },
       cargo: user.cargo || '',
       })
     } catch (error) {
@@ -115,7 +123,7 @@ export default function Usuarios() {
 
   const reativar = async id => {
     try {
-      await api.editarUsuario(id, { ativo: true })
+      await api.reativarUsuario(id)
       toast.success('Colaborador reativado.')
       await load()
     } catch (error) {

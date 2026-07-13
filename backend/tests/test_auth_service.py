@@ -15,6 +15,7 @@ class AuthServiceTests(unittest.TestCase):
             email="admin@sistema.com",
             role="admin",
             senha_hash="hash",
+            token_version=0,
             dias_totais=30,
             departamento_id=None,
             data_admissao=None,

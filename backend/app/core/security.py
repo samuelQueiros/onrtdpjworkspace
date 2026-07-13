@@ -42,9 +42,15 @@ def criar_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
 def verificar_limite_login(chave: str) -> None:
     agora = time.monotonic()
     with _login_lock:
+        expiradas = []
+        for existente, tentativas_existentes in _login_attempts.items():
+            while tentativas_existentes and agora - tentativas_existentes[0] > LOGIN_WINDOW_SECONDS:
+                tentativas_existentes.popleft()
+            if not tentativas_existentes:
+                expiradas.append(existente)
+        for existente in expiradas:
+            _login_attempts.pop(existente, None)
         tentativas = _login_attempts[chave]
-        while tentativas and agora - tentativas[0] > LOGIN_WINDOW_SECONDS:
-            tentativas.popleft()
         if len(tentativas) >= LOGIN_MAX_ATTEMPTS:
             raise HTTPException(status_code=429, detail="Muitas tentativas. Tente novamente mais tarde.")
 
@@ -73,6 +79,7 @@ def get_current_user(request: Request, token: str | None = Depends(oauth2_scheme
             raise credentials_exception
         payload = jwt.decode(auth_token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
+        token_version = payload.get("token_version")
         if user_id is None:
             raise credentials_exception
     except JWTError:
@@ -80,6 +87,8 @@ def get_current_user(request: Request, token: str | None = Depends(oauth2_scheme
 
     user = db.query(User).filter(User.id == int(user_id), User.ativo.is_(True)).first()
     if user is None:
+        raise credentials_exception
+    if token_version != user.token_version:
         raise credentials_exception
     return user
 

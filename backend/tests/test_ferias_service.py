@@ -80,7 +80,7 @@ class FeriasServiceTests(unittest.TestCase):
         current_user = SimpleNamespace(id=1, role="user")
         payload = FeriasUpdate(data_inicio=date(2027, 7, 12))
 
-        with patch("app.services.ferias_service.buscar_ferias", return_value=ferias):
+        with patch("app.services.ferias_service.buscar_ferias_para_atualizar", return_value=ferias):
             with self.assertRaises(HTTPException) as exc:
                 ferias_service.editar_ferias(SimpleNamespace(), 1, payload, current_user)
 

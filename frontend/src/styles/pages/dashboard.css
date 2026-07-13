@@ -1,3 +1,9 @@
+.admin-dashboard-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 .admin-alert-list { margin-top: 6px; padding-left: 16px; }
 .dashboard-section-title-icon { margin-left: 6px; }
 .quick-actions { gap: 10px; display: flex; flex-direction: column; }

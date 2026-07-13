@@ -13,9 +13,16 @@ export default function Logs() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [importing, setImporting] = useState(false)
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const pageSize = 50
   const fileRef = useRef(null)
 
-  const load = () => api.logs().then(setLogs)
+  const load = (targetPage = page) => api.logs(targetPage, pageSize).then(data => {
+    setLogs(data.items)
+    setTotal(data.total)
+    setPage(data.page)
+  })
 
   useEffect(() => {
     load().finally(() => setLoading(false))
@@ -46,6 +53,21 @@ export default function Logs() {
     }
   }
 
+  const handleExport = async () => {
+    try {
+      const pageSizeExport = 200
+      const pages = Math.max(1, Math.ceil(total / pageSizeExport))
+      const allLogs = []
+      for (let targetPage = 1; targetPage <= pages; targetPage += 1) {
+        const response = await api.logs(targetPage, pageSizeExport)
+        allLogs.push(...response.items)
+      }
+      exportLogs(allLogs)
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
   if (loading) return <LoadingCard />
 
   return (
@@ -58,7 +80,7 @@ export default function Logs() {
             fileRef={fileRef}
             importing={importing}
             logs={logs}
-            onExport={() => exportLogs(logs)}
+            onExport={handleExport}
             onImport={handleImport}
           />
         }
@@ -69,6 +91,13 @@ export default function Logs() {
         search={search}
         onSearchChange={setSearch}
       />
+      <div className="pagination-bar">
+        <span>Página {page} de {Math.max(1, Math.ceil(total / pageSize))} · {total} registro(s)</span>
+        <div className="button-row">
+          <button className="btn btn-outline btn-sm" disabled={page <= 1} onClick={() => load(page - 1)}>Anterior</button>
+          <button className="btn btn-outline btn-sm" disabled={page * pageSize >= total} onClick={() => load(page + 1)}>Próxima</button>
+        </div>
+      </div>
     </>
   )
 }

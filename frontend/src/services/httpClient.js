@@ -4,6 +4,12 @@ export async function parseJson(res) {
   return res.json().catch(() => ({}))
 }
 
+function requestError(res, data, fallback) {
+  const error = new Error(data.detail || fallback)
+  error.status = res.status
+  return error
+}
+
 function handleUnauthorized(res) {
   if (res.status === 401) {
     window.dispatchEvent(new Event('auth:unauthorized'))
@@ -25,7 +31,7 @@ export async function req(method, path, body = null) {
   const data = await parseJson(res)
   if (!res.ok) {
     handleUnauthorized(res)
-    throw new Error(data.detail || 'Erro na requisição')
+    throw requestError(res, data, 'Erro na requisição')
   }
   return data
 }
@@ -40,7 +46,7 @@ export async function upload(path, formData) {
   const data = await parseJson(res)
   if (!res.ok) {
     handleUnauthorized(res)
-    throw new Error(data.detail || 'Erro no upload')
+    throw requestError(res, data, 'Erro no upload')
   }
   return data
 }
@@ -54,7 +60,7 @@ export async function download(path) {
   if (!res.ok) {
     const data = await parseJson(res)
     handleUnauthorized(res)
-    throw new Error(data.detail || 'Erro ao baixar arquivo')
+    throw requestError(res, data, 'Erro ao baixar arquivo')
   }
 
   return res.blob()
@@ -63,6 +69,6 @@ export async function download(path) {
 export async function postForm(path, form) {
   const res = await fetch(`${BASE}${path}`, { method: 'POST', body: form, credentials: 'include' })
   const data = await parseJson(res)
-  if (!res.ok) throw new Error(data.detail || 'Credenciais inválidas')
+  if (!res.ok) throw requestError(res, data, 'Credenciais inválidas')
   return data
 }

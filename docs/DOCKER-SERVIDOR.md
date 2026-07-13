@@ -145,9 +145,10 @@ ENVIRONMENT=production
 SECRET_KEY=troque-por-uma-chave-longa-e-segura
 CREDENTIALS_ENCRYPTION_KEY=troque-por-outra-chave-longa-e-segura-para-credenciais
 ACCESS_TOKEN_EXPIRE_MINUTES=480
+COOKIE_SECURE=false
 
 FRONTEND_URL=http://123.123.123.123
-VITE_API_URL=http://123.123.123.123:8000
+VITE_API_URL=/api
 
 FRONTEND_PORT=80
 BACKEND_PORT=8000
@@ -165,9 +166,10 @@ ENVIRONMENT=production
 SECRET_KEY=troque-por-uma-chave-longa-e-segura
 CREDENTIALS_ENCRYPTION_KEY=troque-por-outra-chave-longa-e-segura-para-credenciais
 ACCESS_TOKEN_EXPIRE_MINUTES=480
+COOKIE_SECURE=true
 
 FRONTEND_URL=https://ferias.seudominio.com
-VITE_API_URL=https://api-ferias.seudominio.com
+VITE_API_URL=/api
 
 FRONTEND_PORT=80
 BACKEND_PORT=8000
@@ -296,13 +298,13 @@ Crie a pasta de backups:
 mkdir -p backups
 ```
 
-Faca backup:
+Faça backup usando as variáveis configuradas no container:
 
 ```bash
-docker compose exec -T db pg_dump -U ferias ferias > backups/ferias-$(date +%F).sql
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > backups/ferias-$(date +%F).dump
 ```
 
-Esse comando gera um dump SQL do PostgreSQL.
+Esse comando gera um dump PostgreSQL em formato customizado.
 
 Os documentos ficam na pasta `uploads/`. Para gerar um arquivo compactado com os uploads:
 
@@ -312,13 +314,17 @@ tar czf backups/documentos-$(date +%F).tar.gz uploads
 
 ## Restaurar Backup
 
-Restaure o backup:
+Pare o backend e restaure o backup:
 
 ```bash
-cat backups/ferias-AAAA-MM-DD.sql | docker compose exec -T db psql -U ferias -d ferias
+docker compose stop backend
+docker cp backups/ferias-AAAA-MM-DD.dump ferias-db:/tmp/restore.dump
+docker compose exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner /tmp/restore.dump'
+docker compose run --rm --entrypoint alembic backend upgrade head
+docker compose up -d backend
 ```
 
-Para restauracoes em ambientes reais, prefira parar o backend durante a operacao e valide o backup antes de sobrescrever dados.
+Sempre valide periodicamente a restauração em um banco temporário.
 
 ## HTTPS com Proxy Reverso
 
