@@ -41,7 +41,7 @@ export default function Sidebar({ user, pendingApprovals }) {
         </div>
         <div className="logo-text">
           <strong>ONRTDPJ</strong>
-          <span>Gestão RH</span>
+          <span>Workspace</span>
         </div>
       </div>
 

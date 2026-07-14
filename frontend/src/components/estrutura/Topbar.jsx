@@ -26,8 +26,8 @@ export default function Topbar({ user, pathname, dropOpen, dropRef, onToggleDrop
   return (
     <header className="topbar">
       <div>
-        <div className="topbar-title">{PAGES[pathname] ?? 'Gestão RH'}</div>
-        <div className="topbar-sub">Sistema de Gestão RH - ONRTDPJ</div>
+        <div className="topbar-title">{PAGES[pathname] ?? 'Gestão'}</div>
+        <div className="topbar-sub">Sistema de Gestão - ONRTDPJ</div>
       </div>
 
       <div className="topbar-right" ref={dropRef}>

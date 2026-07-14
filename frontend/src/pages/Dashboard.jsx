@@ -74,7 +74,7 @@ export default function Dashboard() {
         title={`Olá, ${user?.nome?.split(' ')[0]}`}
         subtitle={
           user?.role === 'admin'
-            ? 'Painel administrativo - visão geral do sistema de Gestão RH.'
+            ? 'Painel administrativo - visão geral do sistema de Gestão.'
             : 'Resumo rápido dos seus saldos e períodos registrados.'
         }
         action={<Link className="btn btn-primary" to="/solicitar">Nova solicitação</Link>}

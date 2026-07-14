@@ -25,7 +25,7 @@ export default function LoginForm({
           </div>
           <div className="login-right-logo-text">
             <strong>ONRTDPJ</strong>
-            <span>Gestão RH</span>
+            <span>Workspace</span>
           </div>
         </div>
 
