@@ -6,6 +6,7 @@ from app.models.departamento import Departamento
 from app.models.ferias import Ferias
 from app.models.log import Log
 from app.models.user import User
+from app.models.patrimonio import SolicitacaoEquipamento
 
 
 def listar_usuarios_ordenados(db: Session) -> list[User]:
@@ -47,6 +48,10 @@ def contar_colaboradores(db: Session) -> int:
 
 def contar_ferias_por_status(db: Session, status: str) -> int:
     return db.query(Ferias).filter(Ferias.status == status).count()
+
+
+def contar_autorizacoes_equipamentos_por_status(db: Session, status: str) -> int:
+    return db.query(SolicitacaoEquipamento).filter(SolicitacaoEquipamento.status == status).count()
 
 
 def contar_departamentos(db: Session) -> int:

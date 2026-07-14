@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="ONRTDPJ">
+  <meta name="subject" content="Termo de responsabilidade de equipamentos para home office">
+  <meta name="keywords" content="equipamentos, home office, responsabilidade, {{ identificador }}">
+  <title>Termo de equipamentos - {{ identificador }}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 19mm 25mm;
+
+      @bottom-center {
+        content: "Operador Nacional de Registro de Títulos e Documentos e de Pessoas Jurídicas do Brasil\A SRTVS Quadra 701, Bloco K, Salas 830, Ed. Embassy - 70.340-908 - Brasília/DF\A Fone: 61 3039-4080 - onrtdpj@onrtdpj.org.br - www.onrtdpj.org.br";
+        border-top: 0.4pt solid #cbd5e1;
+        color: #475569;
+        font-size: 6.5pt;
+        line-height: 1.3;
+        padding-top: 2mm;
+        white-space: pre;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      color: #0f172a;
+      font-family: Inter, "DejaVu Sans", Arial, sans-serif;
+      font-size: 9pt;
+      line-height: 1.42;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    .document-header {
+      align-items: center;
+      border-bottom: 1.5pt solid #172554;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6mm;
+      padding-bottom: 4mm;
+    }
+
+    .brand-logo {
+      height: auto;
+      width: 74mm;
+    }
+
+    .document-meta {
+      color: #475569;
+      font-size: 7.5pt;
+      text-align: right;
+    }
+
+    .document-meta strong {
+      color: #172554;
+      display: block;
+      font-size: 8pt;
+    }
+
+    h1 {
+      color: #07143b;
+      font-size: 14pt;
+      line-height: 1.25;
+      margin: 0 0 6mm;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      background: #eef2f7;
+      border-left: 3pt solid #172554;
+      color: #07143b;
+      font-size: 10pt;
+      margin: 6mm 0 3mm;
+      padding: 2mm 2.5mm;
+      page-break-after: avoid;
+      text-transform: uppercase;
+    }
+
+    p {
+      margin: 0 0 2.6mm;
+      orphans: 3;
+      text-align: justify;
+      widows: 3;
+    }
+
+    .identity-grid,
+    .acceptance-grid {
+      display: grid;
+      gap: 2.3mm 5mm;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .field {
+      border-bottom: 0.5pt solid #94a3b8;
+      min-height: 8mm;
+      padding: 1mm 0;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .label {
+      color: #475569;
+      display: block;
+      font-size: 7pt;
+      font-weight: 700;
+      margin-bottom: 0.5mm;
+      text-transform: uppercase;
+    }
+
+    .value {
+      font-weight: 600;
+    }
+
+    .equipment-types {
+      display: grid;
+      gap: 1.2mm 3mm;
+      grid-template-columns: repeat(3, 1fr);
+      margin: 3mm 0;
+    }
+
+    .equipment-type {
+      white-space: nowrap;
+    }
+
+    .checkbox {
+      color: #172554;
+      display: inline-block;
+      font-family: "DejaVu Sans", sans-serif;
+      font-size: 10pt;
+      margin-right: 1mm;
+      text-align: center;
+      width: 4mm;
+    }
+
+    table {
+      border-collapse: collapse;
+      font-size: 7.5pt;
+      margin: 3mm 0;
+      table-layout: fixed;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border: 0.5pt solid #cbd5e1;
+      overflow-wrap: anywhere;
+      padding: 1.6mm;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #e2e8f0;
+      color: #172554;
+      font-size: 6.8pt;
+      text-transform: uppercase;
+    }
+
+    tr {
+      page-break-inside: avoid;
+    }
+
+    .responsibility-list {
+      margin: 0;
+      padding-left: 5mm;
+    }
+
+    .responsibility-list li {
+      margin: 0 0 2mm;
+      orphans: 3;
+      padding-left: 1mm;
+      text-align: justify;
+      widows: 3;
+    }
+
+    .blank-field {
+      border-bottom: 0.5pt solid #64748b;
+      display: inline-block;
+      min-width: 70mm;
+    }
+
+    .blank-field.short {
+      min-width: 35mm;
+    }
+
+    .acceptance-box {
+      background: #f8fafc;
+      border: 0.8pt solid #94a3b8;
+      border-radius: 2mm;
+      margin-top: 4mm;
+      padding: 3mm;
+      page-break-inside: avoid;
+    }
+
+    .acceptance-box h3 {
+      color: #172554;
+      font-size: 9pt;
+      margin: 0 0 2mm;
+      text-transform: uppercase;
+    }
+
+    .technical-note {
+      color: #475569;
+      font-size: 7pt;
+      margin-top: 2mm;
+    }
+
+    .signature-grid {
+      display: grid;
+      gap: 8mm;
+      grid-template-columns: repeat(2, 1fr);
+      margin-top: 10mm;
+      page-break-inside: avoid;
+    }
+
+    .signature {
+      border-top: 0.5pt solid #334155;
+      padding-top: 1.5mm;
+      text-align: center;
+    }
+
+    .signature.full {
+      grid-column: 1 / -1;
+      margin-left: auto;
+      margin-right: auto;
+      width: 48%;
+    }
+
+    .small {
+      color: #475569;
+      font-size: 7pt;
+    }
+  </style>
+</head>
+<body>
+  <header class="document-header">
+    <img class="brand-logo" src="{{ logo_data_uri }}" alt="ONRTDPJ">
+    <div class="document-meta">
+      <strong>{{ identificador }}</strong>
+      Versão do termo: {{ versao_codigo }}<br>
+      Emitido em: {{ emitido_em }}
+    </div>
+  </header>
+
+  <h1>Termo de Solicitação, Recebimento e<br>Responsabilidade de Equipamentos para Home Office</h1>
+
+  <h2>Identificação do(a) colaborador(a)</h2>
+  <div class="identity-grid">
+    <div class="field full">
+      <span class="label">Nome</span>
+      <span class="value">{{ colaborador.nome }}</span>
+    </div>
+    <div class="field">
+      <span class="label">CPF</span>
+      <span class="value">{{ colaborador.cpf }}</span>
+    </div>
+    <div class="field">
+      <span class="label">Cargo/Função</span>
+      <span class="value">{{ colaborador.cargo }}</span>
+    </div>
+    <div class="field full">
+      <span class="label">Setor</span>
+      <span class="value">{{ colaborador.departamento }}</span>
+    </div>
+    <div class="field">
+      <span class="label">Data da solicitação</span>
+      <span class="value">{{ data_solicitacao }}</span>
+    </div>
+    <div class="field">
+      <span class="label">Data da entrega</span>
+      <span class="value">{{ data_entrega }}</span>
+    </div>
+    <div class="field full">
+      <span class="label">Local da entrega</span>
+      <span class="value">{{ entrega.local }}</span>
+    </div>
+  </div>
+
+  <h2>1. Equipamentos solicitados e recebidos</h2>
+  <p>Solicito e declaro ter recebido, para utilização no desempenho das minhas atividades profissionais em regime de home office, o(s) seguinte(s) equipamento(s) e acessório(s):</p>
+
+  <div class="equipment-types">
+    {% for tipo in tipos_catalogo %}
+      <div class="equipment-type"><span class="checkbox">{{ "☒" if tipo.selecionado else "☐" }}</span>{{ tipo.nome }}</div>
+    {% endfor %}
+  </div>
+
+  <table aria-label="Equipamentos e acessórios recebidos">
+    <thead>
+      <tr>
+        <th style="width: 13%">Tipo</th>
+        <th style="width: 15%">Patrimônio</th>
+        <th style="width: 18%">Marca/Modelo</th>
+        <th style="width: 16%">Número de série</th>
+        <th style="width: 20%">Estado de conservação</th>
+        <th style="width: 18%">Observações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in itens %}
+        <tr>
+          <td>{{ item.tipo }}</td>
+          <td>{{ item.numero_patrimonio or "Não informado" }}</td>
+          <td>{{ item.marca_modelo }}</td>
+          <td>{{ item.numero_serie or "Não informado" }}</td>
+          <td>{{ item.estado_conservacao }}</td>
+          <td>{{ item.observacoes or "—" }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if observacoes_solicitacao %}
+    <p><strong>Observações:</strong> {{ observacoes_solicitacao }}</p>
+  {% endif %}
+
+  <h2>2. Termo de responsabilidade</h2>
+  <p>Declaro que recebi o(s) equipamento(s) e acessório(s) acima identificados em condições adequadas de funcionamento e conservação, comprometendo-me a:</p>
+  <ol class="responsibility-list">
+    <li>Utilizar o(s) equipamento(s) exclusivamente para o desempenho de atividades profissionais relacionadas ao Operador Nacional do Registro de Títulos e Documentos e Civil das Pessoas Jurídicas – ONRTDPJ;</li>
+    <li>Zelar pela guarda, conservação, integridade e segurança do(s) equipamento(s), adotando os cuidados necessários para evitar danos, avarias, perdas, extravios, furtos, roubos ou utilização inadequada;</li>
+    <li>Manter o(s) equipamento(s) em local seguro, limpo, protegido contra umidade, calor excessivo, quedas, impactos, líquidos, alimentos e outras condições que possam comprometer sua integridade ou funcionamento;</li>
+    <li>Não ceder, emprestar, transferir ou permitir a utilização do(s) equipamento(s) por terceiros sem prévia e expressa autorização do ONRTDPJ;</li>
+    <li>Não realizar alterações, instalações, desinstalações, manutenções, substituições de peças, formatações ou quaisquer intervenções técnicas no(s) equipamento(s) sem autorização do setor responsável;</li>
+    <li>Não instalar programas, aplicativos ou softwares sem autorização, especialmente aqueles que possam comprometer a segurança, o funcionamento ou a integridade dos sistemas e das informações do ONRTDPJ;</li>
+    <li>Cumprir as normas e orientações internas relacionadas à segurança da informação, proteção de dados pessoais, sigilo profissional, acesso aos sistemas corporativos e utilização dos recursos tecnológicos;</li>
+    <li>Manter senhas, credenciais, tokens e demais informações de acesso sob sigilo, não permitindo sua utilização por terceiros;</li>
+    <li>Comunicar imediatamente ao gestor ou ao setor responsável qualquer defeito, falha, dano, avaria, perda, extravio, furto ou roubo envolvendo o(s) equipamento(s);</li>
+    <li>Apresentar boletim de ocorrência nos casos de furto, roubo, perda ou extravio, sempre que solicitado pelo ONRTDPJ;</li>
+    <li>Disponibilizar o(s) equipamento(s) para inspeção, manutenção, atualização, auditoria ou substituição sempre que solicitado pelo ONRTDPJ;</li>
+    <li>Não utilizar o(s) equipamento(s) para atividades ilícitas, particulares incompatíveis com o ambiente profissional ou que possam causar prejuízos materiais, reputacionais, operacionais ou de segurança ao ONRTDPJ;</li>
+    <li>Devolver o(s) equipamento(s), juntamente com todos os acessórios, cabos, carregadores, adaptadores e demais itens recebidos, sempre que solicitado pelo ONRTDPJ;</li>
+    <li>Realizar a devolução do(s) equipamento(s) em caso de retorno ao trabalho presencial, afastamento, alteração de função, substituição do equipamento, encerramento do vínculo profissional ou qualquer outra hipótese determinada pelo ONRTDPJ;</li>
+    <li>Devolver o(s) equipamento(s) no estado em que foram recebidos, ressalvado o desgaste natural decorrente de sua utilização regular, adequada e compatível com sua vida útil.</li>
+  </ol>
+
+  <h2>3. Perda, extravio, dano, avaria ou degradação do bem</h2>
+  <p>O(A) colaborador(a) declara estar ciente de que será responsável pela guarda, conservação e uso adequado dos equipamentos e acessórios recebidos.</p>
+  <p>Em caso de perda, extravio, dano, avaria, inutilização ou degradação do bem, serão observadas as seguintes condições:</p>
+  <ol class="responsibility-list">
+    <li>A ocorrência será formalmente registrada e apurada pelo ONRTDPJ;</li>
+    <li>A apuração considerará as circunstâncias do fato, o estado anterior do equipamento, o tempo de utilização, sua vida útil, o valor patrimonial, a depreciação e a existência de dolo, negligência, imprudência, imperícia, mau uso ou descumprimento das normas internas;</li>
+    <li>O desgaste natural decorrente do uso regular, adequado e compatível com a vida útil do equipamento não será considerado dano ou degradação imputável ao(à) colaborador(a);</li>
+    <li>Não serão atribuídos ao(à) colaborador(a) defeitos decorrentes de falha técnica, vício de fabricação, obsolescência, desgaste natural ou problema que não tenha sido provocado por uso inadequado;</li>
+    <li>Quando constatado dano decorrente de mau uso, negligência, imprudência, imperícia, utilização inadequada, ausência de cuidados mínimos de conservação ou descumprimento das orientações internas, o(a) colaborador(a) poderá ser responsabilizado(a) pelo custo do reparo;</li>
+    <li>Quando o equipamento puder ser reparado, o valor do ressarcimento poderá corresponder ao custo do conserto, manutenção, reposição de peças ou recuperação do bem;</li>
+    <li>Em caso de perda, extravio, inutilização total ou dano irreparável por fato imputável ao(à) colaborador(a), poderá ser exigido o ressarcimento correspondente ao valor de reposição do equipamento;</li>
+    <li>Na definição do valor de ressarcimento, serão considerados o valor de mercado, o estado de conservação, o tempo de uso, a depreciação e a vida útil do bem;</li>
+    <li>A ausência ou perda de acessórios, cabos, carregadores, adaptadores, periféricos ou componentes poderá gerar obrigação de reposição ou ressarcimento do item correspondente;</li>
+    <li>Nos casos de furto ou roubo, o(a) colaborador(a) deverá comunicar imediatamente o ONRTDPJ, apresentar boletim de ocorrência e colaborar com as medidas necessárias à apuração;</li>
+    <li>A ocorrência de furto ou roubo não implicará responsabilização automática, devendo ser analisadas as circunstâncias do fato e a existência de eventual negligência ou descumprimento dos deveres de guarda e segurança;</li>
+    <li>A devolução de equipamento danificado, incompleto, avariado ou sem os respectivos acessórios não afasta a possibilidade de apuração e responsabilização;</li>
+    <li>Antes da aplicação de qualquer cobrança ou penalidade, será assegurado ao(à) colaborador(a) o direito de apresentar esclarecimentos, justificativas e documentos relacionados à ocorrência.</li>
+  </ol>
+
+  <h2>4. Penalidades e ressarcimento</h2>
+  <p>Confirmada a responsabilidade do(a) colaborador(a), poderão ser adotadas, isolada ou cumulativamente, as seguintes medidas:</p>
+  <ol class="responsibility-list">
+    <li>Orientação formal quanto ao uso e à conservação dos equipamentos;</li>
+    <li>Advertência verbal ou escrita;</li>
+    <li>Suspensão, conforme a gravidade da conduta e as normas internas aplicáveis;</li>
+    <li>Obrigação de reparar o dano causado;</li>
+    <li>Reposição do equipamento, acessório, componente ou item danificado ou extraviado;</li>
+    <li>Ressarcimento parcial ou integral do prejuízo apurado;</li>
+    <li>Desconto em folha de pagamento, desde que previamente autorizado pelo(a) colaborador(a) ou quando permitido pela legislação aplicável;</li>
+    <li>Pagamento direto ou parcelado do valor apurado, conforme condições definidas pelo ONRTDPJ;</li>
+    <li>Aplicação de outras medidas disciplinares previstas nas normas internas e na legislação trabalhista;</li>
+    <li>Adoção de medidas administrativas, civis ou judiciais cabíveis nos casos de dolo, fraude, apropriação indevida, ocultação de informações, recusa injustificada de devolução ou dano intencional.</li>
+  </ol>
+  <p>A aplicação das penalidades deverá observar a proporcionalidade, a gravidade da conduta, os prejuízos causados, os antecedentes relacionados ao uso de bens institucionais e a legislação aplicável.</p>
+
+  <h2>5. Devolução dos equipamentos</h2>
+  <p>Na ocasião da devolução, deverá ser realizada conferência dos equipamentos e acessórios, com registro das condições em que os bens foram entregues.</p>
+  <p>Data da devolução: <span class="blank-field short">&nbsp;</span></p>
+  <p>Estado de conservação na devolução: <span class="blank-field">&nbsp;</span></p>
+  <p>Itens devolvidos: <span class="blank-field">&nbsp;</span></p>
+  <p>Itens pendentes ou ausentes: <span class="blank-field">&nbsp;</span></p>
+  <p>Observações: <span class="blank-field">&nbsp;</span></p>
+
+  <h2>6. Declaração final</h2>
+  <p>Declaro que li, compreendi e concordo integralmente com as condições estabelecidas neste Termo.</p>
+  <p>Declaro, ainda, estar ciente de que os equipamentos e acessórios recebidos permanecem de propriedade do ONRTDPJ e deverão ser utilizados exclusivamente para fins profissionais, observadas as normas internas de segurança, conservação, proteção de dados e utilização dos recursos tecnológicos.</p>
+  <p>Comprometo-me a devolver todos os bens e acessórios recebidos sempre que solicitado, responsabilizando-me por sua guarda e uso adequado durante o período em que estiverem sob minha posse.</p>
+  <p>{{ local_aceite }}, {{ data_aceite_extenso }}.</p>
+
+  <div class="acceptance-box">
+    <h3>Registro do aceite eletrônico</h3>
+    <div class="acceptance-grid">
+      <div class="field">
+        <span class="label">Colaborador(a)</span>
+        <span class="value">{{ colaborador.nome }}</span>
+      </div>
+      <div class="field">
+        <span class="label">CPF</span>
+        <span class="value">{{ colaborador.cpf }}</span>
+      </div>
+      <div class="field">
+        <span class="label">Data e hora do aceite</span>
+        <span class="value">{{ aceite.data_hora }}</span>
+      </div>
+      <div class="field">
+        <span class="label">Versão aceita</span>
+        <span class="value">{{ versao_codigo }}</span>
+      </div>
+      <div class="field">
+        <span class="label">Endereço IP registrado</span>
+        <span class="value">{{ aceite.ip or "Não disponível" }}</span>
+      </div>
+      <div class="field">
+        <span class="label">Identificador da requisição</span>
+        <span class="value">{{ aceite.request_id or "Não disponível" }}</span>
+      </div>
+    </div>
+    <p class="technical-note">Este registro preserva evidências técnicas do aceite efetuado pelo usuário autenticado. Sua validade e utilização jurídica dependem das políticas e da análise jurídica da organização.</p>
+  </div>
+
+  <div class="signature-grid">
+    <div class="signature">
+      <strong>Colaborador(a)</strong><br>
+      <span class="small">{{ colaborador.nome }} — CPF {{ colaborador.cpf }}</span>
+    </div>
+    <div class="signature">
+      <strong>Responsável pela entrega</strong><br>
+      <span class="small">{{ entrega.responsavel_nome }} — {{ entrega.responsavel_cargo }}<br>{{ entrega.local }}</span>
+    </div>
+    <div class="signature full">
+      <strong>Responsável pelo recebimento da devolução</strong><br>
+      <span class="small">Nome e cargo a registrar na devolução</span>
+    </div>
+  </div>
+
+  <p class="small" style="margin-top: 8mm; text-align: center;">
+    OPERADOR NACIONAL DO REGISTRO DE TÍTULOS E DOCUMENTOS E CIVIL DAS PESSOAS JURÍDICAS – ONRTDPJ
+  </p>
+</body>
+</html>

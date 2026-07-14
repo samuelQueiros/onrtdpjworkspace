@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import '../styles/pages/solicitar-ferias.css'
+import '../styles/pages/autorizacoes-equipamentos.css'
 import { useNavigate } from 'react-router-dom'
 import BlockedPeriodsPanel from '../components/solicitacaoFerias/BlockedPeriodsPanel'
 import VacationRequestForm from '../components/solicitacaoFerias/VacationRequestForm'
@@ -9,6 +10,7 @@ import { api } from '../services/api'
 import { calcDays, formatDate } from '../utils/formatters'
 import { overlaps, validarDataInicio } from '../utils/feriasValidation'
 import { PageHeader } from '../components/comum/PageHelpers'
+import AutorizacaoEquipamentoForm from '../components/autorizacoesEquipamentos/AutorizacaoEquipamentoForm'
 
 export default function SolicitarFerias() {
   const navigate = useNavigate()
@@ -76,6 +78,7 @@ export default function SolicitarFerias() {
       toast.success(res.status === 'pendente'
         ? 'Solicitação enviada! Aguarde a aprovação do administrador.'
         : 'Férias registradas com sucesso.')
+      if (res.status === 'pendente') window.dispatchEvent(new Event('approvals:changed'))
       setTimeout(() => navigate('/minhas-ferias'), 1200)
     } catch (err) {
       toast.error(err.message)
@@ -123,8 +126,7 @@ export default function SolicitarFerias() {
             <span className="disclosure-chevron" aria-hidden="true">{maquinaOpen ? '−' : '+'}</span>
           </button>
           {maquinaOpen && <div id="autorizacao-maquina" className="request-placeholder">
-            <strong>Autorização para levar uma máquina para casa</strong>
-            <p>Este formulário estará disponível em breve.</p>
+            <AutorizacaoEquipamentoForm />
           </div>}
         </section>
       </div>

@@ -36,6 +36,7 @@ export default function MinhasFerias() {
     try {
       await api.cancelarFerias(id)
       toast.success('Período de férias cancelado.')
+      window.dispatchEvent(new Event('approvals:changed'))
       await load()
     } catch (err) {
       toast.error(err.message)

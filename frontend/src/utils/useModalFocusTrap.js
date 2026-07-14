@@ -14,9 +14,10 @@ export function useModalFocusTrap(onClose) {
     initialFocus?.focus()
     const onKeyDown = event => {
       if (event.key === 'Escape') closeRef.current()
-      if (event.key !== 'Tab' || !focusable.length) return
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
+      const currentFocusable = [...(modalRef.current?.querySelectorAll(FOCUSABLE) || [])]
+      if (event.key !== 'Tab' || !currentFocusable.length) return
+      const first = currentFocusable[0]
+      const last = currentFocusable[currentFocusable.length - 1]
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault(); last.focus()
       } else if (!event.shiftKey && document.activeElement === last) {

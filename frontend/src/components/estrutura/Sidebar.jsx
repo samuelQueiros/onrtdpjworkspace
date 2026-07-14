@@ -19,10 +19,15 @@ const Icon = {
 
 function LinkItem({ to, end, icon, children, badge }) {
   return (
-    <NavLink to={to} end={end} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-      {icon}
+    <NavLink
+      to={to}
+      end={end}
+      aria-label={badge > 0 ? `${children}: ${badge} pendente(s)` : undefined}
+      className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+    >
+      <span aria-hidden="true">{icon}</span>
       {children}
-      {badge > 0 && <span className="nav-badge">{badge}</span>}
+      {badge > 0 && <span className="nav-badge" aria-hidden="true">{badge}</span>}
     </NavLink>
   )
 }
@@ -45,6 +50,7 @@ export default function Sidebar({ user, pendingApprovals }) {
           <span className="nav-label">Menu</span>
           <LinkItem to="/" end icon={Icon.home}>Dashboard</LinkItem>
           <LinkItem to="/minhas-ferias" icon={Icon.calendar}>Minhas Férias</LinkItem>
+          <LinkItem to="/minhas-autorizacoes" icon={Icon.patrimony}>Minhas Autorizações</LinkItem>
           <LinkItem to="/solicitar" icon={Icon.plus}>Solicitações</LinkItem>
           <LinkItem to="/disponibilidade" icon={Icon.grid}>Disponibilidade</LinkItem>
           <LinkItem to="/mural" icon={Icon.bell}>Mural de Avisos</LinkItem>

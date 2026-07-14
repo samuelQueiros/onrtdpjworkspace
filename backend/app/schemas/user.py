@@ -2,6 +2,8 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, model_validato
 from typing import Literal, Optional
 from datetime import datetime, date
 
+from app.core.cpf import formatar_cpf, validar_cpf
+
 
 class DadosBancarios(BaseModel):
     banco: Optional[str] = Field(default=None, max_length=100)
@@ -18,6 +20,11 @@ class DadosBancarios(BaseModel):
             return None
         texto = " ".join(str(valor).split())
         return texto or None
+
+    @field_validator("cpf_titular")
+    @classmethod
+    def validar_cpf_do_titular(cls, valor: str | None) -> str | None:
+        return formatar_cpf(validar_cpf(valor)) if valor else None
 
 
 class Endereco(BaseModel):
@@ -52,6 +59,7 @@ class UserCreate(BaseModel):
     endereco: Endereco
     dados_bancarios: DadosBancarios
     cargo: str = Field(min_length=1, max_length=100)
+    cpf: str = Field(min_length=11, max_length=14)
 
     @field_validator("nome", "telefone", "telefone_emergencia", "telefone_emergencia_2", "cargo", "cor", mode="before")
     @classmethod
@@ -60,6 +68,11 @@ class UserCreate(BaseModel):
             return None
         texto = " ".join(str(valor).split())
         return texto or None
+
+    @field_validator("cpf")
+    @classmethod
+    def validar_cpf_colaborador(cls, valor: str) -> str:
+        return formatar_cpf(validar_cpf(valor))
 
     @model_validator(mode="after")
     def validar_campos_estruturados(self):
@@ -87,6 +100,7 @@ class UserUpdate(BaseModel):
     endereco: Optional[Endereco] = None
     dados_bancarios: Optional[DadosBancarios] = None
     cargo: Optional[str] = Field(default=None, max_length=100)
+    cpf: Optional[str] = Field(default=None, min_length=11, max_length=14)
 
     @field_validator("nome", "telefone", "telefone_emergencia", "telefone_emergencia_2", "cargo", mode="before")
     @classmethod
@@ -95,6 +109,11 @@ class UserUpdate(BaseModel):
             return None
         texto = " ".join(str(valor).split())
         return texto or None
+
+    @field_validator("cpf")
+    @classmethod
+    def validar_cpf_colaborador(cls, valor: str | None) -> str | None:
+        return formatar_cpf(validar_cpf(valor)) if valor else None
 
 
 class UserConfigUpdate(BaseModel):
@@ -146,12 +165,14 @@ class UserResponse(BaseModel):
     data_aniversario: Optional[date] = None
     cor: Optional[str] = None
     telefone: Optional[str] = None
+    cpf_mascarado: Optional[str] = None
     cargo: Optional[str] = None
     ativo: bool = True
     criado_em: datetime
 
 
 class UserSensitiveResponse(BaseModel):
+    cpf: Optional[str] = None
     telefone_emergencia: Optional[str] = None
     telefone_emergencia_2: Optional[str] = None
     endereco: Optional[Endereco] = None

@@ -4,8 +4,22 @@ export async function parseJson(res) {
   return res.json().catch(() => ({}))
 }
 
+function errorMessage(detail, fallback) {
+  if (typeof detail === 'string' && detail.trim()) return detail
+  if (Array.isArray(detail)) {
+    const messages = detail.map(item => {
+      if (typeof item === 'string') return item
+      const field = Array.isArray(item?.loc) ? item.loc.filter(part => !['body', 'query', 'path'].includes(part)).join('.') : ''
+      return `${field ? `${field}: ` : ''}${item?.msg || 'valor inválido'}`
+    }).filter(Boolean)
+    if (messages.length) return messages.join(' · ')
+  }
+  if (detail && typeof detail === 'object' && typeof detail.message === 'string') return detail.message
+  return fallback
+}
+
 function requestError(res, data, fallback) {
-  const error = new Error(data.detail || fallback)
+  const error = new Error(errorMessage(data.detail, fallback))
   error.status = res.status
   return error
 }

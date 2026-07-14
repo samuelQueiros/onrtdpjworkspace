@@ -70,7 +70,9 @@ def listar_documentos_usuario(db: Session, user_id: int) -> list[Documento]:
 
 def listar_historico_documentos(db: Session, current_user: User) -> dict[str, list[Documento]]:
     if current_user.role == "admin":
-        enviados = documentos_repository.listar_documentos_criados_por(db, current_user.id, "contracheque")
+        enviados = documentos_repository.listar_documentos_criados_por(
+            db, current_user.id, ["contracheque", "termo_equipamentos"]
+        )
         recebidos = documentos_repository.listar_documentos_recebidos_por_administradores(db)
     else:
         enviados = documentos_repository.listar_documentos_criados_por(db, current_user.id, "atestado")
@@ -172,6 +174,11 @@ def caminhos_para_excluir(doc: Documento) -> list[Path]:
 
 def excluir_documento_admin(db: Session, doc_id: int, current_user: User) -> None:
     doc = buscar_documento(db, doc_id)
+    if doc.tipo == "termo_equipamentos":
+        raise HTTPException(
+            status_code=400,
+            detail="Termos definitivos de equipamentos nao podem ser excluidos pelo modulo de documentos",
+        )
     caminhos = caminhos_para_excluir(doc)
 
     log = Log(

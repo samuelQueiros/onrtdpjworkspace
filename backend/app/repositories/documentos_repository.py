@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.documento import Documento
@@ -22,10 +23,11 @@ def listar_documentos_por_usuario(db: Session, user_id: int) -> list[Documento]:
     )
 
 
-def listar_documentos_criados_por(db: Session, user_id: int, tipo: str) -> list[Documento]:
+def listar_documentos_criados_por(db: Session, user_id: int, tipo: str | list[str]) -> list[Documento]:
+    filtro_tipo = Documento.tipo.in_(tipo) if isinstance(tipo, list) else Documento.tipo == tipo
     return (
         db.query(Documento)
-        .filter(Documento.criado_por_id == user_id, Documento.tipo == tipo)
+        .filter(Documento.criado_por_id == user_id, filtro_tipo)
         .order_by(Documento.criado_em.desc())
         .all()
     )
@@ -34,7 +36,10 @@ def listar_documentos_criados_por(db: Session, user_id: int, tipo: str) -> list[
 def listar_documentos_recebidos_por(db: Session, user_id: int, excluir_criador_id: int) -> list[Documento]:
     return (
         db.query(Documento)
-        .filter(Documento.user_id == user_id, Documento.criado_por_id != excluir_criador_id)
+        .filter(
+            Documento.user_id == user_id,
+            or_(Documento.criado_por_id != excluir_criador_id, Documento.tipo == "termo_equipamentos"),
+        )
         .order_by(Documento.criado_em.desc())
         .all()
     )

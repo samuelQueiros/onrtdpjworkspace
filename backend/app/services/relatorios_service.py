@@ -108,6 +108,9 @@ def dashboard_admin(db: Session) -> dict:
         "total_colaboradores": relatorios_repository.contar_colaboradores(db),
         "total_ferias_aprovadas": relatorios_repository.contar_ferias_por_status(db, "aprovada"),
         "total_ferias_pendentes": relatorios_repository.contar_ferias_por_status(db, "pendente"),
+        "total_autorizacoes_equipamentos_pendentes": (
+            relatorios_repository.contar_autorizacoes_equipamentos_por_status(db, "pendente")
+        ),
         "total_ferias_rejeitadas": relatorios_repository.contar_ferias_por_status(db, "rejeitada"),
         "total_departamentos": relatorios_repository.contar_departamentos(db),
         "pessoas_em_ferias": pessoas_em_ferias,

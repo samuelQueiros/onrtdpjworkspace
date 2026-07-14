@@ -10,6 +10,8 @@ import { feriasService } from './dominios/feriasService'
 import { importacaoService } from './dominios/importacaoService'
 import { relatoriosService } from './dominios/relatoriosService'
 import { usersService } from './dominios/usersService'
+import { patrimoniosService } from './dominios/patrimoniosService'
+import { autorizacoesEquipamentosService } from './dominios/autorizacoesEquipamentosService'
 
 export const api = {
   ...authService,
@@ -24,4 +26,6 @@ export const api = {
   ...alertasService,
   ...credenciaisService,
   ...cargosService,
+  ...patrimoniosService,
+  ...autorizacoesEquipamentosService,
 }

@@ -50,6 +50,13 @@ def obter_usuario_por_email_exceto_id(db: Session, email: str, user_id: int) -> 
     return db.query(User).filter(User.email == email, User.id != user_id).first()
 
 
+def obter_usuario_por_cpf_hash(db: Session, cpf_hash: str, excluir_user_id: int | None = None) -> User | None:
+    query = db.query(User).filter(User.cpf_hash == cpf_hash)
+    if excluir_user_id is not None:
+        query = query.filter(User.id != excluir_user_id)
+    return query.first()
+
+
 def obter_departamento_por_id(db: Session, departamento_id: int) -> Departamento | None:
     return db.query(Departamento).filter(Departamento.id == departamento_id).first()
 

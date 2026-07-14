@@ -70,6 +70,7 @@ class DashboardOut(BaseModel):
     total_colaboradores: int
     total_ferias_aprovadas: int
     total_ferias_pendentes: int
+    total_autorizacoes_equipamentos_pendentes: int
     total_ferias_rejeitadas: int
     total_departamentos: int
     pessoas_em_ferias: list[PessoaEmFeriasOut]

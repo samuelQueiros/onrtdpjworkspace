@@ -48,6 +48,8 @@ O **ONRTDPJ Workspace** é um sistema web full-stack desenvolvido internamente p
 | **Disponibilidade** | Calendário visual com cores por colaborador para identificar sobreposições |
 | **Mural de Avisos** | Comunicados internos com suporte a fixação e expiração automática |
 | **Documentos** | Upload e download de atestados e documentos pessoais |
+| **Autorizações de equipamentos** | Solicitação de itens vinculados ou disponíveis, acompanhamento, aceite e acesso ao termo definitivo |
+| **Meus equipamentos** | Consulta dos patrimônios atualmente sob responsabilidade do colaborador |
 | **Minhas Credenciais** | Visualização das credenciais de sistemas compartilhados que o colaborador tem acesso, com opção de copiar e mostrar/ocultar senhas |
 
 Os documentos são armazenados em pasta persistente configurada por `UPLOAD_DIR`. Contracheques enviados por administradores ficam somente em `enviados/nome-administrador/nome-colaborador/arquivo`; atestados ficam somente em `recebidos/nome-colaborador/arquivo`. Cada upload gera uma única cópia física.
@@ -65,12 +67,16 @@ Os documentos são armazenados em pasta persistente configurada por `UPLOAD_DIR`
 | **Relatórios** | Relatório consolidado por colaborador exportável |
 | **Logs do Sistema** | Auditoria completa de todas as ações com exportação em CSV |
 | **Configurações** | Catálogo administrativo de cargos, com criação, edição e desativação de vínculos |
+| **Patrimônios** | Inventário, vínculos históricos, manutenção, baixa e disponibilidade de equipamentos |
+| **Autorizações de equipamentos** | Aprovação integral/parcial, rejeição, entrega, PDF, regeneração e devolução |
 
 ### Segurança e integridade
 
 - A sessão web usa cookie JWT `HttpOnly` e `SameSite=Lax`.
 - Trocas de senha e logout global revogam tokens emitidos anteriormente.
-- Dados bancários são criptografados em repouso com `CREDENTIALS_ENCRYPTION_KEY`.
+- Endereços novos/atualizados e dados bancários são criptografados em repouso com `CREDENTIALS_ENCRYPTION_KEY`; endereços legados continuam legíveis para migração gradual.
+- CPFs são validados, cifrados em repouso e possuem índice HMAC para impedir duplicidade sem expor o valor.
+- O HTML histórico dos termos de equipamentos também é cifrado em repouso e usado na regeneração idempotente do PDF.
 - Colaboradores são desativados em vez de excluídos, preservando histórico e documentos.
 - Alterações concorrentes de férias são serializadas no PostgreSQL.
 - Login possui limitação de tentativas por origem.
@@ -89,6 +95,7 @@ O frontend publicado pelo Docker acessa a API pelo proxy interno `/api`. Para in
 | **Banco de Dados** | PostgreSQL | 16 |
 | **Autenticação** | JWT via `python-jose` + hash `bcrypt` | — |
 | **Feriados** | `holidays` (calendário oficial brasileiro) | — |
+| **PDF e templates** | Jinja2 + WeasyPrint | 3.1.6 / 69.0 |
 | **Frontend** | React + Vite | 18.3.1 / 8.1.3 |
 | **Roteamento** | React Router | 6.30.4 |
 | **Estilo** | CSS puro com design system de variáveis | — |
@@ -107,6 +114,7 @@ feriasonr/
 |-- README.md
 |-- docs/
 |   |-- API.md
+|   |-- PATRIMONIOS-E-AUTORIZACOES.md
 |   |-- GUIA-USUARIO.md
 |   +-- DOCKER-SERVIDOR.md
 |
@@ -165,7 +173,8 @@ feriasonr/
 |
 +-- uploads/                        # Criada em runtime; nao versionar
     |-- enviados/
-    +-- recebidos/
+    |-- recebidos/
+    +-- termos-equipamentos/
 ```
 
 ---
@@ -526,13 +535,15 @@ O administrador inicial pode ser criado automaticamente se as variáveis ADMIN_E
 | `/login` | Público | Tela de autenticação |
 | `/` | Autenticado | Dashboard (visão por perfil) |
 | `/minhas-ferias` | Autenticado | Histórico de férias do colaborador |
-| `/solicitar` | Autenticado | Nova solicitação de férias |
+| `/solicitar` | Autenticado | Solicitações de férias e autorização de equipamentos |
+| `/minhas-autorizacoes` | Autenticado | Histórico, aceite e termos de equipamentos |
 | `/disponibilidade` | Autenticado | Calendário com cores por usuário |
 | `/mural` | Autenticado | Mural de avisos internos |
 | `/documentos` | Autenticado | Upload e download de documentos |
 | `/minhas-credenciais` | Autenticado | Credenciais compartilhadas com o usuário |
 | `/aprovacoes` | Admin | Fila de aprovações com histórico |
 | `/usuarios` | Admin | Gerenciamento de colaboradores |
+| `/patrimonios` | Admin | Inventário, vínculos e manutenção de equipamentos |
 | `/departamentos` | Admin | Gerenciamento de departamentos |
 | `/bloqueios` | Admin | Bloqueios e recessos de datas |
 | `/credenciais` | Admin | Acessos e Senhas (CRUD + permissões) |
@@ -587,11 +598,23 @@ O token é obtido via `POST /auth/login` e expira após `ACCESS_TOKEN_EXPIRE_MIN
 | `POST` | `/documentos/upload` | ✓ | Upload de documento |
 | `GET` | `/documentos/historico` | ✓ | Históricos separados de recebidos e enviados |
 | `GET` | `/documentos/{id}/download` | ✓ | Download de documento |
+| `GET` | `/patrimonios/me` | ✓ | Equipamentos vinculados ao usuário |
+| `GET` | `/patrimonios` | Admin | Inventário paginado e filtros |
+| `POST` | `/patrimonios` | Admin | Cadastrar equipamento |
+| `POST` | `/autorizacoes-equipamentos` | ✓ | Solicitar equipamentos |
+| `GET` | `/autorizacoes-equipamentos/me` | ✓ | Histórico próprio de autorizações |
+| `GET` | `/autorizacoes-equipamentos/admin` | Admin | Fila e histórico administrativos |
+| `POST` | `/autorizacoes-equipamentos/{id}/aprovar` | Admin | Aprovar integral ou parcialmente |
+| `POST` | `/autorizacoes-equipamentos/{id}/entrega` | Admin | Registrar entrega |
+| `POST` | `/autorizacoes-equipamentos/{id}/aceite` | Dono | Registrar aceite eletrônico |
+| `POST` | `/autorizacoes-equipamentos/{id}/devolucao` | Admin | Registrar devolução |
 | `POST` | `/importacao` | Admin | Importar colaboradores via Excel |
 
 ---
 
 ## Modelos do Banco de Dados
+
+O módulo de patrimônios adiciona equipamentos, vínculos temporais, eventos, solicitações com múltiplos itens e snapshots, versões de termo e eventos de auditoria. A descrição completa dos relacionamentos, estados e restrições está em [Patrimônios e autorizações](docs/PATRIMONIOS-E-AUTORIZACOES.md).
 
 ### `users`
 
@@ -754,6 +777,7 @@ Colunas: `Data | Ação | Usuário | Detalhes`
 ## Documentação Complementar
 
 - [Referência completa da API](docs/API.md)
+- [Patrimônios e autorizações de equipamentos](docs/PATRIMONIOS-E-AUTORIZACOES.md)
 - [Guia do Usuário](docs/GUIA-USUARIO.md)
 - [Deploy detalhado em servidor](docs/DOCKER-SERVIDOR.md)
 

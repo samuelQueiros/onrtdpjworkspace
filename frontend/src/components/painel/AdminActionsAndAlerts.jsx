@@ -2,18 +2,22 @@ import { Link } from 'react-router-dom'
 import { formatDate } from '../../utils/formatters'
 import { DashboardIcon as Icon } from './DashboardIcons'
 
-function AdminQuickActions({ pendentes = [] }) {
+function AdminQuickActions({ pendentes = {} }) {
   return (
     <section className="card">
       <div className="card-header"><h2 className="card-title">Atalhos rápidos</h2></div>
       <div className="card-body quick-actions">
         <Link className="quick-action" to="/aprovacoes">
-          <strong>Aprovar férias</strong>
-          <span>{pendentes.length} pendente(s) aguardando.</span>
+          <strong>Aprovações</strong>
+          <span>{pendentes.total || 0} pendente(s): {pendentes.ferias || 0} férias e {pendentes.equipamentos || 0} equipamentos.</span>
         </Link>
         <Link className="quick-action" to="/usuarios">
           <strong>Usuários</strong>
           <span>Gerenciar colaboradores.</span>
+        </Link>
+        <Link className="quick-action" to="/patrimonios">
+          <strong>Patrimônios</strong>
+          <span>Gerenciar equipamentos e vínculos.</span>
         </Link>
         <Link className="quick-action" to="/bloqueios">
           <strong>Bloqueio de datas</strong>
@@ -64,7 +68,7 @@ function AdminAlertCenter({ alertas = [] }) {
   )
 }
 
-export default function AdminActionsAndAlerts({ alertas = [], pendentes = [] }) {
+export default function AdminActionsAndAlerts({ alertas = [], pendentes = {} }) {
   return (
     <div className="grid-2">
       <AdminQuickActions pendentes={pendentes} />

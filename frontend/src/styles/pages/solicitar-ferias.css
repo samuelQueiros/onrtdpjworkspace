@@ -27,3 +27,4 @@
   color: var(--muted);
 }
 .request-placeholder strong { display: block; margin-bottom: 6px; color: var(--text); }
+.request-placeholder .equipment-request-form strong { margin-bottom: 0; }

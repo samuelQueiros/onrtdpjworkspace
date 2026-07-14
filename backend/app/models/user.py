@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, Date, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, Date, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -6,6 +6,9 @@ from app.database import Base
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        UniqueConstraint("cpf_hash", name="uq_users_cpf_hash"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     nome = Column(String, nullable=False)
@@ -25,6 +28,8 @@ class User(Base):
     cargo_id = Column(Integer, ForeignKey("cargos.id", ondelete="SET NULL"), nullable=True)
     ativo = Column(Boolean, nullable=False, default=True)
     token_version = Column(Integer, nullable=False, default=0)
+    cpf_criptografado = Column(String, nullable=True)
+    cpf_hash = Column(String(64), nullable=True)
     criado_em = Column(DateTime, default=datetime.utcnow)
 
     ferias = relationship("Ferias", back_populates="usuario", foreign_keys="[Ferias.user_id]", cascade="all, delete-orphan")

@@ -9,3 +9,12 @@ from .alerta import Alerta
 from .credencial_usuario import CredencialUsuario
 from .credencial import Credencial
 from .cargo import Cargo
+from .patrimonio import (
+    Equipamento,
+    EquipamentoEvento,
+    EquipamentoVinculo,
+    SolicitacaoEquipamento,
+    SolicitacaoEquipamentoItem,
+    SolicitacaoEquipamentoEvento,
+    TermoEquipamentoVersao,
+)

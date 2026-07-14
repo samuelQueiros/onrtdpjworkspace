@@ -10,6 +10,99 @@ from app.services import users_service
 
 
 class UsersServiceTests(unittest.TestCase):
+    def test_preparar_cpf_normaliza_hash_e_criptografia(self):
+        db = SimpleNamespace()
+        with (
+            patch("app.services.users_service.hash_dado_sensivel", return_value="hash-cpf") as hash_mock,
+            patch("app.services.users_service.criptografar_dado_sensivel", return_value="cpf-criptografado") as crypto_mock,
+            patch("app.services.users_service.users_repository.obter_usuario_por_cpf_hash", return_value=None) as repo_mock,
+        ):
+            resultado = users_service.preparar_cpf(db, "529.982.247-25")
+
+        self.assertEqual(resultado, ("cpf-criptografado", "hash-cpf"))
+        hash_mock.assert_called_once_with("52998224725")
+        crypto_mock.assert_called_once_with("52998224725")
+        repo_mock.assert_called_once_with(db, "hash-cpf", None)
+
+    def test_preparar_cpf_rejeita_cpf_duplicado(self):
+        with (
+            patch("app.services.users_service.hash_dado_sensivel", return_value="hash-cpf"),
+            patch(
+                "app.services.users_service.users_repository.obter_usuario_por_cpf_hash",
+                return_value=SimpleNamespace(id=9),
+            ),
+        ):
+            with self.assertRaises(HTTPException) as exc:
+                users_service.preparar_cpf(SimpleNamespace(), "529.982.247-25", excluir_user_id=2)
+
+        self.assertEqual(exc.exception.status_code, 400)
+        self.assertEqual(exc.exception.detail, "CPF ja cadastrado para outro colaborador")
+
+    def test_preparar_cpf_rejeita_cpf_invalido_antes_de_consultar_banco(self):
+        with patch("app.services.users_service.users_repository.obter_usuario_por_cpf_hash") as repo_mock:
+            with self.assertRaises(HTTPException) as exc:
+                users_service.preparar_cpf(SimpleNamespace(), "111.111.111-11")
+
+        self.assertEqual(exc.exception.status_code, 400)
+        repo_mock.assert_not_called()
+
+    def test_formatar_usuario_expoe_apenas_cpf_mascarado(self):
+        user = SimpleNamespace(
+            id=1,
+            nome="Gabriel",
+            email="gabriel@sistema.com",
+            role="user",
+            dias_totais=30,
+            departamento_id=None,
+            departamento=None,
+            data_admissao=None,
+            data_aniversario=None,
+            cor=None,
+            telefone="(61) 99999-9999",
+            cpf_criptografado="cpf-criptografado",
+            cargo=None,
+            ativo=True,
+            criado_em=None,
+        )
+        with patch("app.services.users_service.descriptografar_dado_sensivel", return_value="52998224725"):
+            resultado = users_service.formatar_usuario(user, SimpleNamespace(), dias_restantes=30)
+
+        self.assertEqual(resultado["cpf_mascarado"], "***.***.***-25")
+        self.assertNotIn("cpf", resultado)
+
+    def test_consulta_sensivel_expoe_cpf_formatado_e_registra_auditoria(self):
+        user = SimpleNamespace(
+            cpf_criptografado="cpf-criptografado",
+            telefone_emergencia="(61) 99999-9999",
+            telefone_emergencia_2="(61) 98888-8888",
+            endereco=None,
+            dados_bancarios=None,
+        )
+
+        class FakeDb:
+            def __init__(self):
+                self.added = []
+                self.committed = False
+
+            def add(self, obj):
+                self.added.append(obj)
+
+            def commit(self):
+                self.committed = True
+
+        db = FakeDb()
+        with (
+            patch("app.services.users_service.buscar_usuario", return_value=user),
+            patch("app.services.users_service.descriptografar_dado_sensivel", return_value="52998224725"),
+        ):
+            resultado = users_service.consultar_dados_sensiveis(
+                db, 8, SimpleNamespace(id=1, role="admin")
+            )
+
+        self.assertEqual(resultado["cpf"], "529.982.247-25")
+        self.assertTrue(db.committed)
+        self.assertEqual(db.added[0].acao, "CPF_COMPLETO_E_DADOS_SENSIVEIS_CONSULTADOS")
+
     def test_endereco_estruturado_e_formato_antigo(self):
         endereco = users_service.Endereco(
             logradouro="Rua Exemplo", numero="10", bairro="Centro", cidade="São Paulo", cep="01000-000"
@@ -18,6 +111,7 @@ class UsersServiceTests(unittest.TestCase):
         restaurado = users_service._desserializar_endereco(valor)
         legado = users_service._desserializar_endereco("Rua Antiga, 25")
 
+        self.assertTrue(valor.startswith("sensitive:"))
         self.assertEqual(restaurado["cidade"], "São Paulo")
         self.assertEqual(restaurado["cep"], "01000-000")
         self.assertEqual(legado["logradouro"], "Rua Antiga, 25")

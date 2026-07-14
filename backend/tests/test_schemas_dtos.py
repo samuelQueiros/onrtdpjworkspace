@@ -44,21 +44,82 @@ class SchemasDtoTests(unittest.TestCase):
                 "banco": "Banco Exemplo",
                 "agencia": "1234",
                 "conta": "56789-0",
-                "cpf_titular": "123.456.789-00",
+                "cpf_titular": "529.982.247-25",
                 "nome_titular": "Gabriel",
                 "chave_pix": "gabriel@sistema.com",
             },
             cargo="Desenvolvedor",
+            cpf="529.982.247-25",
         )
 
         self.assertEqual(user.cargo, "Desenvolvedor")
         self.assertEqual(user.telefone_emergencia_2, "(11) 97777-7777")
         self.assertEqual(user.endereco.numero, "10")
         self.assertEqual(user.dados_bancarios.agencia, "1234")
+        self.assertEqual(user.cpf, "529.982.247-25")
 
     def test_user_create_rejeita_cadastro_incompleto(self):
         with self.assertRaises(ValidationError):
             UserCreate(nome="Gabriel", email="gabriel@sistema.com", senha="segura123")
+
+    def test_user_create_rejeita_cpf_invalido_do_titular_bancario(self):
+        dados = {
+            "nome": "Gabriel",
+            "email": "gabriel@sistema.com",
+            "senha": "segura123",
+            "role": "user",
+            "dias_totais": 30,
+            "departamento_id": 1,
+            "data_admissao": date(2025, 1, 10),
+            "data_aniversario": date(1990, 5, 20),
+            "cor": "#3b82f6",
+            "telefone": "(11) 99999-9999",
+            "telefone_emergencia": "(11) 98888-8888",
+            "telefone_emergencia_2": "(11) 97777-7777",
+            "endereco": {"logradouro": "Rua A", "numero": "1", "bairro": "Centro", "cidade": "SP", "cep": "01000-000"},
+            "dados_bancarios": {"banco": "Banco", "agencia": "1", "conta": "2", "cpf_titular": "111.111.111-11", "nome_titular": "Gabriel", "chave_pix": "pix"},
+            "cargo": "Desenvolvedor",
+            "cpf": "529.982.247-25",
+        }
+        with self.assertRaises(ValidationError):
+            UserCreate(**dados)
+
+    def test_user_create_exige_cpf_mesmo_com_demais_campos_validos(self):
+        dados = {
+            "nome": "Gabriel",
+            "email": "gabriel@sistema.com",
+            "senha": "segura123",
+            "role": "user",
+            "dias_totais": 30,
+            "departamento_id": 1,
+            "data_admissao": date(2025, 1, 10),
+            "data_aniversario": date(1990, 5, 20),
+            "cor": "#3b82f6",
+            "telefone": "(11) 99999-9999",
+            "telefone_emergencia": "(11) 98888-8888",
+            "telefone_emergencia_2": "(11) 97777-7777",
+            "endereco": {
+                "logradouro": "Rua Exemplo",
+                "numero": "10",
+                "bairro": "Centro",
+                "cidade": "Sao Paulo",
+                "cep": "01000-000",
+            },
+            "dados_bancarios": {
+                "banco": "Banco Exemplo",
+                "agencia": "1234",
+                "conta": "56789-0",
+                "cpf_titular": "529.982.247-25",
+                "nome_titular": "Gabriel",
+                "chave_pix": "gabriel@sistema.com",
+            },
+            "cargo": "Desenvolvedor",
+        }
+
+        with self.assertRaises(ValidationError) as exc:
+            UserCreate(**dados)
+
+        self.assertIn("cpf", str(exc.exception))
 
     def test_token_out_aceita_formato_do_login(self):
         token = TokenOut(
@@ -207,6 +268,7 @@ class SchemasDtoTests(unittest.TestCase):
             total_ferias_aprovadas=2,
             total_ferias_pendentes=3,
             total_ferias_rejeitadas=4,
+            total_autorizacoes_equipamentos_pendentes=6,
             total_departamentos=5,
             pessoas_em_ferias=[
                 {

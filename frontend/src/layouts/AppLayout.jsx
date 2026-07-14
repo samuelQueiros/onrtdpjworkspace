@@ -32,9 +32,12 @@ export default function AppLayout({ children }) {
 
   useEffect(() => {
     if (user?.role === 'admin') {
-      api.feriasPendentes()
-        .then(list => setPendentes(list.length))
+      const carregarPendentes = () => api.pendenciasAprovacoes()
+        .then(data => setPendentes(data.total))
         .catch(error => console.error('Falha ao carregar aprovações pendentes', error))
+      carregarPendentes()
+      window.addEventListener('approvals:changed', carregarPendentes)
+      return () => window.removeEventListener('approvals:changed', carregarPendentes)
     }
   }, [user, location.pathname])
 

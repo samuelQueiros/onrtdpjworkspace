@@ -18,6 +18,7 @@ const SolicitarFerias = lazy(() => import('../pages/SolicitarFerias'))
 const Usuarios = lazy(() => import('../pages/Usuarios'))
 const Configuracoes = lazy(() => import('../pages/Configuracoes'))
 const Patrimonios = lazy(() => import('../pages/Patrimonios'))
+const MinhasAutorizacoes = lazy(() => import('../pages/MinhasAutorizacoes'))
 
 function Shell({ children, adminOnly = false }) {
   return (
@@ -34,6 +35,7 @@ export default function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<Shell><Dashboard /></Shell>} />
       <Route path="/minhas-ferias" element={<Shell><MinhasFerias /></Shell>} />
+      <Route path="/minhas-autorizacoes" element={<Shell><MinhasAutorizacoes /></Shell>} />
       <Route path="/solicitar" element={<Shell><SolicitarFerias /></Shell>} />
       <Route path="/disponibilidade" element={<Shell><Disponibilidade /></Shell>} />
       <Route path="/mural" element={<Shell><Mural /></Shell>} />

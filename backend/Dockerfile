@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
@@ -7,6 +7,14 @@ ENV PYTHONUNBUFFERED=1
 
 ARG APP_UID=1000
 ARG APP_GID=1000
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        fonts-dejavu-core \
+        libharfbuzz-subset0 \
+        libpango-1.0-0 \
+        libpangoft2-1.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

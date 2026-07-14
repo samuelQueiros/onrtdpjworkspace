@@ -6,11 +6,12 @@ const Icon = {
 const PAGES = {
   '/': 'Dashboard',
   '/minhas-ferias': 'Minhas Férias',
+  '/minhas-autorizacoes': 'Minhas Autorizações',
   '/solicitar': 'Solicitações',
   '/disponibilidade': 'Disponibilidade',
   '/mural': 'Mural de Avisos',
   '/documentos': 'Documentos',
-  '/aprovacoes': 'Aprovação de Férias',
+  '/aprovacoes': 'Aprovações',
   '/usuarios': 'Usuários',
   '/patrimonios': 'Patrimônios',
   '/bloqueios': 'Bloqueio de Datas',
@@ -30,7 +31,14 @@ export default function Topbar({ user, pathname, dropOpen, dropRef, onToggleDrop
       </div>
 
       <div className="topbar-right" ref={dropRef}>
-        <button className="user-pill" onClick={onToggleDrop}>
+        <button
+          className="user-pill"
+          type="button"
+          aria-expanded={dropOpen}
+          aria-controls="user-account-menu"
+          aria-haspopup="menu"
+          onClick={onToggleDrop}
+        >
           <div
             className="avatar"
             style={{ background: user?.cor || 'var(--navy)' }}
@@ -45,8 +53,8 @@ export default function Topbar({ user, pathname, dropOpen, dropRef, onToggleDrop
         </button>
 
         {dropOpen && (
-          <div className="dropdown">
-            <button className="dropdown-item danger" onClick={onLogout}>
+          <div id="user-account-menu" className="dropdown" role="menu">
+            <button className="dropdown-item danger" type="button" role="menuitem" onClick={onLogout}>
               {Icon.logout}
               Sair do sistema
             </button>

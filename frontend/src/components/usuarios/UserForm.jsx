@@ -6,6 +6,7 @@ import { maskCpf, maskPhone } from '../../utils/inputMasks'
 export const blankUserForm = {
   nome: '',
   email: '',
+  cpf: '',
   senha: '',
   role: 'user',
   dias_totais: 30,
@@ -51,6 +52,7 @@ export default function UserForm({
     const requiredFields = [
       ['Nome', form.nome, 'user-nome'],
       ['E-mail', form.email, 'user-email'],
+      ['CPF', form.cpf, 'user-cpf'],
       ...(!editing ? [['Senha', form.senha, 'user-senha']] : []),
       ['Perfil', form.role, 'user-role'],
       ['Departamento', form.departamento_id, 'user-departamento'],
@@ -115,6 +117,20 @@ export default function UserForm({
             type="email"
             value={form.email}
             onChange={event => updateForm({ email: event.target.value })}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="user-cpf">CPF do colaborador</label>
+          <input
+            id="user-cpf"
+            name="cpf"
+            inputMode="numeric"
+            maxLength="14"
+            value={maskCpf(form.cpf)}
+            onChange={event => updateForm({ cpf: maskCpf(event.target.value) })}
+            placeholder="000.000.000-00"
+            autoComplete="off"
             required
           />
         </div>

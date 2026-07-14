@@ -8,9 +8,15 @@ export function formatDate(value) {
 export function formatDateTime(value) {
   if (!value) return '-'
   const date = new Date(value)
-  const data = formatDate(date.toISOString().slice(0, 10))
-  const hora = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-  return `${data} ${hora}`
+  if (Number.isNaN(date.getTime())) return '-'
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
 }
 
 export function calcDays(start, end) {

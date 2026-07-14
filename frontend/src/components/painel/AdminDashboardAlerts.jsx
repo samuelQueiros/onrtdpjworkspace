@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { formatDate } from '../../utils/formatters'
 import { DashboardIcon as Icon } from './DashboardIcons'
 
-export default function AdminDashboardAlerts({ alertas = [], pendentes = [] }) {
+export default function AdminDashboardAlerts({ alertas = [], pendentes = {} }) {
   return (
     <>
       {alertas.length > 0 && (
@@ -24,9 +24,10 @@ export default function AdminDashboardAlerts({ alertas = [], pendentes = [] }) {
         </div>
       )}
 
-      {pendentes.length > 0 && (
+      {pendentes.total > 0 && (
         <div className="alert alert-warning spaced">
-          <strong>{pendentes.length} solicitação(ões) aguardando aprovação.</strong>{' '}
+          <strong>{pendentes.total} solicitação(ões) aguardando aprovação.</strong>{' '}
+          <span>{pendentes.ferias || 0} de férias e {pendentes.equipamentos || 0} de equipamentos. </span>
           <Link to="/aprovacoes">Revisar agora →</Link>
         </div>
       )}

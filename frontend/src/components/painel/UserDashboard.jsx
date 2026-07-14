@@ -86,6 +86,10 @@ export default function UserDashboard({ user, ferias, avisos }) {
               <strong>Minhas férias</strong>
               <span>Histórico de solicitações.</span>
             </Link>
+            <Link className="quick-action" to="/minhas-autorizacoes">
+              <strong>Minhas autorizações</strong>
+              <span>Acompanhe equipamentos e termos.</span>
+            </Link>
             <Link className="quick-action" to="/mural">
               <strong>Mural de avisos</strong>
               <span>Comunicados e informações.</span>

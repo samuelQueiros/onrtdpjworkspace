@@ -8,7 +8,18 @@ import time
 from app.core.config import settings
 from app.database import SessionLocal
 from app.routers import auth, users, ferias, relatorios
-from app.routers import departamentos, avisos, documentos, importacao, bloqueios, alertas, credenciais, cargos
+from app.routers import (
+    alertas,
+    autorizacoes_equipamentos,
+    avisos,
+    bloqueios,
+    cargos,
+    credenciais,
+    departamentos,
+    documentos,
+    importacao,
+    patrimonios,
+)
 from app.services import bootstrap_service
 
 logger = logging.getLogger("app.http")
@@ -31,7 +42,10 @@ app.add_middleware(
 
 @app.middleware("http")
 async def security_and_request_id(request: Request, call_next):
-    request_id = request.headers.get("X-Request-ID") or uuid4().hex
+    # Identificador autoritativo do servidor; nao reutilize um valor controlado
+    # pelo cliente como evidencia do aceite.
+    request_id = uuid4().hex
+    request.state.request_id = request_id
     inicio = time.perf_counter()
     response = await call_next(request)
     duracao_ms = round((time.perf_counter() - inicio) * 1000, 2)
@@ -61,6 +75,9 @@ app.include_router(bloqueios.router)
 app.include_router(alertas.router)
 app.include_router(credenciais.router)
 app.include_router(cargos.router)
+app.include_router(patrimonios.router)
+app.include_router(autorizacoes_equipamentos.router)
+app.include_router(autorizacoes_equipamentos.pendencias_router)
 
 
 @app.on_event("startup")

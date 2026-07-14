@@ -54,6 +54,7 @@ class RelatoriosServiceTests(unittest.TestCase):
         with (
             patch("app.services.relatorios_service.relatorios_repository.contar_colaboradores", return_value=3),
             patch("app.services.relatorios_service.relatorios_repository.contar_ferias_por_status", side_effect=[4, 1, 2]),
+            patch("app.services.relatorios_service.relatorios_repository.contar_autorizacoes_equipamentos_por_status", return_value=5),
             patch("app.services.relatorios_service.relatorios_repository.contar_departamentos", return_value=2),
             patch("app.services.relatorios_service.relatorios_repository.listar_ferias_em_andamento", return_value=[ferias]),
             patch("app.services.relatorios_service.relatorios_repository.listar_proximas_ferias", return_value=[ferias]),
@@ -63,6 +64,7 @@ class RelatoriosServiceTests(unittest.TestCase):
 
         self.assertEqual(response["total_colaboradores"], 3)
         self.assertEqual(response["total_ferias_aprovadas"], 4)
+        self.assertEqual(response["total_autorizacoes_equipamentos_pendentes"], 5)
         self.assertEqual(response["pessoas_em_ferias"][0]["nome"], "Gabriel")
         self.assertEqual(response["alertas_contabilidade"][0]["ferias_id"], 1)
 

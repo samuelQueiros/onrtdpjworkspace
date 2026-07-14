@@ -3,9 +3,15 @@ import json
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.core.security import hash_senha, verificar_senha
-from app.core.crypto import criptografar_dado_sensivel, descriptografar_dado_sensivel
+from app.core.cpf import formatar_cpf, mascarar_cpf, validar_cpf
+from app.core.crypto import (
+    criptografar_dado_sensivel,
+    descriptografar_dado_sensivel,
+    hash_dado_sensivel,
+)
 from app.models.log import Log
 from app.models.user import User
 from app.repositories import users_repository
@@ -38,6 +44,7 @@ def formatar_usuario(user: User, db: Session, dias_restantes: int | None = None)
         "data_aniversario": user.data_aniversario,
         "cor": user.cor,
         "telefone": user.telefone,
+        "cpf_mascarado": mascarar_cpf(descriptografar_dado_sensivel(user.cpf_criptografado)),
         "cargo": user.cargo.nome if user.cargo else None,
         "ativo": user.ativo,
         "criado_em": user.criado_em,
@@ -46,6 +53,7 @@ def formatar_usuario(user: User, db: Session, dias_restantes: int | None = None)
 
 def formatar_dados_sensiveis(user: User) -> dict:
     return {
+        "cpf": formatar_cpf(descriptografar_dado_sensivel(user.cpf_criptografado)) if user.cpf_criptografado else None,
         "telefone_emergencia": user.telefone_emergencia,
         "telefone_emergencia_2": user.telefone_emergencia_2,
         "endereco": _desserializar_endereco(user.endereco),
@@ -57,12 +65,16 @@ def _serializar_endereco(endereco: Endereco | None) -> str | None:
     if not endereco:
         return None
     valores = endereco.model_dump(exclude_none=True)
-    return json.dumps(valores, ensure_ascii=False, separators=(",", ":")) if valores else None
+    if not valores:
+        return None
+    conteudo = json.dumps(valores, ensure_ascii=False, separators=(",", ":"))
+    return criptografar_dado_sensivel(conteudo)
 
 
 def _desserializar_endereco(valor: str | None) -> dict | None:
     if not valor:
         return None
+    valor = descriptografar_dado_sensivel(valor)
     try:
         dados = json.loads(valor)
         return Endereco.model_validate(dados).model_dump()
@@ -97,8 +109,8 @@ def consultar_dados_sensiveis(db: Session, user_id: int, current_user: User) -> 
     user = buscar_usuario(db, user_id)
     log = Log(
         user_id=current_user.id,
-        acao="DADOS_SENSIVEIS_CONSULTADOS",
-        detalhes=f"Dados sensiveis do usuario #{user_id} consultados por {current_user.nome}",
+        acao="CPF_COMPLETO_E_DADOS_SENSIVEIS_CONSULTADOS",
+        detalhes=f"CPF completo e dados sensiveis do usuario #{user_id} consultados por administrador",
     )
     db.add(log)
     db.commit()
@@ -129,6 +141,17 @@ def validar_departamento(db: Session, departamento_id: int | None) -> None:
         raise HTTPException(status_code=404, detail="Departamento nao encontrado")
 
 
+def preparar_cpf(db: Session, cpf: str, excluir_user_id: int | None = None) -> tuple[str, str]:
+    try:
+        normalizado = validar_cpf(cpf)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="CPF invalido") from exc
+    cpf_hash = hash_dado_sensivel(normalizado)
+    if users_repository.obter_usuario_por_cpf_hash(db, cpf_hash, excluir_user_id):
+        raise HTTPException(status_code=400, detail="CPF ja cadastrado para outro colaborador")
+    return criptografar_dado_sensivel(normalizado), cpf_hash
+
+
 def listar_usuarios(db: Session) -> list[dict]:
     from app.services.ferias_service import get_ciclo_atual
 
@@ -154,6 +177,7 @@ def criar_usuario(db: Session, payload: UserCreate, current_user: User) -> dict:
     validar_email_disponivel(db, payload.email)
     validar_departamento(db, payload.departamento_id)
     cargo = cargos_service.obter_cargo_por_nome(db, payload.cargo)
+    cpf_criptografado, cpf_hash = preparar_cpf(db, payload.cpf)
 
     novo_user = User(
         nome=payload.nome,
@@ -171,6 +195,8 @@ def criar_usuario(db: Session, payload: UserCreate, current_user: User) -> dict:
         endereco=_serializar_endereco(payload.endereco),
         dados_bancarios=_serializar_dados_bancarios(payload.dados_bancarios),
         cargo_id=cargo.id if cargo else None,
+        cpf_criptografado=cpf_criptografado,
+        cpf_hash=cpf_hash,
     )
 
     log = Log(
@@ -178,7 +204,11 @@ def criar_usuario(db: Session, payload: UserCreate, current_user: User) -> dict:
         acao="USUARIO_CRIADO",
         detalhes=f"Usuario {novo_user.nome} ({novo_user.email}) criado por {current_user.nome}",
     )
-    users_repository.salvar_usuario_com_log(db, novo_user, log)
+    try:
+        users_repository.salvar_usuario_com_log(db, novo_user, log)
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="E-mail ou CPF ja cadastrado") from exc
 
     return formatar_usuario(novo_user, db)
 
@@ -229,6 +259,8 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
     if "cargo" in payload.model_fields_set:
         cargo = cargos_service.obter_cargo_por_nome(db, payload.cargo)
         user.cargo_id = cargo.id if cargo else None
+    if "cpf" in payload.model_fields_set and payload.cpf:
+        user.cpf_criptografado, user.cpf_hash = preparar_cpf(db, payload.cpf, user.id)
 
     log = Log(
         user_id=current_user.id,
@@ -267,7 +299,11 @@ def desativar_usuario(db: Session, user_id: int, current_user: User) -> None:
         acao="USUARIO_DESATIVADO",
         detalhes=f"Usuario {user.nome} ({user.email}) desativado por {current_user.nome}",
     )
-    users_repository.atualizar_usuario_com_log(db, user, log)
+    try:
+        users_repository.atualizar_usuario_com_log(db, user, log)
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="E-mail ou CPF ja cadastrado") from exc
 
 
 def reativar_usuario(db: Session, user_id: int, current_user: User) -> dict:

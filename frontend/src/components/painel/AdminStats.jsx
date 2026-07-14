@@ -15,7 +15,7 @@ function StatCard({ icon, label, value, sub, children }) {
   )
 }
 
-export default function AdminStats({ dash }) {
+export default function AdminStats({ dash, pendentes = {} }) {
   return (
     <section className="stat-grid">
       <StatCard
@@ -33,10 +33,10 @@ export default function AdminStats({ dash }) {
       <StatCard
         icon={<div className="stat-icon-box amber">{Icon.clock}</div>}
         label="Pendentes"
-        value={dash.total_ferias_pendentes}
-        sub="aguardando revisão"
+        value={pendentes.total ?? (dash.total_ferias_pendentes + (dash.total_autorizacoes_equipamentos_pendentes || 0))}
+        sub={`${pendentes.ferias ?? dash.total_ferias_pendentes} férias · ${pendentes.equipamentos ?? (dash.total_autorizacoes_equipamentos_pendentes || 0)} equipamentos`}
       >
-        {dash.total_ferias_pendentes > 0 && (
+        {(pendentes.total ?? dash.total_ferias_pendentes) > 0 && (
           <div className="mt-8">
             <Link className="btn btn-outline btn-sm" to="/aprovacoes">Revisar →</Link>
           </div>

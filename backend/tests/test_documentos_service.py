@@ -70,7 +70,7 @@ class DocumentosServiceTests(unittest.TestCase):
         historico = documentos_service.listar_historico_documentos(SimpleNamespace(), admin)
 
         self.assertEqual(historico, {"recebidos": ["atestado"], "enviados": ["contracheque"]})
-        listar_criados.assert_called_once_with(ANY, 1, "contracheque")
+        listar_criados.assert_called_once_with(ANY, 1, ["contracheque", "termo_equipamentos"])
 
     @patch.object(documentos_service.documentos_repository, "listar_documentos_recebidos_por")
     @patch.object(documentos_service.documentos_repository, "listar_documentos_criados_por")

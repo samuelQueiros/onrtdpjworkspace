@@ -67,6 +67,7 @@ export default function Usuarios() {
       const payload = {
         nome: form.nome,
         email: form.email,
+        cpf: maskCpf(form.cpf),
         dias_totais: Number(form.dias_totais),
         departamento_id: form.departamento_id ? Number(form.departamento_id) : null,
         data_admissao: form.data_admissao || null,
@@ -105,6 +106,7 @@ export default function Usuarios() {
       setForm({
       nome: user.nome,
       email: user.email,
+      cpf: maskCpf(sensitive.cpf),
       senha: '',
       role: user.role,
       dias_totais: user.dias_totais,

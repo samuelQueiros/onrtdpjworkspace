@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import hmac
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -57,3 +58,11 @@ def descriptografar_dado_sensivel(valor: str | None) -> str | None:
         return _get_fernet().decrypt(token.encode("utf-8")).decode("utf-8")
     except InvalidToken as exc:
         raise RuntimeError("Nao foi possivel descriptografar o dado sensivel.") from exc
+
+
+def hash_dado_sensivel(valor: str) -> str:
+    return hmac.new(
+        _get_credentials_secret().encode("utf-8"),
+        valor.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
