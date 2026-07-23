@@ -23,6 +23,17 @@ class Settings:
         return os.getenv("FRONTEND_URL", "http://localhost:5173")
 
     @property
+    def cors_origins(self) -> list[str]:
+        """Origens liberadas no CORS. Usa CORS_ORIGINS (lista separada por
+        vírgula) quando definida; caso contrário, cai para frontend_url."""
+        raw = os.getenv("CORS_ORIGINS")
+        if raw:
+            origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
+            if origins:
+                return origins
+        return [self.frontend_url]
+
+    @property
     def admin_email(self) -> str | None:
         return os.getenv("ADMIN_EMAIL")
 

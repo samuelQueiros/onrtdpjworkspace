@@ -1,16 +1,20 @@
 # Guia de Docker em Servidor
 
-Este guia explica como publicar o Sistema de Gestao de Ferias ONRTDPJ em um servidor usando Docker e Docker Compose.
+Este guia explica como publicar o Sistema de Gestao de Ferias ONRTDPJ em um servidor usando Docker e Docker Compose de forma manual (via SSH).
+
+> Para publicar via **Portainer** (Repository/GitOps, atualização por webhook, rollback por redeploy), veja o [DEPLOY.md](../DEPLOY.md) na raiz do projeto — ele também documenta o padrão de deploy replicado nos demais projetos internos.
 
 ## Visao Geral
 
 O Docker Compose sobe tres servicos:
 
-| Servico | Container | Porta | Funcao |
-|---|---|---|---|
-| `db` | `ferias-db` | interna `5432` | Banco PostgreSQL |
-| `backend` | `ferias-backend` | `8000` | API FastAPI |
-| `frontend` | `ferias-frontend` | `80` | Interface React servida por Nginx |
+| Servico | Porta | Funcao |
+|---|---|---|
+| `db` | interna `5432` | Banco PostgreSQL |
+| `backend` | `8000` | API FastAPI |
+| `frontend` | `80` | Interface React servida por Nginx |
+
+O Compose não usa nomes fixos de container (`container_name`) — os nomes são gerados automaticamente a partir do nome do projeto/stack (ex.: `onrtdpjworkspace-db-1`). Use sempre o nome do **serviço** (`db`, `backend`, `frontend`) em comandos como `docker compose exec`, `docker compose logs` e `docker compose restart`.
 
 O banco PostgreSQL fica em volume Docker, e os documentos enviados ficam em uma pasta do servidor montada no container:
 
@@ -38,7 +42,7 @@ Na raiz do projeto:
 
 ```text
 docker-compose.yml
-.env.docker.example
+.env.example
 ```
 
 No backend:
@@ -131,7 +135,7 @@ O backend roda como usuario nao-root no container usando UID/GID `1000`. Por iss
 Copie o exemplo:
 
 ```bash
-cp .env.docker.example .env
+cp .env.example .env
 ```
 
 Edite:
@@ -143,6 +147,10 @@ nano .env
 Exemplo usando IP:
 
 ```env
+POSTGRES_USER=ferias
+POSTGRES_PASSWORD=troque-por-uma-senha-forte
+POSTGRES_DB=ferias
+
 ENVIRONMENT=production
 SECRET_KEY=troque-por-uma-chave-longa-e-segura
 CREDENTIALS_ENCRYPTION_KEY=troque-por-outra-chave-longa-e-segura-para-credenciais
@@ -150,6 +158,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=480
 COOKIE_SECURE=false
 
 FRONTEND_URL=http://123.123.123.123
+CORS_ORIGINS=
 VITE_API_URL=/api
 
 FRONTEND_PORT=80
@@ -161,16 +170,23 @@ ADMIN_EMAIL=admin@sistema.com
 ADMIN_PASSWORD=troque-por-uma-senha-forte
 ```
 
-Exemplo usando dominio:
+Exemplo usando o hostname interno deste servidor (`chat-server`, resolvido via DNS/hosts para todos os usuarios da rede — o mesmo host usado pelos demais projetos):
 
 ```env
+POSTGRES_USER=ferias
+POSTGRES_PASSWORD=troque-por-uma-senha-forte
+POSTGRES_DB=ferias
+
 ENVIRONMENT=production
 SECRET_KEY=troque-por-uma-chave-longa-e-segura
 CREDENTIALS_ENCRYPTION_KEY=troque-por-outra-chave-longa-e-segura-para-credenciais
 ACCESS_TOKEN_EXPIRE_MINUTES=480
-COOKIE_SECURE=true
+COOKIE_SECURE=false
 
-FRONTEND_URL=https://ferias.seudominio.com
+# Se este projeto nao usar a porta padrao 80, inclua a porta tambem em FRONTEND_URL
+# (ex.: http://chat-server:8081), pois e exatamente isso que aparece no navegador.
+FRONTEND_URL=http://chat-server
+CORS_ORIGINS=
 VITE_API_URL=/api
 
 FRONTEND_PORT=80
@@ -182,10 +198,15 @@ ADMIN_EMAIL=admin@sistema.com
 ADMIN_PASSWORD=troque-por-uma-senha-forte
 ```
 
+Se o mesmo `chat-server` tiver um domínio público com HTTPS na frente (via Nginx Proxy Manager), use esse domínio em `FRONTEND_URL` (ex.: `https://ferias.seudominio.com`) e `COOKIE_SECURE=true`.
+
 Importante:
 
 - `VITE_API_URL` precisa ser acessivel pelo navegador dos usuarios.
-- Nao use `chat-server` em producao, a menos que o sistema seja acessado apenas na propria maquina.
+- `POSTGRES_PASSWORD`, `SECRET_KEY` e `CREDENTIALS_ENCRYPTION_KEY` sao obrigatorios: o `docker compose up` falha se algum deles nao estiver definido no `.env`.
+- `FRONTEND_URL` precisa ser **identico** ao endereco que aparece na barra do navegador do usuario (protocolo + host + porta, se a porta nao for a padrao) — e esse valor que o backend compara com o header `Origin` para liberar o CORS. Pode ser um IP, um dominio publico ou um hostname interno como `chat-server`, desde que seja isso que os usuarios realmente usam para acessar o sistema.
+- Como varios projetos (RH, Cancelador, Ouvidoria, ONRTDPJ Workspace, etc.) rodam no mesmo `chat-server`, cada um precisa de `FRONTEND_PORT`/`BACKEND_PORT` proprios e unicos, e `FRONTEND_URL` deve incluir essa porta quando ela nao for 80/443.
+- Se precisar liberar mais de uma origem no CORS (ex.: acesso tanto por `chat-server` quanto por um dominio publico via NPM), use `CORS_ORIGINS` com valores separados por virgula.
 - Se alterar `VITE_API_URL`, e necessario rebuildar o frontend.
 - `UPLOAD_DIR` deve apontar para a pasta interna usada pelo container, normalmente `/app/uploads`.
 - No servidor, os arquivos ficam disponiveis na pasta `uploads/` da raiz do projeto.
@@ -316,17 +337,17 @@ tar czf backups/documentos-$(date +%F).tar.gz uploads
 
 ## Restaurar Backup
 
-Pare o backend e restaure o backup:
+Pare o backend e restaure o backup (use o ID do container do serviço `db`, obtido dinamicamente — não dependa de um nome fixo de container):
 
 ```bash
 docker compose stop backend
-docker cp backups/ferias-AAAA-MM-DD.dump ferias-db:/tmp/restore.dump
+docker cp backups/ferias-AAAA-MM-DD.dump "$(docker compose ps -q db)":/tmp/restore.dump
 docker compose exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner /tmp/restore.dump'
 docker compose run --rm --entrypoint alembic backend upgrade head
 docker compose up -d backend
 ```
 
-Sempre valide periodicamente a restauração em um banco temporário.
+Sempre valide periodicamente a restauração em um banco temporário. Prefira os scripts prontos `scripts/backup.ps1` e `scripts/restore.ps1`, que já fazem essa resolução de container automaticamente.
 
 ## HTTPS com Proxy Reverso
 

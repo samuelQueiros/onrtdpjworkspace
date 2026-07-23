@@ -1,6 +1,14 @@
 venv
+.venv
 __pycache__
 *.pyc
+.pytest_cache
 .env
+.env.*
 ferias.db
 data/uploads
+uploads
+.git
+.gitignore
+.github
+*.md

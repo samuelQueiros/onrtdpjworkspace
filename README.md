@@ -110,7 +110,8 @@ O frontend publicado pelo Docker acessa a API pelo proxy interno `/api`. Para in
 ```
 feriasonr/
 |-- docker-compose.yml              # Orquestra db + backend + frontend
-|-- .env.docker.example             # Exemplo de variaveis para Docker
+|-- .env.example                    # Exemplo de variaveis para Docker Compose/Portainer
+|-- DEPLOY.md                       # Guia de deploy (local, Portainer, atualizacao, rollback)
 |-- README.md
 |-- docs/
 |   |-- API.md
@@ -311,39 +312,14 @@ cd /opt/feriasonr
 
 #### 2. Criar o arquivo de variáveis de ambiente
 
-Na raiz do projeto, crie o arquivo `.env`:
+Na raiz do projeto, copie o exemplo e ajuste os valores:
 
 ```bash
+cp .env.example .env
 nano .env
 ```
 
-Conteúdo mínimo recomendado para produção:
-
-```env
-# ── Banco de dados ─────────────────────────────
-POSTGRES_USER=ferias
-POSTGRES_PASSWORD=SenhaForteAqui123
-POSTGRES_DB=ferias
-
-# ── Backend ────────────────────────────────────
-# OBRIGATÓRIO: troque por uma string aleatória longa
-ENVIRONMENT=production
-SECRET_KEY=cole-aqui-uma-chave-de-64-caracteres-ou-mais-gerada-aleatoriamente
-CREDENTIALS_ENCRYPTION_KEY=cole-aqui-outra-chave-longa-para-criptografar-credenciais
-ACCESS_TOKEN_EXPIRE_MINUTES=480
-COOKIE_SECURE=false
-BACKEND_PORT=8000
-UPLOAD_DIR=/app/uploads
-ADMIN_NAME=Administrador
-ADMIN_EMAIL=admin@sistema.com
-ADMIN_PASSWORD=troque-por-uma-senha-forte
-
-# ── Frontend ───────────────────────────────────
-# Troque pelo IP ou domínio público do servidor
-VITE_API_URL=/api
-FRONTEND_URL=http://SEU_IP_OU_DOMINIO
-FRONTEND_PORT=80
-```
+`POSTGRES_PASSWORD`, `SECRET_KEY` e `CREDENTIALS_ENCRYPTION_KEY` são obrigatórios — o `docker compose up` falha imediatamente com uma mensagem clara se algum deles não estiver definido no `.env`. Veja a lista completa de variáveis e o significado de cada uma no [DEPLOY.md](DEPLOY.md#variáveis-de-ambiente).
 
 > **Dica:** gere uma `SECRET_KEY` segura com:
 > ```bash
@@ -379,11 +355,12 @@ Aguarde o processo concluir (~2-3 minutos na primeira vez). O Docker irá:
 # Ver status dos containers
 docker compose ps
 
-# Saída esperada:
-# NAME              STATUS          PORTS
-# ferias-db         Up (healthy)    5432/tcp
-# ferias-backend    Up              0.0.0.0:8000->8000/tcp
-# ferias-frontend   Up              0.0.0.0:80->80/tcp
+# Saída esperada (o Compose gera o nome dos containers automaticamente,
+# a partir do nome do projeto/stack — ex.: onrtdpjworkspace-db-1):
+# NAME                          SERVICE    STATUS          PORTS
+# <projeto>-db-1                db         Up (healthy)    5432/tcp
+# <projeto>-backend-1           backend    Up (healthy)    0.0.0.0:8000->8000/tcp
+# <projeto>-frontend-1          frontend   Up (healthy)    0.0.0.0:80->80/tcp
 ```
 
 ```bash
@@ -476,21 +453,24 @@ server {
 | Variável | Descrição | Padrão |
 |----------|-----------|--------|
 | `POSTGRES_USER` | Usuário do banco | `ferias` |
-| `POSTGRES_PASSWORD` | Senha do banco | `ferias` |
+| `POSTGRES_PASSWORD` | Senha do banco (**obrigatório**, sem valor padrão) | — |
 | `POSTGRES_DB` | Nome do banco | `ferias` |
 | `ENVIRONMENT` | Ambiente da aplicação (`production` no Docker) | `production` |
-| `SECRET_KEY` | Chave de assinatura JWT (**trocar em produção!**) | `troque-esta-chave-em-producao` |
-| `CREDENTIALS_ENCRYPTION_KEY` | Chave usada para criptografar senhas compartilhadas | — |
+| `SECRET_KEY` | Chave de assinatura JWT (**obrigatório em produção**) | — |
+| `CREDENTIALS_ENCRYPTION_KEY` | Chave usada para criptografar senhas compartilhadas (**obrigatório em produção**) | — |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Duração da sessão em minutos | `480` (8h) |
 | `COOKIE_SECURE` | Exige HTTPS para o cookie de sessão | `true` em HTTPS; `false` em HTTP controlado |
 | `ADMIN_NAME` | Nome do administrador inicial criado no primeiro startup | `Administrador` |
 | `ADMIN_EMAIL` | E-mail do administrador inicial | — |
 | `ADMIN_PASSWORD` | Senha do administrador inicial | — |
 | `VITE_API_URL` | URL usada pelo frontend para acessar a API | `/api` no Docker |
-| `FRONTEND_URL` | URL do frontend (CORS) | `http://chat-server` |
+| `FRONTEND_URL` | URL pública do frontend, usada como origem liberada no CORS | `http://localhost` |
+| `CORS_ORIGINS` | Lista opcional de origens extras liberadas no CORS, separadas por vírgula. Quando vazio, usa apenas `FRONTEND_URL` | — |
 | `BACKEND_PORT` | Porta exposta do backend | `8000` |
 | `FRONTEND_PORT` | Porta exposta do frontend | `80` |
 | `UPLOAD_DIR` | Pasta interna onde documentos enviados sao salvos | `/app/uploads` |
+
+> `POSTGRES_PASSWORD`, `SECRET_KEY` e `CREDENTIALS_ENCRYPTION_KEY` não têm valor padrão no `docker-compose.yml` — o `docker compose up` falha com uma mensagem clara se algum deles não estiver definido no `.env`. Isso evita subir o sistema em produção com segredos fracos ou previsíveis.
 
 ### Backend — `backend/.env` (desenvolvimento local)
 
@@ -732,9 +712,9 @@ Em produção com Docker, use `VITE_API_URL=/api`; o Nginx encaminha as requisi�
 
 ### Erro de CORS
 
-O backend aceita apenas a origem configurada em `FRONTEND_URL`. Se ocorrer erro de CORS, confira se `FRONTEND_URL` aponta para a URL usada no navegador e se `VITE_API_URL` aponta para a API sem barra final.
+O backend aceita por padrão apenas a origem configurada em `FRONTEND_URL`. Se precisar liberar mais de uma origem (ex.: um domínio e um subdomínio), use `CORS_ORIGINS` com uma lista separada por vírgula. Se ocorrer erro de CORS, confira se `FRONTEND_URL`/`CORS_ORIGINS` apontam para a URL usada no navegador e se `VITE_API_URL` aponta para a API sem barra final.
 
-### Container `ferias-backend` reinicia em loop
+### Container do backend reinicia em loop
 
 O backend depende do banco estar saudável. Veja os logs do banco:
 ```bash
@@ -779,7 +759,8 @@ Colunas: `Data | Ação | Usuário | Detalhes`
 - [Referência completa da API](docs/API.md)
 - [Patrimônios e autorizações de equipamentos](docs/PATRIMONIOS-E-AUTORIZACOES.md)
 - [Guia do Usuário](docs/GUIA-USUARIO.md)
-- [Deploy detalhado em servidor](docs/DOCKER-SERVIDOR.md)
+- [Deploy detalhado em servidor (Docker Compose manual)](docs/DOCKER-SERVIDOR.md)
+- [Deploy via Portainer (Repository/GitOps), local e rollback](DEPLOY.md)
 
 ---
 
