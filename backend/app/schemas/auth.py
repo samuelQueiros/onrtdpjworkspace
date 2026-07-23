@@ -14,6 +14,7 @@ class AuthUserOut(BaseModel):
     role: str
     dias_totais: int
     dias_restantes: int
+    dias_usados_total: int = 0
     departamento: Optional[AuthDepartamentoOut] = None
     data_admissao: Optional[str] = None
     data_aniversario: Optional[str] = None

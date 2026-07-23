@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from sqlalchemy.orm import Session
 
 from app.repositories import relatorios_repository
-from app.services.ferias_service import get_ciclo_atual
+from app.services.ferias_service import calcular_saldo, get_ciclo_atual
 
 
 def formatar_ferias_periodo(ferias) -> dict:
@@ -48,7 +48,7 @@ def relatorio_colaboradores(db: Session) -> dict:
                 "departamento": departamento,
                 "dias_totais": user.dias_totais,
                 "dias_usados": dias_usados,
-                "dias_restantes": user.dias_totais - dias_usados,
+                "dias_restantes": calcular_saldo(db, user),
                 "ciclo_inicio": ciclo_inicio,
                 "ciclo_fim": ciclo_fim,
                 "ferias": [formatar_ferias_ciclo(f) for f in ferias_ciclo],

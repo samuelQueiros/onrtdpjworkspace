@@ -84,6 +84,7 @@ export default function Usuarios() {
       }
       if (editing) {
         if (form.senha) payload.senha = form.senha
+        payload.saldo_manual_dias = form.saldo_manual_dias === '' ? null : Number(form.saldo_manual_dias)
         await api.editarUsuario(editing, payload)
         toast.success('Usuário atualizado com sucesso.')
       } else {
@@ -127,6 +128,7 @@ export default function Usuarios() {
         cpf_titular: maskCpf(sensitive.dados_bancarios?.cpf_titular),
       },
       cargo: user.cargo || '',
+      saldo_manual_dias: user.saldo_manual_dias ?? '',
       })
       setModalOpen(true)
     } catch (error) {

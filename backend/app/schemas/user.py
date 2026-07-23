@@ -101,6 +101,7 @@ class UserUpdate(BaseModel):
     dados_bancarios: Optional[DadosBancarios] = None
     cargo: Optional[str] = Field(default=None, max_length=100)
     cpf: Optional[str] = Field(default=None, min_length=11, max_length=14)
+    saldo_manual_dias: Optional[int] = Field(default=None, ge=0, le=3650)
 
     @field_validator("nome", "telefone", "telefone_emergencia", "telefone_emergencia_2", "cargo", mode="before")
     @classmethod
@@ -121,6 +122,17 @@ class UserConfigUpdate(BaseModel):
     email: Optional[EmailStr] = None
     senha_atual: Optional[str] = None
     nova_senha: Optional[str] = Field(default=None, min_length=8, max_length=128)
+    telefone: Optional[str] = Field(default=None, max_length=30)
+    telefone_emergencia: Optional[str] = Field(default=None, max_length=30)
+    telefone_emergencia_2: Optional[str] = Field(default=None, max_length=30)
+
+    @field_validator("telefone", "telefone_emergencia", "telefone_emergencia_2", mode="before")
+    @classmethod
+    def normalizar_telefones(cls, valor):
+        if valor is None:
+            return None
+        texto = " ".join(str(valor).split())
+        return texto or None
 
 
 class UserOut(BaseModel):
@@ -159,6 +171,7 @@ class UserResponse(BaseModel):
     role: str
     dias_totais: int
     dias_restantes: int
+    dias_usados_total: int = 0
     departamento_id: Optional[int] = None
     departamento: Optional[UserDepartamentoOut] = None
     data_admissao: Optional[date] = None
@@ -168,6 +181,7 @@ class UserResponse(BaseModel):
     cpf_mascarado: Optional[str] = None
     cargo: Optional[str] = None
     ativo: bool = True
+    saldo_manual_dias: Optional[int] = None
     criado_em: datetime
 
 
@@ -176,6 +190,23 @@ class UserSensitiveResponse(BaseModel):
     telefone_emergencia: Optional[str] = None
     telefone_emergencia_2: Optional[str] = None
     endereco: Optional[Endereco] = None
+    dados_bancarios: Optional[DadosBancarios] = None
+
+
+class MeuPerfilOut(BaseModel):
+    id: int
+    nome: str
+    email: str
+    role: str
+    cor: Optional[str] = None
+    cargo: Optional[str] = None
+    departamento: Optional[UserDepartamentoOut] = None
+    data_admissao: Optional[date] = None
+    data_aniversario: Optional[date] = None
+    cpf: Optional[str] = None
+    telefone: Optional[str] = None
+    telefone_emergencia: Optional[str] = None
+    telefone_emergencia_2: Optional[str] = None
     dados_bancarios: Optional[DadosBancarios] = None
 
 

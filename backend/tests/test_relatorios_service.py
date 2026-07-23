@@ -32,12 +32,14 @@ class RelatoriosServiceTests(unittest.TestCase):
             patch("app.services.relatorios_service.relatorios_repository.listar_ferias_aprovadas_ciclo", return_value=[ferias]),
             patch("app.services.relatorios_service.relatorios_repository.listar_ferias_acordo_aprovadas", return_value=[]),
             patch("app.services.relatorios_service.relatorios_repository.listar_ferias_pendentes_usuario", return_value=[]),
+            patch("app.services.relatorios_service.calcular_saldo", return_value=25),
         ):
             response = relatorios_service.relatorio_colaboradores(SimpleNamespace())
 
         colaborador = response["colaboradores"][0]
         self.assertEqual(colaborador["nome"], "Gabriel")
         self.assertEqual(colaborador["dias_usados"], 5)
+        self.assertEqual(colaborador["dias_restantes"], 25)
         self.assertEqual(colaborador["ferias"][0]["id"], 10)
 
     def test_dashboard_admin_monta_totais_e_listas(self):

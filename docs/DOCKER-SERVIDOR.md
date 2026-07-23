@@ -25,16 +25,18 @@ ferias_data:/var/lib/postgresql/data
 
 Isso evita perder o banco ao recriar containers e deixa os arquivos acessiveis diretamente na maquina em `uploads/`. A porta do PostgreSQL nao e publicada no host por padrao; o backend acessa o banco pela rede interna do Docker usando o hostname `db`.
 
-Os documentos sao organizados dentro da pasta `uploads/` por envio administrativo e recebimento:
+Os documentos sao organizados dentro da pasta `uploads/` por envio administrativo, recebimento e termos definitivos:
 
 ```text
 uploads/enviados/nome-administrador/nome-colaborador/arquivo
 uploads/recebidos/nome-colaborador/arquivo
+uploads/termos-equipamentos/nome-colaborador/solicitacao-123/arquivo.pdf
 ```
 
 Quando um administrador envia um contracheque, o arquivo fica apenas em `uploads/enviados/nome-administrador/nome-colaborador/arquivo`.
 Quando uma pessoa envia um atestado, inclusive se ela possuir perfil administrador, o arquivo fica apenas em `uploads/recebidos/nome-colaborador/arquivo`.
 Cada upload gera somente um arquivo fisico.
+Termos de equipamentos sao gerados pelo backend depois da entrega e do aceite. Cada solicitacao reutiliza um unico caminho e um unico registro de documento; a regeneracao nao cria copias no historico. O HTML exato do termo aceito fica cifrado no banco em `termo_html_snapshot_criptografado` e e descriptografado somente durante uma regeneracao autorizada.
 
 ## Arquivos Docker
 
@@ -210,6 +212,7 @@ Importante:
 - Se alterar `VITE_API_URL`, e necessario rebuildar o frontend.
 - `UPLOAD_DIR` deve apontar para a pasta interna usada pelo container, normalmente `/app/uploads`.
 - No servidor, os arquivos ficam disponiveis na pasta `uploads/` da raiz do projeto.
+- `CREDENTIALS_ENCRYPTION_KEY` protege CPF, enderecos novos/atualizados, dados bancarios e o snapshot HTML historico dos termos. Enderecos legados continuam legiveis para migracao gradual. Guarde a chave em cofre e no plano de recuperacao; troca-la sem migracao torna dados cifrados ilegíveis.
 - O PostgreSQL fica acessivel apenas para os containers da aplicacao. Para acessar o banco manualmente, use `docker compose exec db psql -U ferias -d ferias`.
 
 ## Subir o Sistema
@@ -227,6 +230,10 @@ alembic upgrade head
 ```
 
 Isso aplica as migrations do banco antes de iniciar a API FastAPI.
+
+A migration do modulo e `20260713_0007`. Ela cria inventario, vinculos, solicitacoes, snapshots, versoes do termo e campos protegidos de CPF. Usuarios antigos podem continuar sem CPF, mas precisam completar o cadastro antes de solicitar equipamentos.
+
+O backend agora usa WeasyPrint para PDF. As bibliotecas Pango, HarfBuzz e fontes sao instaladas durante o build da imagem; por isso esta atualizacao exige `--build` e nao apenas `docker compose restart`.
 
 Verifique:
 
@@ -329,11 +336,13 @@ docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -
 
 Esse comando gera um dump PostgreSQL em formato customizado.
 
-Os documentos ficam na pasta `uploads/`. Para gerar um arquivo compactado com os uploads:
+Os documentos, inclusive os termos definitivos, ficam na pasta `uploads/`. Para gerar um arquivo compactado com os uploads:
 
 ```bash
 tar czf backups/documentos-$(date +%F).tar.gz uploads
 ```
+
+Preserve tambem `CREDENTIALS_ENCRYPTION_KEY` em um cofre separado. O dump do banco sem essa chave nao permite descriptografar CPF, snapshots HTML dos termos, dados bancarios ou outras informacoes protegidas. Sempre associe o dump PostgreSQL e o arquivo de uploads do mesmo ciclo de backup.
 
 ## Restaurar Backup
 
@@ -520,6 +529,10 @@ docker compose up -d --build
 - [ ] Testar solicitacao de ferias.
 - [ ] Testar calendario de disponibilidade.
 - [ ] Testar exportacao de logs e relatorios.
+- [ ] Testar cadastro, vinculo e manutencao de patrimonio.
+- [ ] Testar aprovacao, entrega e aceite com geracao/visualizacao do PDF.
+- [ ] Testar devolucao e recuperacao por regeneracao do termo.
 - [ ] Configurar backup do volume `ferias_data`.
 - [ ] Configurar backup da pasta `uploads/`.
+- [ ] Guardar e testar a recuperacao de `CREDENTIALS_ENCRYPTION_KEY`.
 - [ ] Configurar HTTPS para uso real.

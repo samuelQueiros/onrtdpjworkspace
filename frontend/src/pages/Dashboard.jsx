@@ -28,8 +28,7 @@ export default function Dashboard() {
       ])
       if (!active) return
       if (baseResults[0].status === 'fulfilled') {
-        const result = baseResults[0].value
-        setFerias(result?.ferias || result || [])
+        setFerias(baseResults[0].value || [])
       }
       if (baseResults[2].status === 'fulfilled') setAvisos(baseResults[2].value || [])
 

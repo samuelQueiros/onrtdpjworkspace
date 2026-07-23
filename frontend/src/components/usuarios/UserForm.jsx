@@ -22,6 +22,7 @@ export const blankUserForm = {
     banco: '', agencia: '', conta: '', cpf_titular: '', nome_titular: '', chave_pix: '',
   },
   cargo: '',
+  saldo_manual_dias: '',
 }
 
 export default function UserForm({
@@ -72,7 +73,7 @@ export default function UserForm({
       ['Nome do titular', form.dados_bancarios.nome_titular, 'user-nome-titular', 'banking'],
       ['Chave Pix', form.dados_bancarios.chave_pix, 'user-chave-pix', 'banking'],
       ['Cor de identificação', form.cor, 'user-cor'],
-      ['Dias totais', form.dias_totais, 'user-dias-totais'],
+      ['Dias de férias por ano', form.dias_totais, 'user-dias-totais'],
       ['Data de admissão', form.data_admissao, 'user-data-admissao'],
       ['Data de aniversário', form.data_aniversario, 'user-data-aniversario'],
     ]
@@ -325,7 +326,7 @@ export default function UserForm({
 
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="user-dias-totais">Dias totais</label>
+            <label htmlFor="user-dias-totais">Dias de férias por ano</label>
             <input
               id="user-dias-totais"
               name="dias_totais"
@@ -335,6 +336,7 @@ export default function UserForm({
               onChange={event => updateForm({ dias_totais: event.target.value })}
               required
             />
+            <small className="form-hint">Concedidos a cada ano completo de empresa (acumulativo).</small>
           </div>
           <div className="form-group">
             <label htmlFor="user-data-admissao">Data de admissão</label>
@@ -357,6 +359,26 @@ export default function UserForm({
             />
           </div>
         </div>
+
+        {editing && (
+          <div className="form-group">
+            <label htmlFor="user-saldo-manual">Saldo correto de férias (dias)</label>
+            <input
+              id="user-saldo-manual"
+              name="saldo_manual_dias"
+              type="number"
+              min="0"
+              placeholder="Calculado automaticamente"
+              value={form.saldo_manual_dias}
+              onChange={event => updateForm({ saldo_manual_dias: event.target.value })}
+            />
+            <small className="form-hint">
+              Defina aqui o saldo de férias correto do colaborador (ex.: 80) caso o valor calculado automaticamente
+              esteja errado — isso também regulariza eventuais "férias vencidas" indicadas por engano.
+              Deixe em branco para o sistema continuar calculando automaticamente.
+            </small>
+          </div>
+        )}
 
         <div className="button-row">
           <button className="btn btn-outline" type="button" onClick={onCancel}>Cancelar</button>

@@ -58,11 +58,21 @@ class FeriasOut(BaseModel):
         from_attributes = True
 
 
+class FeriasVencidaOut(BaseModel):
+    ano_referencia: int
+    dias: int
+    ciclo_inicio: date
+    ciclo_fim: date
+
+
 class MinhasFeriasOut(BaseModel):
     ferias: List[FeriasOut]
     saldo: int
     ciclo_inicio: date
     ciclo_fim: date
+    dias_usados_total: int = 0
+    dias_direito_total: int = 0
+    dias_vencidos: List[FeriasVencidaOut] = []
 
 
 class FeriadoOut(BaseModel):
