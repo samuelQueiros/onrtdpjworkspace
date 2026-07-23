@@ -5,7 +5,15 @@ from app.core.security import get_current_user, require_admin
 from app.database import get_db
 from app.models.user import User
 from app.schemas.common import MensagemOut
-from app.schemas.user import AniversarianteOut, UserConfigUpdate, UserCreate, UserResponse, UserSensitiveResponse, UserUpdate
+from app.schemas.user import (
+    AniversarianteOut,
+    MeuPerfilOut,
+    UserConfigUpdate,
+    UserCreate,
+    UserResponse,
+    UserSensitiveResponse,
+    UserUpdate,
+)
 from app.services import users_service
 
 router = APIRouter(tags=["Usuarios"])
@@ -78,3 +86,11 @@ def atualizar_configuracoes(
     current_user: User = Depends(get_current_user),
 ):
     return users_service.atualizar_configuracoes(db, payload, current_user)
+
+
+@router.get("/users/me/perfil", response_model=MeuPerfilOut)
+def meu_perfil(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return users_service.meu_perfil(db, current_user)

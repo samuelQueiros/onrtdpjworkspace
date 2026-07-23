@@ -11,7 +11,8 @@ class AlertasServiceTests(unittest.TestCase):
         ferias = SimpleNamespace(
             data_inicio=date(2026, 7, 10),
             data_fim=date(2026, 7, 20),
-            usuario=SimpleNamespace(nome="Gabriel"),
+            dias_usados=11,
+            usuario=SimpleNamespace(nome="Gabriel", cargo=SimpleNamespace(nome="Analista"), data_admissao=None),
         )
         alerta = SimpleNamespace(
             id=1,
@@ -27,6 +28,85 @@ class AlertasServiceTests(unittest.TestCase):
 
         self.assertEqual(response["ferias_usuario"], "Gabriel")
         self.assertEqual(response["ferias_data_inicio"], date(2026, 7, 10))
+        self.assertEqual(response["cargo_usuario"], "Analista")
+        self.assertEqual(response["retorno_trabalho"], date(2026, 7, 21))
+
+    def test_gerar_alertas_ferias_5dias_cria_quando_nao_existe(self):
+        ferias = SimpleNamespace(
+            id=1,
+            data_inicio=date(2026, 7, 10),
+            data_fim=date(2026, 7, 20),
+            usuario=SimpleNamespace(nome="Gabriel"),
+        )
+
+        with (
+            patch(
+                "app.services.alertas_service.alertas_repository.listar_ferias_aprovadas_por_data_inicio",
+                return_value=[ferias],
+            ),
+            patch(
+                "app.services.alertas_service.alertas_repository.existe_alerta_por_ferias_e_tipo",
+                return_value=False,
+            ),
+            patch("app.services.alertas_service.alertas_repository.adicionar_alerta") as adicionar,
+            patch("app.services.alertas_service.alertas_repository.salvar_alertas") as salvar,
+        ):
+            alertas_service.gerar_alertas_ferias_5dias(SimpleNamespace(), hoje=date(2026, 7, 5))
+
+        adicionar.assert_called_once()
+        self.assertEqual(adicionar.call_args[0][1].tipo, alertas_service.TIPO_FERIAS_5_DIAS)
+        salvar.assert_called_once()
+
+    def test_gerar_alertas_ferias_5dias_nao_duplica(self):
+        ferias = SimpleNamespace(
+            id=1,
+            data_inicio=date(2026, 7, 10),
+            data_fim=date(2026, 7, 20),
+            usuario=None,
+        )
+
+        with (
+            patch(
+                "app.services.alertas_service.alertas_repository.listar_ferias_aprovadas_por_data_inicio",
+                return_value=[ferias],
+            ),
+            patch(
+                "app.services.alertas_service.alertas_repository.existe_alerta_por_ferias_e_tipo",
+                return_value=True,
+            ),
+            patch("app.services.alertas_service.alertas_repository.adicionar_alerta") as adicionar,
+            patch("app.services.alertas_service.alertas_repository.salvar_alertas") as salvar,
+        ):
+            alertas_service.gerar_alertas_ferias_5dias(SimpleNamespace(), hoje=date(2026, 7, 5))
+
+        adicionar.assert_not_called()
+        salvar.assert_called_once()
+
+    def test_gerar_alertas_ferias_4dias_cria_quando_nao_existe(self):
+        ferias = SimpleNamespace(
+            id=1,
+            data_inicio=date(2026, 7, 9),
+            data_fim=date(2026, 7, 19),
+            usuario=SimpleNamespace(nome="Gabriel"),
+        )
+
+        with (
+            patch(
+                "app.services.alertas_service.alertas_repository.listar_ferias_aprovadas_por_data_inicio",
+                return_value=[ferias],
+            ),
+            patch(
+                "app.services.alertas_service.alertas_repository.existe_alerta_por_ferias_e_tipo",
+                return_value=False,
+            ),
+            patch("app.services.alertas_service.alertas_repository.adicionar_alerta") as adicionar,
+            patch("app.services.alertas_service.alertas_repository.salvar_alertas") as salvar,
+        ):
+            alertas_service.gerar_alertas_ferias_4dias(SimpleNamespace(), hoje=date(2026, 7, 5))
+
+        adicionar.assert_called_once()
+        self.assertEqual(adicionar.call_args[0][1].tipo, alertas_service.TIPO_FERIAS_4_DIAS)
+        salvar.assert_called_once()
 
     def test_gerar_alertas_contabilidade_cria_quando_nao_existe(self):
         ferias = SimpleNamespace(

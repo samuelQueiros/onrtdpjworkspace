@@ -8,4 +8,5 @@ export const usersService = {
   obterDadosSensiveisUsuario: id => req('GET', `/users/${id}/dados-sensiveis`),
   excluirUsuario: id => req('DELETE', `/users/${id}`),
   reativarUsuario: id => req('POST', `/users/${id}/reativar`),
+  meuPerfil: () => req('GET', '/users/me/perfil'),
 }

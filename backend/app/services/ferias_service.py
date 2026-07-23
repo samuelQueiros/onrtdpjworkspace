@@ -25,6 +25,9 @@ def bloquear_regras_ferias(db: Session, user: User) -> None:
         db.execute(text("SELECT pg_advisory_xact_lock(:chave)"), {"chave": chave})
 
 
+DIAS_INICIO_PERMITIDOS = (0, 1, 2)  # segunda, terca, quarta-feira
+
+
 def feriados_br(anos: set) -> set:
     feriados: set = set()
     for ano in anos:
@@ -32,12 +35,14 @@ def feriados_br(anos: set) -> set:
     return feriados
 
 
-def primeiro_descanso_na_semana(ref: date, feriados: set) -> int:
-    segunda = ref - timedelta(days=ref.weekday())
-    for delta in range(5):
-        if (segunda + timedelta(days=delta)) in feriados:
-            return delta
-    return 5
+def feriado_bloqueante(data_inicio: date, feriados: set) -> tuple[date, int] | None:
+    """Retorna (data_do_feriado, offset) se `data_inicio` for o proprio feriado
+    ou cair nos dois dias imediatamente anteriores a ele."""
+    for offset in (0, 1, 2):
+        candidato = data_inicio + timedelta(days=offset)
+        if candidato in feriados:
+            return candidato, offset
+    return None
 
 
 def verificar_regras_data(data_inicio: date, data_fim: date) -> None:
@@ -49,26 +54,31 @@ def verificar_regras_data(data_inicio: date, data_fim: date) -> None:
     if data_inicio < hoje:
         raise HTTPException(status_code=400, detail="A data de inicio nao pode ser anterior a hoje.")
 
-    feriados = feriados_br({data_inicio.year, data_fim.year})
     dia = data_inicio.weekday()
+    permitidos = [NOMES_DIA[d] for d in DIAS_INICIO_PERMITIDOS]
 
-    if dia >= 5:
-        raise HTTPException(status_code=400, detail=f"Ferias nao podem iniciar em {NOMES_DIA[dia]} (dia de descanso).")
+    if dia not in DIAS_INICIO_PERMITIDOS:
+        motivo = "dia de descanso semanal remunerado (DSR)" if dia >= 5 else "as ferias somente podem iniciar as segunda, terca ou quarta-feira"
+        raise HTTPException(
+            status_code=400,
+            detail=f"Ferias nao podem iniciar em {NOMES_DIA[dia]}: {motivo}. Dias permitidos: {', '.join(permitidos)}.",
+        )
 
-    limite = primeiro_descanso_na_semana(data_inicio, feriados)
-    bloqueados = {d for d in (limite - 2, limite - 1, limite) if 0 <= d <= 4}
+    feriados = feriados_br({data_inicio.year, data_inicio.year + 1})
+    resultado = feriado_bloqueante(data_inicio, feriados)
 
-    if dia in bloqueados:
-        if limite < 5:
-            segunda = data_inicio - timedelta(days=data_inicio.weekday())
-            feriado_data = (segunda + timedelta(days=limite)).strftime("%d/%m/%Y")
-            motivo = f"ha um feriado em {NOMES_DIA[limite]} ({feriado_data}) nesta semana, antecipando o periodo de descanso"
-        else:
-            motivo = "esta a menos de 48 horas do descanso semanal (sabado)"
-
-        permitidos = [NOMES_DIA[d] for d in range(5) if d not in bloqueados]
-        detalhe_permitidos = f" Dias permitidos nesta semana: {', '.join(permitidos)}." if permitidos else " Nao ha dia permitido nesta semana."
-        raise HTTPException(status_code=400, detail=f"Ferias nao podem iniciar em {NOMES_DIA[dia]}: {motivo}.{detalhe_permitidos}")
+    if resultado:
+        feriado_data, offset = resultado
+        feriado_str = feriado_data.strftime("%d/%m/%Y")
+        motivo = (
+            f"e um feriado ({feriado_str})"
+            if offset == 0
+            else f"esta nos dois dias imediatamente anteriores ao feriado de {feriado_str}"
+        )
+        raise HTTPException(
+            status_code=400,
+            detail=f"Ferias nao podem iniciar em {NOMES_DIA[dia]}: {motivo}. Dias permitidos: {', '.join(permitidos)}.",
+        )
 
 
 def calcular_dias(data_inicio: date, data_fim: date) -> int:
@@ -136,11 +146,82 @@ def verificar_sobreposicao_departamento(
     return False
 
 
+def _somar_anos(data: date, anos: int) -> date:
+    try:
+        return data.replace(year=data.year + anos)
+    except ValueError:
+        return data.replace(year=data.year + anos, day=28)
+
+
+def calcular_anos_completos(data_admissao, hoje: date | None = None) -> int:
+    """Anos cheios de empresa (períodos aquisitivos já fechados)."""
+    hoje = hoje or date.today()
+    if not data_admissao or data_admissao > hoje:
+        return 0
+
+    anos = hoje.year - data_admissao.year
+    aniversario = _somar_anos(data_admissao, anos)
+    if aniversario > hoje:
+        anos -= 1
+    return max(anos, 0)
+
+
+def _datas_do_ano_aquisitivo(data_admissao, indice: int) -> tuple:
+    inicio = _somar_anos(data_admissao, indice - 1)
+    fim = _somar_anos(data_admissao, indice) - timedelta(days=1)
+    return inicio, fim
+
+
+def calcular_extrato_saldo(db: Session, user: User, excluir_ferias_id: int | None = None) -> dict:
+    """Saldo cumulativo: cada ano completo de empresa concede `dias_totais` dias.
+
+    Dias de anos aquisitivos ja encerrados (ha pelo menos mais um ano completo
+    desde a concessao) e ainda nao utilizados sao reportados como "vencidos".
+    """
+    anos_completos = calcular_anos_completos(user.data_admissao)
+    dias_por_ano = user.dias_totais
+    dias_direito_total = anos_completos * dias_por_ano
+    tem_override_manual = user.saldo_manual_dias is not None
+
+    if tem_override_manual:
+        # O administrador definiu o saldo correto diretamente. Isso substitui
+        # tambem a quebra automatica por ano (nao ha como saber, a partir de
+        # um numero unico, quais anos especificos ainda estariam vencidos).
+        dias_usados_total = dias_direito_total - user.saldo_manual_dias
+    else:
+        ferias_contabeis = ferias_repository.listar_ferias_para_saldo_total(db, user.id, excluir_ferias_id)
+        dias_usados_total = sum(f.dias_usados for f in ferias_contabeis)
+
+    vencidas = []
+    if not tem_override_manual:
+        restante = dias_usados_total
+        for indice in range(1, anos_completos + 1):
+            consumido = min(dias_por_ano, max(restante, 0))
+            restante -= consumido
+            saldo_da_cota = dias_por_ano - consumido
+            if indice < anos_completos and saldo_da_cota > 0:
+                ciclo_inicio, ciclo_fim = _datas_do_ano_aquisitivo(user.data_admissao, indice)
+                vencidas.append(
+                    {
+                        "ano_referencia": indice,
+                        "dias": saldo_da_cota,
+                        "ciclo_inicio": ciclo_inicio,
+                        "ciclo_fim": ciclo_fim,
+                    }
+                )
+
+    return {
+        "saldo": dias_direito_total - dias_usados_total,
+        "dias_direito_total": dias_direito_total,
+        "dias_usados_total": dias_usados_total,
+        "anos_completos": anos_completos,
+        "dias_vencidos_total": sum(v["dias"] for v in vencidas),
+        "vencidas": vencidas,
+    }
+
+
 def calcular_saldo(db: Session, user: User, excluir_ferias_id: int | None = None) -> int:
-    ciclo_inicio, ciclo_fim = get_ciclo_atual(user.data_admissao)
-    ferias = ferias_repository.listar_ferias_para_saldo(db, user.id, ciclo_inicio, ciclo_fim, excluir_ferias_id)
-    total_usado = sum(f.dias_usados for f in ferias)
-    return user.dias_totais - total_usado
+    return calcular_extrato_saldo(db, user, excluir_ferias_id)["saldo"]
 
 
 def formatar_ferias(ferias: Ferias) -> dict:
@@ -183,11 +264,15 @@ def listar_feriados(year: int) -> list[dict]:
 def minhas_ferias(db: Session, current_user: User) -> dict:
     ferias = ferias_repository.listar_ferias_por_usuario(db, current_user.id)
     ciclo_inicio, ciclo_fim = get_ciclo_atual(current_user.data_admissao)
+    extrato = calcular_extrato_saldo(db, current_user)
     return {
         "ferias": [formatar_ferias(f) for f in ferias],
-        "saldo": calcular_saldo(db, current_user),
+        "saldo": extrato["saldo"],
         "ciclo_inicio": ciclo_inicio,
         "ciclo_fim": ciclo_fim,
+        "dias_usados_total": extrato["dias_usados_total"],
+        "dias_direito_total": extrato["dias_direito_total"],
+        "dias_vencidos": extrato["vencidas"],
     }
 
 

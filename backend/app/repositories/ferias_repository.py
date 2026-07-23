@@ -48,6 +48,18 @@ def listar_ferias_para_saldo(db: Session, user_id: int, ciclo_inicio, ciclo_fim,
     return query.all()
 
 
+def listar_ferias_para_saldo_total(db: Session, user_id: int, excluir_ferias_id: int | None = None):
+    """Todas as ferias (de qualquer ciclo) que contam contra o saldo acumulado."""
+    query = db.query(Ferias).filter(
+        Ferias.user_id == user_id,
+        Ferias.ferias_acordo == False,  # noqa: E712
+        Ferias.status.in_(["aprovada", "pendente"]),
+    )
+    if excluir_ferias_id:
+        query = query.filter(Ferias.id != excluir_ferias_id)
+    return query.all()
+
+
 def listar_ferias_conflitantes(
     db: Session,
     user_id: int,

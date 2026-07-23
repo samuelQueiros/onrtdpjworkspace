@@ -14,6 +14,11 @@ class AlertaOut(BaseModel):
     ferias_data_inicio: Optional[date]
     ferias_data_fim: Optional[date]
     ferias_usuario: Optional[str]
+    ferias_dias_usados: Optional[int] = None
+    cargo_usuario: Optional[str] = None
+    ciclo_inicio: Optional[date] = None
+    ciclo_fim: Optional[date] = None
+    retorno_trabalho: Optional[date] = None
 
     class Config:
         from_attributes = True

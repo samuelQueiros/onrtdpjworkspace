@@ -62,10 +62,11 @@ class UsersServiceTests(unittest.TestCase):
             cpf_criptografado="cpf-criptografado",
             cargo=None,
             ativo=True,
+            saldo_manual_dias=None,
             criado_em=None,
         )
         with patch("app.services.users_service.descriptografar_dado_sensivel", return_value="52998224725"):
-            resultado = users_service.formatar_usuario(user, SimpleNamespace(), dias_restantes=30)
+            resultado = users_service.formatar_usuario(user, SimpleNamespace(), dias_restantes=30, dias_usados_total=0)
 
         self.assertEqual(resultado["cpf_mascarado"], "***.***.***-25")
         self.assertNotIn("cpf", resultado)
@@ -180,6 +181,69 @@ class UsersServiceTests(unittest.TestCase):
 
         self.assertEqual(response, [{"nome": "Pessoa A", "data_aniversario": usuarios[0].data_aniversario}])
 
+    def test_listar_usuarios_calcula_saldo_cumulativo_em_lote(self):
+        hoje = date.today()
+        data_admissao = date(hoje.year - 2, 1, 1)
+        user = SimpleNamespace(
+            id=1,
+            nome="Gabriel",
+            email="gabriel@sistema.com",
+            role="user",
+            dias_totais=30,
+            departamento_id=None,
+            departamento=None,
+            data_admissao=data_admissao,
+            data_aniversario=None,
+            cor=None,
+            telefone=None,
+            cpf_criptografado=None,
+            cargo=None,
+            ativo=True,
+            saldo_manual_dias=None,
+            criado_em=None,
+        )
+        ferias_fake = SimpleNamespace(user_id=1, dias_usados=10)
+
+        with (
+            patch("app.services.users_service.users_repository.listar_usuarios", return_value=[user]),
+            patch("app.services.users_service.users_repository.listar_ferias_para_saldos", return_value=[ferias_fake]),
+        ):
+            resultado = users_service.listar_usuarios(SimpleNamespace())
+
+        self.assertEqual(resultado[0]["dias_restantes"], 50)
+        self.assertEqual(resultado[0]["dias_usados_total"], 10)
+
+    def test_listar_usuarios_respeita_override_manual_de_saldo(self):
+        hoje = date.today()
+        data_admissao = date(hoje.year - 2, 1, 1)
+        user = SimpleNamespace(
+            id=1,
+            nome="Gabriel",
+            email="gabriel@sistema.com",
+            role="user",
+            dias_totais=30,
+            departamento_id=None,
+            departamento=None,
+            data_admissao=data_admissao,
+            data_aniversario=None,
+            cor=None,
+            telefone=None,
+            cpf_criptografado=None,
+            cargo=None,
+            ativo=True,
+            saldo_manual_dias=80,
+            criado_em=None,
+        )
+        ferias_fake = SimpleNamespace(user_id=1, dias_usados=10)
+
+        with (
+            patch("app.services.users_service.users_repository.listar_usuarios", return_value=[user]),
+            patch("app.services.users_service.users_repository.listar_ferias_para_saldos", return_value=[ferias_fake]),
+        ):
+            resultado = users_service.listar_usuarios(SimpleNamespace())
+
+        self.assertEqual(resultado[0]["dias_restantes"], 80)
+
     def test_atualizar_configuracoes_exige_senha_atual_para_trocar_senha(self):
         current_user = SimpleNamespace(id=1, senha_hash="hash")
         payload = UserConfigUpdate(nova_senha="nova-senha")
@@ -198,6 +262,67 @@ class UsersServiceTests(unittest.TestCase):
                 users_service.atualizar_configuracoes(SimpleNamespace(), payload, current_user)
 
         self.assertEqual(exc.exception.status_code, 400)
+
+    def test_atualizar_configuracoes_atualiza_telefones_do_proprio_perfil(self):
+        current_user = SimpleNamespace(
+            id=1,
+            senha_hash="hash",
+            nome="Gabriel",
+            email="gabriel@sistema.com",
+            telefone=None,
+            telefone_emergencia=None,
+            telefone_emergencia_2=None,
+        )
+        payload = UserConfigUpdate(
+            telefone="(61) 99999-0000",
+            telefone_emergencia="(61) 98888-0000",
+            telefone_emergencia_2="(61) 97777-0000",
+        )
+
+        with (
+            patch("app.services.users_service.users_repository.salvar_usuario"),
+            patch("app.services.users_service.formatar_usuario", return_value={"id": 1}),
+        ):
+            users_service.atualizar_configuracoes(SimpleNamespace(), payload, current_user)
+
+        self.assertEqual(current_user.telefone, "(61) 99999-0000")
+        self.assertEqual(current_user.telefone_emergencia, "(61) 98888-0000")
+        self.assertEqual(current_user.telefone_emergencia_2, "(61) 97777-0000")
+
+    def test_meu_perfil_combina_dados_basicos_e_sensiveis(self):
+        user = SimpleNamespace(
+            id=1,
+            nome="Gabriel",
+            email="gabriel@sistema.com",
+            role="user",
+            dias_totais=30,
+            departamento_id=None,
+            departamento=None,
+            data_admissao=None,
+            data_aniversario=None,
+            cor="#123456",
+            telefone="(61) 99999-9999",
+            telefone_emergencia="(61) 98888-8888",
+            telefone_emergencia_2=None,
+            endereco=None,
+            dados_bancarios=None,
+            cpf_criptografado="cpf-criptografado",
+            cargo=None,
+            ativo=True,
+            saldo_manual_dias=None,
+            criado_em=None,
+        )
+        with (
+            patch("app.services.users_service.calcular_dias_restantes", return_value=30),
+            patch("app.services.users_service.calcular_dias_usados", return_value=0),
+            patch("app.services.users_service.descriptografar_dado_sensivel", return_value="52998224725"),
+        ):
+            resultado = users_service.meu_perfil(SimpleNamespace(), user)
+
+        self.assertEqual(resultado["cpf"], "529.982.247-25")
+        self.assertEqual(resultado["telefone"], "(61) 99999-9999")
+        self.assertEqual(resultado["telefone_emergencia"], "(61) 98888-8888")
+        self.assertNotIn("cpf_mascarado", resultado)
 
 
 if __name__ == "__main__":

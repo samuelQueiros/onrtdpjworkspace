@@ -1,11 +1,13 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import DiasVencidosAlert from '../comum/DiasVencidosAlert'
 import { EmptyState, StatusBadge } from '../comum/PageHelpers'
 import { formatDate } from '../../utils/formatters'
 import AvisoCard from './AvisoCard'
 
 export default function UserDashboard({ user, ferias, avisos }) {
-  const usados = user ? user.dias_totais - user.dias_restantes : 0
+  const usados = user?.dias_usados_total ?? 0
+  const vencidas = (!Array.isArray(ferias) && ferias?.dias_vencidos) || []
 
   const proximas = useMemo(() => {
     const today = new Date()
@@ -22,18 +24,18 @@ export default function UserDashboard({ user, ferias, avisos }) {
         <div className="stat-card">
           <div className="stat-label">Dias restantes</div>
           <div className="stat-value">{user?.dias_restantes}</div>
-          <div className="stat-sub">de {user?.dias_totais} dias no ciclo</div>
+          <div className="stat-sub">dias acumulados disponíveis</div>
           <div className="progress-track">
             <div
               className="progress-fill green"
-              style={{ width: `${Math.max(0, (user?.dias_restantes / user?.dias_totais) * 100)}%` }}
+              style={{ width: `${Math.max(0, Math.min(100, (user?.dias_restantes / (user?.dias_restantes + usados || 1)) * 100))}%` }}
             />
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Dias usados</div>
           <div className="stat-value">{usados}</div>
-          <div className="stat-sub">dias já registrados no ciclo</div>
+          <div className="stat-sub">dias já registrados no total</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Meus períodos</div>
@@ -46,6 +48,8 @@ export default function UserDashboard({ user, ferias, avisos }) {
           <div className="stat-sub">no mural</div>
         </div>
       </section>
+
+      <DiasVencidosAlert vencidas={vencidas} />
 
       <div className="grid-2">
         <section className="card">

@@ -25,7 +25,18 @@ def calcular_dias_restantes(user: User, db: Session) -> int:
     return calcular_saldo(db, user)
 
 
-def formatar_usuario(user: User, db: Session, dias_restantes: int | None = None) -> dict:
+def calcular_dias_usados(user: User, db: Session) -> int:
+    from app.services.ferias_service import calcular_extrato_saldo
+
+    return calcular_extrato_saldo(db, user)["dias_usados_total"]
+
+
+def formatar_usuario(
+    user: User,
+    db: Session,
+    dias_restantes: int | None = None,
+    dias_usados_total: int | None = None,
+) -> dict:
     departamento = None
     if user.departamento_id:
         dep = user.departamento
@@ -38,6 +49,7 @@ def formatar_usuario(user: User, db: Session, dias_restantes: int | None = None)
         "role": user.role,
         "dias_totais": user.dias_totais,
         "dias_restantes": calcular_dias_restantes(user, db) if dias_restantes is None else dias_restantes,
+        "dias_usados_total": calcular_dias_usados(user, db) if dias_usados_total is None else dias_usados_total,
         "departamento_id": user.departamento_id,
         "departamento": departamento,
         "data_admissao": user.data_admissao,
@@ -47,6 +59,7 @@ def formatar_usuario(user: User, db: Session, dias_restantes: int | None = None)
         "cpf_mascarado": mascarar_cpf(descriptografar_dado_sensivel(user.cpf_criptografado)),
         "cargo": user.cargo.nome if user.cargo else None,
         "ativo": user.ativo,
+        "saldo_manual_dias": user.saldo_manual_dias,
         "criado_em": user.criado_em,
     }
 
@@ -153,7 +166,7 @@ def preparar_cpf(db: Session, cpf: str, excluir_user_id: int | None = None) -> t
 
 
 def listar_usuarios(db: Session) -> list[dict]:
-    from app.services.ferias_service import get_ciclo_atual
+    from app.services.ferias_service import calcular_anos_completos
 
     users = users_repository.listar_usuarios(db)
     ferias = users_repository.listar_ferias_para_saldos(db, [user.id for user in users])
@@ -163,13 +176,22 @@ def listar_usuarios(db: Session) -> list[dict]:
 
     resultado = []
     for user in users:
-        inicio, fim = get_ciclo_atual(user.data_admissao)
-        usados = sum(
-            periodo.dias_usados
-            for periodo in por_usuario.get(user.id, [])
-            if inicio <= periodo.data_inicio <= fim
+        anos_completos = calcular_anos_completos(user.data_admissao)
+        dias_direito_total = anos_completos * user.dias_totais
+        if user.saldo_manual_dias is not None:
+            dias_restantes = user.saldo_manual_dias
+            usados = dias_direito_total - dias_restantes
+        else:
+            usados = sum(periodo.dias_usados for periodo in por_usuario.get(user.id, []))
+            dias_restantes = dias_direito_total - usados
+        resultado.append(
+            formatar_usuario(
+                user,
+                db,
+                dias_restantes=dias_restantes,
+                dias_usados_total=usados,
+            )
         )
-        resultado.append(formatar_usuario(user, db, dias_restantes=user.dias_totais - usados))
     return resultado
 
 
@@ -223,6 +245,8 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
         user.email = payload.email
     if payload.dias_totais is not None:
         user.dias_totais = payload.dias_totais
+    if "saldo_manual_dias" in payload.model_fields_set:
+        user.saldo_manual_dias = payload.saldo_manual_dias
     if payload.departamento_id is not None:
         if payload.departamento_id == 0:
             user.departamento_id = None
@@ -326,6 +350,12 @@ def atualizar_configuracoes(db: Session, payload: UserConfigUpdate, current_user
     if payload.email is not None:
         validar_email_disponivel(db, payload.email, current_user.id)
         current_user.email = payload.email
+    if "telefone" in payload.model_fields_set:
+        current_user.telefone = payload.telefone
+    if "telefone_emergencia" in payload.model_fields_set:
+        current_user.telefone_emergencia = payload.telefone_emergencia
+    if "telefone_emergencia_2" in payload.model_fields_set:
+        current_user.telefone_emergencia_2 = payload.telefone_emergencia_2
 
     if payload.nova_senha is not None and payload.nova_senha.strip():
         if not payload.senha_atual:
@@ -337,3 +367,24 @@ def atualizar_configuracoes(db: Session, payload: UserConfigUpdate, current_user
 
     users_repository.salvar_usuario(db, current_user)
     return formatar_usuario(current_user, db)
+
+
+def meu_perfil(db: Session, current_user: User) -> dict:
+    dados_sensiveis = formatar_dados_sensiveis(current_user)
+    base = formatar_usuario(current_user, db)
+    return {
+        "id": base["id"],
+        "nome": base["nome"],
+        "email": base["email"],
+        "role": base["role"],
+        "cor": base["cor"],
+        "cargo": base["cargo"],
+        "departamento": base["departamento"],
+        "data_admissao": base["data_admissao"],
+        "data_aniversario": base["data_aniversario"],
+        "telefone": base["telefone"],
+        "cpf": dados_sensiveis["cpf"],
+        "telefone_emergencia": dados_sensiveis["telefone_emergencia"],
+        "telefone_emergencia_2": dados_sensiveis["telefone_emergencia_2"],
+        "dados_bancarios": dados_sensiveis["dados_bancarios"],
+    }

@@ -16,6 +16,7 @@ class User(Base):
     senha_hash = Column(String, nullable=False)
     role = Column(String, default="user")  # "user" ou "admin"
     dias_totais = Column(Integer, default=30)
+    saldo_manual_dias = Column(Integer, nullable=True, default=None)  # override manual do saldo acumulado (None = automatico)
     departamento_id = Column(Integer, ForeignKey("departamentos.id"), nullable=True)
     data_admissao = Column(Date, nullable=True)
     data_aniversario = Column(Date, nullable=True)

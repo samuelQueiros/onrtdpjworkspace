@@ -52,6 +52,13 @@
 }
 .user-modal-body::-webkit-scrollbar-thumb:hover { background: #94a3b8; background-clip: padding-box; }
 .users-table-card { width: 100%; }
+
+.users-table th:nth-child(1) { min-width: 200px; }
+.users-table th:nth-child(2) { min-width: 160px; }
+
+.user-identity-cell { display: flex; align-items: center; gap: 10px; }
+.user-identity-text { display: flex; flex-direction: column; gap: 2px; line-height: 1.3; }
+.cell-sub { font-size: 12px; color: var(--muted); }
 .user-form-error {
   padding: 11px 13px;
   border: 1px solid #fecaca;

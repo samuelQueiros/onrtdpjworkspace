@@ -7,30 +7,37 @@ export default function UsersTable({ users, currentUserId, onEdit, onDelete, onR
     <section className="card users-table-card">
       <div className="card-header"><h2 className="card-title">Colaboradores ({users.length})</h2></div>
       <div className="table-wrap">
-        <table>
+        <table className="users-table">
           <thead>
             <tr>
-              <th>Cor</th>
-              <th>Nome</th>
-              <th>E-mail</th>
-              <th>Cargo</th>
+              <th>Colaborador</th>
+              <th>Cargo / Departamento</th>
               <th>Telefone</th>
               <th>Perfil</th>
               <th>Status</th>
-              <th>Departamento</th>
               <th>Aniversário</th>
-              <th>Saldo</th>
-              <th>Total</th>
+              <th>Saldo de férias</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {users.map(user => (
               <tr key={user.id}>
-                <td><UserColorDot color={user.cor} /></td>
-                <td><strong>{user.nome}</strong></td>
-                <td>{user.email}</td>
-                <td>{user.cargo || <span className="muted">-</span>}</td>
+                <td>
+                  <div className="user-identity-cell">
+                    <UserColorDot color={user.cor} />
+                    <div className="user-identity-text">
+                      <strong>{user.nome}</strong>
+                      <span className="cell-sub">{user.email}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div className="user-identity-text">
+                    <span>{user.cargo || <span className="muted">Sem cargo</span>}</span>
+                    <span className="cell-sub">{user.departamento?.nome || 'Sem departamento'}</span>
+                  </div>
+                </td>
                 <td>{user.telefone || <span className="muted">-</span>}</td>
                 <td>
                   <StatusBadge tone={user.role === 'admin' ? 'navy' : 'gray'}>
@@ -38,10 +45,13 @@ export default function UsersTable({ users, currentUserId, onEdit, onDelete, onR
                   </StatusBadge>
                 </td>
                 <td><StatusBadge tone={user.ativo ? 'green' : 'red'}>{user.ativo ? 'Ativo' : 'Inativo'}</StatusBadge></td>
-                <td>{user.departamento?.nome || <span className="muted">-</span>}</td>
                 <td>{user.data_aniversario ? formatDate(user.data_aniversario) : <span className="muted">-</span>}</td>
-                <td>{user.dias_restantes}</td>
-                <td>{user.dias_totais}</td>
+                <td>
+                  <div className="user-identity-text">
+                    <strong>{user.dias_restantes} dia(s)</strong>
+                    <span className="cell-sub">{user.dias_usados_total ?? 0} usado(s) no total</span>
+                  </div>
+                </td>
                 <td className="actions-cell">
                   <button className="btn btn-outline btn-sm" onClick={() => onEdit(user)}>
                     Editar

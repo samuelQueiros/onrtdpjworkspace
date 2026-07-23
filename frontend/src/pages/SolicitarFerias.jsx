@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import '../styles/pages/solicitar-ferias.css'
 import '../styles/pages/autorizacoes-equipamentos.css'
 import { useNavigate } from 'react-router-dom'
@@ -25,6 +25,7 @@ export default function SolicitarFerias() {
   const [saving, setSaving] = useState(false)
   const [feriasOpen, setFeriasOpen] = useState(false)
   const [maquinaOpen, setMaquinaOpen] = useState(false)
+  const submittingRef = useRef(false)
 
   useEffect(() => {
     api.disponibilidade()
@@ -58,6 +59,7 @@ export default function SolicitarFerias() {
 
   const submit = async event => {
     event.preventDefault()
+    if (submittingRef.current) return
     if (!dias) return toast.error('Informe um período válido.')
     if (erroDatas) return toast.error(erroDatas)
     if (bloqueioManual) {
@@ -67,6 +69,7 @@ export default function SolicitarFerias() {
     if (bloqueado) return toast.error('O período cruza datas bloqueadas pelo limite de colaboradores em férias.')
     if (saldoInsuficiente) return toast.error('Você não possui saldo suficiente para esse período.')
 
+    submittingRef.current = true
     setSaving(true)
     try {
       const res = await api.registrarFerias({
@@ -84,6 +87,7 @@ export default function SolicitarFerias() {
       toast.error(err.message)
     } finally {
       setSaving(false)
+      submittingRef.current = false
     }
   }
 

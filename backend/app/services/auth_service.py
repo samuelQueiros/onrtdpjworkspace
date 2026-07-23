@@ -12,6 +12,12 @@ def calcular_dias_restantes(user: User, db: Session) -> int:
     return calcular_saldo(db, user)
 
 
+def calcular_dias_usados(user: User, db: Session) -> int:
+    from app.services.ferias_service import calcular_extrato_saldo
+
+    return calcular_extrato_saldo(db, user)["dias_usados_total"]
+
+
 def formatar_usuario_autenticado(user: User, db: Session) -> dict:
     departamento = None
     if user.departamento_id:
@@ -25,6 +31,7 @@ def formatar_usuario_autenticado(user: User, db: Session) -> dict:
         "role": user.role,
         "dias_totais": user.dias_totais,
         "dias_restantes": calcular_dias_restantes(user, db),
+        "dias_usados_total": calcular_dias_usados(user, db),
         "departamento": departamento,
         "data_admissao": str(user.data_admissao) if user.data_admissao else None,
         "data_aniversario": str(user.data_aniversario) if user.data_aniversario else None,

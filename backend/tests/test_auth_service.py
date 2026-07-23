@@ -27,6 +27,7 @@ class AuthServiceTests(unittest.TestCase):
             patch("app.services.auth_service.verificar_senha", return_value=True),
             patch("app.services.auth_service.criar_token", return_value="token"),
             patch("app.services.auth_service.calcular_dias_restantes", return_value=20),
+            patch("app.services.auth_service.calcular_dias_usados", return_value=10),
         ):
             response = auth_service.autenticar_usuario(SimpleNamespace(), "admin@sistema.com", "senha")
 
@@ -70,6 +71,7 @@ class AuthServiceTests(unittest.TestCase):
         with (
             patch("app.services.auth_service.auth_repository.obter_departamento_por_id", return_value=departamento),
             patch("app.services.auth_service.calcular_dias_restantes", return_value=30),
+            patch("app.services.auth_service.calcular_dias_usados", return_value=0),
         ):
             response = auth_service.formatar_usuario_autenticado(user, SimpleNamespace())
 
