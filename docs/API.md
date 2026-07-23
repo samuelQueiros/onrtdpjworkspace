@@ -103,7 +103,7 @@ Revoga todos os tokens emitidos anteriormente para o usuário autenticado.
 
 ## Dados sensíveis de colaboradores
 
-`GET /users/{id}/dados-sensiveis` é restrito a administradores. Dados bancários são armazenados criptografados e não são retornados na listagem geral de usuários.
+`GET /users/{id}/dados-sensiveis` é restrito a administradores. CPF completo, endereços novos/atualizados e dados bancários são armazenados criptografados e não são retornados na listagem geral de usuários. Endereços legados em texto permanecem legíveis para migração gradual. O CPF do titular bancário segue a mesma validação de formato e dígitos verificadores aplicada ao CPF do colaborador.
 
 ### GET `/auth/me`
 
@@ -444,7 +444,8 @@ Retorna os documentos em duas listas: `recebidos` e `enviados`.
 Acesso: autenticado.
 
 - Para administradores, `enviados` contem os contracheques encaminhados pelo administrador autenticado; `recebidos` contem os atestados encaminhados por colaboradores e administradores.
-- Para colaboradores, `enviados` contem os proprios atestados; `recebidos` contem os documentos destinados a eles.
+- Para colaboradores, `enviados` contem os proprios atestados; `recebidos` contem os documentos destinados a eles, inclusive termos definitivos de equipamentos.
+- Termos usam o tipo interno `termo_equipamentos`, sao gerados pelo sistema e nao podem ser enviados ou excluidos pela API generica de documentos.
 
 ### GET `/documentos/{doc_id}/download`
 
@@ -458,6 +459,99 @@ Abre o documento inline quando o navegador suportar o tipo do arquivo.
 
 Acesso: admin ou usuario dono do documento.
 
+## Patrimonios
+
+### GET `/patrimonios`
+
+Lista o inventario com paginacao.
+
+Acesso: admin.
+
+Query params opcionais: `busca`, `tipo`, `status`, `ativo`, `user_id`, `page` e `page_size` (maximo 100).
+
+### POST `/patrimonios`
+
+Cadastra um equipamento.
+
+Acesso: admin.
+
+Body resumido:
+
+```json
+{
+  "numero_patrimonio": "PAT-001",
+  "numero_serie": "SERIE-001",
+  "tipo": "notebook",
+  "marca": "Dell",
+  "modelo": "Latitude 5450",
+  "descricao": "Equipamento corporativo",
+  "estado_conservacao": "Novo, sem avarias"
+}
+```
+
+Tipos: `notebook`, `desktop`, `monitor`, `mouse`, `teclado`, `headset`, `dock_station`, `carregador`, `cabo_energia`, `adaptador` e `outro`.
+
+### Consultas e acoes de patrimonio
+
+| Metodo | Endpoint | Acesso | Descricao |
+|---|---|---|---|
+| `GET` | `/patrimonios/me` | autenticado | Vinculos ativos do usuario |
+| `GET` | `/patrimonios/disponiveis` | autenticado | Itens ativos e disponiveis para solicitacao |
+| `GET` | `/patrimonios/{id}` | admin | Detalhe, eventos e historico de vinculos |
+| `PUT` | `/patrimonios/{id}` | admin | Edicao do cadastro |
+| `POST` | `/patrimonios/{id}/vinculos` | admin | Vincula um colaborador |
+| `POST` | `/patrimonios/{id}/desvincular` | admin | Encerra o vinculo ativo |
+| `POST` | `/patrimonios/{id}/manutencao` | admin | Inicia manutencao |
+| `POST` | `/patrimonios/{id}/finalizar-manutencao` | admin | Finaliza manutencao |
+| `POST` | `/patrimonios/{id}/baixa` | admin | Baixa e desativa o bem |
+
+O vinculo de uma segunda maquina principal exige `permitir_segunda_maquina: true` e `justificativa_excecao`.
+
+## Autorizacoes de equipamentos
+
+### POST `/autorizacoes-equipamentos`
+
+Cria uma solicitacao com um ou mais itens.
+
+Acesso: autenticado.
+
+```json
+{
+  "tipo_solicitacao": "itens_vinculados",
+  "equipamento_ids": [1, 2],
+  "observacoes": "Uso em home office"
+}
+```
+
+`tipo_solicitacao` aceita `itens_vinculados` ou `item_diferente`. A lista nao pode estar vazia nem repetir IDs.
+
+### Consultas e fluxo
+
+| Metodo | Endpoint | Acesso | Descricao |
+|---|---|---|---|
+| `GET` | `/autorizacoes-equipamentos/me` | autenticado | Historico proprio |
+| `GET` | `/autorizacoes-equipamentos/admin` | admin | Filtros `status`, `user_id`, `equipamento_id`, `criado_de` e `criado_ate` |
+| `GET` | `/autorizacoes-equipamentos/{id}` | dono/admin | Detalhes, itens e eventos |
+| `POST` | `/autorizacoes-equipamentos/{id}/cancelar` | dono/admin | Cancela quando permitido |
+| `POST` | `/autorizacoes-equipamentos/{id}/aprovar` | admin | Aprova IDs de itens e registra remocoes |
+| `POST` | `/autorizacoes-equipamentos/{id}/rejeitar` | admin | Exige `motivo_rejeicao` |
+| `POST` | `/autorizacoes-equipamentos/{id}/entrega` | admin | Exige responsavel, local e conservacao de todos os itens |
+| `POST` | `/autorizacoes-equipamentos/{id}/aceite` | dono | Exige confirmacao e `local_aceite` |
+| `POST` | `/autorizacoes-equipamentos/{id}/devolucao` | admin | Registra todos os itens como `devolvido` ou `ausente` |
+| `POST` | `/autorizacoes-equipamentos/{id}/documento/regenerar` | admin | Recupera o PDF a partir do HTML histórico cifrado, sem criar outro documento |
+| `GET` | `/aprovacoes/pendencias` | admin | Retorna contagens de ferias, equipamentos e total |
+
+Transicao normal:
+
+```text
+pendente -> aguardando_entrega -> aguardando_aceite
+         -> aceite_registrado_aguardando_documento -> entregue -> devolvida
+```
+
+Tambem existem os estados terminais `rejeitada` e `cancelada`. O PDF fica disponivel pelas rotas de documentos depois que `documento_status` passa para `gerado`. O HTML exato utilizado na emissao e armazenado em `termo_html_snapshot_criptografado`; esse campo interno nunca e exposto pela API.
+
+Detalhes de arquitetura, versionamento, privacidade e operacao estao em [PATRIMONIOS-E-AUTORIZACOES.md](PATRIMONIOS-E-AUTORIZACOES.md).
+
 ## Codigos de Erro Comuns
 
 | Codigo | Significado | Situacao comum |
@@ -466,4 +560,5 @@ Acesso: admin ou usuario dono do documento.
 | `401` | Nao autenticado | Token ausente, invalido ou expirado |
 | `403` | Sem permissao | Usuario comum acessando rota admin |
 | `404` | Nao encontrado | Ferias ou usuario inexistente |
+| `409` | Conflito de estado | Equipamento indisponivel, reserva/vinculo concorrente ou transicao invalida |
 | `422` | Erro de validacao | Body fora do formato esperado |
