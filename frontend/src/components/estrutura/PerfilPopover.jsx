@@ -79,10 +79,11 @@ export default function PerfilPopover({ onClose }) {
 
     setSaving(true)
     try {
+      const senhaAlterada = Boolean(form.nova_senha)
       await api.updateConfig(payload)
       await refreshUser()
       await carregar()
-      toast.success('Perfil atualizado com sucesso.')
+      toast.success(senhaAlterada ? 'Senha alterada com sucesso.' : 'Perfil atualizado com sucesso.')
       setForm(prev => ({ ...prev, senha_atual: '', nova_senha: '', confirmar_senha: '' }))
     } catch (error) {
       toast.error(error.message)

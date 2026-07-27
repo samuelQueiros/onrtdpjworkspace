@@ -263,6 +263,28 @@ class UsersServiceTests(unittest.TestCase):
 
         self.assertEqual(exc.exception.status_code, 400)
 
+    def test_atualizar_configuracoes_troca_senha_e_incrementa_versao_do_token(self):
+        current_user = SimpleNamespace(
+            id=1,
+            senha_hash="hash-antigo",
+            token_version=2,
+        )
+        payload = UserConfigUpdate(
+            senha_atual="senha-antiga",
+            nova_senha="senha-nova",
+        )
+
+        with (
+            patch("app.services.users_service.verificar_senha", return_value=True),
+            patch("app.services.users_service.hash_senha", return_value="hash-novo"),
+            patch("app.services.users_service.users_repository.salvar_usuario"),
+            patch("app.services.users_service.formatar_usuario", return_value={"id": 1}),
+        ):
+            users_service.atualizar_configuracoes(SimpleNamespace(), payload, current_user)
+
+        self.assertEqual(current_user.senha_hash, "hash-novo")
+        self.assertEqual(current_user.token_version, 3)
+
     def test_atualizar_configuracoes_atualiza_telefones_do_proprio_perfil(self):
         current_user = SimpleNamespace(
             id=1,
