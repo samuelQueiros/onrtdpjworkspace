@@ -1,1 +1,6 @@
 .stat-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.minhas-ferias-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
