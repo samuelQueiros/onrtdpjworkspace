@@ -1,7 +1,10 @@
 from datetime import date
+from io import BytesIO
 import json
 
 from fastapi import HTTPException
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
@@ -73,6 +76,112 @@ def formatar_dados_sensiveis(user: User) -> dict:
         "endereco": _desserializar_endereco(user.endereco),
         "dados_bancarios": _desserializar_dados_bancarios(user.dados_bancarios),
     }
+
+
+def exportar_usuarios_xlsx(db: Session, current_user: User) -> bytes:
+    usuarios = listar_usuarios(db)
+    usuarios_model = {
+        usuario.id: usuario
+        for usuario in users_repository.listar_usuarios(db)
+    }
+    workbook = Workbook()
+    planilha = workbook.active
+    planilha.title = "Colaboradores"
+
+    cabecalhos = [
+        "Nome",
+        "E-mail",
+        "CPF",
+        "Cargo",
+        "Departamento",
+        "Telefone",
+        "Contato de emergência 1",
+        "Contato de emergência 2",
+        "Perfil",
+        "Status",
+        "Data de admissão",
+        "Data de aniversário",
+        "Saldo de férias",
+        "Dias usados",
+        "Próxima concessão",
+        "Endereço - Logradouro",
+        "Endereço - Número",
+        "Endereço - Bairro",
+        "Endereço - Cidade",
+        "Endereço - CEP",
+        "Banco",
+        "Agência",
+        "Conta",
+        "CPF do titular",
+        "Nome do titular",
+        "Chave PIX",
+    ]
+    planilha.append(cabecalhos)
+
+    for usuario in usuarios:
+        dados_sensiveis = formatar_dados_sensiveis(usuarios_model[usuario["id"]])
+        endereco = dados_sensiveis["endereco"] or {}
+        dados_bancarios = dados_sensiveis["dados_bancarios"] or {}
+        planilha.append([
+            usuario["nome"],
+            usuario["email"],
+            dados_sensiveis["cpf"] or "",
+            usuario["cargo"] or "",
+            (usuario["departamento"] or {}).get("nome", ""),
+            usuario["telefone"] or "",
+            dados_sensiveis["telefone_emergencia"] or "",
+            dados_sensiveis["telefone_emergencia_2"] or "",
+            "Administrador" if usuario["role"] == "admin" else "Usuário",
+            "Ativo" if usuario["ativo"] else "Inativo",
+            usuario["data_admissao"],
+            usuario["data_aniversario"],
+            usuario["dias_restantes"],
+            usuario["dias_usados_total"],
+            usuario["proxima_concessao_ferias"],
+            endereco.get("logradouro", ""),
+            endereco.get("numero", ""),
+            endereco.get("bairro", ""),
+            endereco.get("cidade", ""),
+            endereco.get("cep", ""),
+            dados_bancarios.get("banco", ""),
+            dados_bancarios.get("agencia", ""),
+            dados_bancarios.get("conta", ""),
+            dados_bancarios.get("cpf_titular", ""),
+            dados_bancarios.get("nome_titular", ""),
+            dados_bancarios.get("chave_pix", ""),
+        ])
+
+    preenchimento = PatternFill("solid", fgColor="14213D")
+    for celula in planilha[1]:
+        celula.fill = preenchimento
+        celula.font = Font(color="FFFFFF", bold=True)
+        celula.alignment = Alignment(horizontal="center")
+
+    for coluna in ("K", "L", "O"):
+        for celula in planilha[coluna][1:]:
+            if celula.value:
+                celula.number_format = "dd/mm/yyyy"
+
+    larguras = [
+        30, 32, 18, 22, 24, 18, 22, 22, 16, 12, 18, 20, 18,
+        14, 18, 32, 12, 22, 22, 14, 20, 14, 16, 18, 28, 30,
+    ]
+    for indice, largura in enumerate(larguras, start=1):
+        planilha.column_dimensions[chr(64 + indice)].width = largura
+
+    planilha.freeze_panes = "A2"
+    planilha.auto_filter.ref = planilha.dimensions
+
+    arquivo = BytesIO()
+    workbook.save(arquivo)
+
+    db.add(Log(
+        user_id=current_user.id,
+        acao="DADOS_SENSIVEIS_USUARIOS_EXPORTADOS",
+        detalhes=f"Planilha confidencial com dados de {len(usuarios)} usuario(s) exportada por administrador",
+    ))
+    db.commit()
+    return arquivo.getvalue()
 
 
 def _serializar_endereco(endereco: Endereco | None) -> str | None:

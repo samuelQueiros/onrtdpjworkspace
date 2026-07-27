@@ -33,6 +33,7 @@ export default function Usuarios() {
   const [editing, setEditing] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
 
   const load = () =>
     Promise.all([api.listarUsuarios(), api.listarDepartamentos(), api.listarCargos()])
@@ -169,6 +170,26 @@ export default function Usuarios() {
     }
   }
 
+  const exportar = async () => {
+    setExporting(true)
+    try {
+      const blob = await api.exportarUsuarios()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `colaboradores-${new Date().toISOString().slice(0, 10)}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      toast.success('Planilha de colaboradores exportada com sucesso.')
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   if (loading) return <LoadingCard />
 
   return (
@@ -176,7 +197,19 @@ export default function Usuarios() {
       <PageHeader
         title="Usuários"
         subtitle="Cadastre colaboradores, ajuste saldos e defina cores de identificação."
-        action={<button className="btn btn-primary" type="button" onClick={startCreate}>+ Cadastrar Colaborador</button>}
+        action={
+          <div className="users-header-actions">
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={exportar}
+              disabled={exporting || !users.length}
+            >
+              {exporting ? 'Exportando...' : 'Exportar Excel'}
+            </button>
+            <button className="btn btn-primary" type="button" onClick={startCreate}>+ Cadastrar Colaborador</button>
+          </div>
+        }
       />
 
       <UsersTable

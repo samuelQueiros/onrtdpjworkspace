@@ -52,6 +52,7 @@
 }
 .user-modal-body::-webkit-scrollbar-thumb:hover { background: #94a3b8; background-clip: padding-box; }
 .users-table-card { width: 100%; }
+.users-header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 .users-table th:nth-child(1) { min-width: 200px; }
 .users-table th:nth-child(2) { min-width: 160px; }
@@ -70,6 +71,8 @@
 }
 
 @media (max-width: 720px) {
+  .users-header-actions { width: 100%; }
+  .users-header-actions .btn { flex: 1; }
   .user-modal-overlay { padding: 10px; }
   .user-modal {
     max-width: 100%;

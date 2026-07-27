@@ -1,4 +1,4 @@
-export default function LogsActions({ fileRef, importing, logs, onExport, onImport }) {
+export default function LogsActions({ exporting, fileRef, importing, logs, onExport, onImport }) {
   return (
     <div className="button-row">
       <label className="btn btn-outline clickable-label">
@@ -12,8 +12,8 @@ export default function LogsActions({ fileRef, importing, logs, onExport, onImpo
           disabled={importing}
         />
       </label>
-      <button className="btn btn-primary" onClick={onExport} disabled={!logs.length}>
-        Exportar Excel
+      <button className="btn btn-primary" onClick={onExport} disabled={exporting || !logs.length}>
+        {exporting ? 'Exportando...' : 'Exportar Excel'}
       </button>
     </div>
   )
