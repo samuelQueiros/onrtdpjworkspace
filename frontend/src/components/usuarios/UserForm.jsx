@@ -22,7 +22,10 @@ export const blankUserForm = {
     banco: '', agencia: '', conta: '', cpf_titular: '', nome_titular: '', chave_pix: '',
   },
   cargo: '',
-  saldo_manual_dias: '',
+  saldo_inicial_dias: 30,
+  saldo_atual_dias: '',
+  motivo_ajuste_saldo: '',
+  proxima_concessao_ferias: '',
 }
 
 export default function UserForm({
@@ -74,6 +77,7 @@ export default function UserForm({
       ['Chave Pix', form.dados_bancarios.chave_pix, 'user-chave-pix', 'banking'],
       ['Cor de identificação', form.cor, 'user-cor'],
       ['Dias de férias por ano', form.dias_totais, 'user-dias-totais'],
+      ...(!editing ? [['Saldo atual de férias', form.saldo_inicial_dias, 'user-saldo-inicial']] : []),
       ['Data de admissão', form.data_admissao, 'user-data-admissao'],
       ['Data de aniversário', form.data_aniversario, 'user-data-aniversario'],
     ]
@@ -336,7 +340,7 @@ export default function UserForm({
               onChange={event => updateForm({ dias_totais: event.target.value })}
               required
             />
-            <small className="form-hint">Concedidos a cada ano completo de empresa (acumulativo).</small>
+            <small className="form-hint">Quantidade creditada em cada nova concessão.</small>
           </div>
           <div className="form-group">
             <label htmlFor="user-data-admissao">Data de admissão</label>
@@ -347,6 +351,17 @@ export default function UserForm({
               value={form.data_admissao}
               onChange={event => updateForm({ data_admissao: event.target.value })}
             />
+          </div>
+          <div className="form-group">
+            <label htmlFor="user-proxima-concessao">Próxima concessão de férias</label>
+            <input
+              id="user-proxima-concessao"
+              name="proxima_concessao_ferias"
+              type="date"
+              value={form.proxima_concessao_ferias}
+              onChange={event => updateForm({ proxima_concessao_ferias: event.target.value })}
+            />
+            <small className="form-hint">Nesta data o sistema acrescentará a cota anual ao saldo.</small>
           </div>
           <div className="form-group">
             <label htmlFor="user-data-aniversario">Data de aniversário</label>
@@ -360,24 +375,53 @@ export default function UserForm({
           </div>
         </div>
 
-        {editing && (
+        {!editing && (
           <div className="form-group">
-            <label htmlFor="user-saldo-manual">Saldo correto de férias (dias)</label>
+            <label htmlFor="user-saldo-inicial">Saldo atual de férias na implantação</label>
             <input
-              id="user-saldo-manual"
-              name="saldo_manual_dias"
+              id="user-saldo-inicial"
+              name="saldo_inicial_dias"
               type="number"
               min="0"
-              placeholder="Calculado automaticamente"
-              value={form.saldo_manual_dias}
-              onChange={event => updateForm({ saldo_manual_dias: event.target.value })}
+              max="3650"
+              value={form.saldo_inicial_dias}
+              onChange={event => updateForm({ saldo_inicial_dias: event.target.value })}
+              required
             />
             <small className="form-hint">
-              Defina aqui o saldo de férias correto do colaborador (ex.: 80) caso o valor calculado automaticamente
-              esteja errado — isso também regulariza eventuais "férias vencidas" indicadas por engano.
-              Deixe em branco para o sistema continuar calculando automaticamente.
+              Informe o saldo real disponível hoje. A admissão não recalculará férias passadas.
             </small>
           </div>
+        )}
+
+        {editing && (
+          <>
+            <div className="form-group">
+              <label htmlFor="user-saldo-atual">Saldo atual de férias (dias)</label>
+              <input
+                id="user-saldo-atual"
+                name="saldo_atual_dias"
+                type="number"
+                min="0"
+                max="3650"
+                value={form.saldo_atual_dias}
+                onChange={event => updateForm({ saldo_atual_dias: event.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="user-motivo-ajuste">Motivo do ajuste de saldo</label>
+              <textarea
+                id="user-motivo-ajuste"
+                name="motivo_ajuste_saldo"
+                rows="2"
+                maxLength="500"
+                value={form.motivo_ajuste_saldo}
+                onChange={event => updateForm({ motivo_ajuste_saldo: event.target.value })}
+                placeholder="Obrigatório somente quando o saldo for alterado"
+              />
+              <small className="form-hint">Todo ajuste gera uma movimentação e um registro de auditoria.</small>
+            </div>
+          </>
         )}
 
         <div className="button-row">

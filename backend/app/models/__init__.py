@@ -9,6 +9,7 @@ from .alerta import Alerta
 from .credencial_usuario import CredencialUsuario
 from .credencial import Credencial
 from .cargo import Cargo
+from .saldo_ferias import SaldoFeriasMovimento
 from .patrimonio import (
     Equipamento,
     EquipamentoEvento,

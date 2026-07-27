@@ -26,6 +26,8 @@ class SchemasDtoTests(unittest.TestCase):
             senha="segura123",
             role="user",
             dias_totais=30,
+            saldo_inicial_dias=15,
+            proxima_concessao_ferias=date(2027, 1, 10),
             departamento_id=1,
             data_admissao=date(2025, 1, 10),
             data_aniversario=date(1990, 5, 20),
@@ -57,6 +59,7 @@ class SchemasDtoTests(unittest.TestCase):
         self.assertEqual(user.endereco.numero, "10")
         self.assertEqual(user.dados_bancarios.agencia, "1234")
         self.assertEqual(user.cpf, "529.982.247-25")
+        self.assertEqual(user.saldo_inicial_dias, 15)
 
     def test_user_create_rejeita_cadastro_incompleto(self):
         with self.assertRaises(ValidationError):

@@ -625,9 +625,10 @@ O módulo de patrimônios adiciona equipamentos, vínculos temporais, eventos, s
 | `email` | String UNIQUE | E-mail de acesso |
 | `senha_hash` | String | Hash bcrypt da senha |
 | `role` | String | `user` ou `admin` |
-| `dias_totais` | Integer | Saldo total de férias (padrão: 30) |
+| `dias_totais` | Integer | Dias creditados em cada concessão anual (padrão: 30) |
 | `departamento_id` | FK | Departamento do colaborador |
 | `data_admissao` | Date | Data de admissão na empresa |
+| `proxima_concessao_ferias` | Date | Próxima data em que a cota anual será creditada |
 | `data_aniversario` | Date | Data de aniversário |
 | `cor` | String | Cor HEX para identificação visual no calendário |
 | `criado_em` | DateTime | Timestamp de criação |
@@ -649,6 +650,12 @@ O módulo de patrimônios adiciona equipamentos, vínculos temporais, eventos, s
 | `rejeitado_por_id` | FK | Admin que rejeitou |
 | `rejeitado_em` | DateTime | Timestamp de rejeição |
 | `criado_em` | DateTime | Timestamp da solicitação |
+
+### `saldo_ferias_movimentos`
+
+Registra o saldo inicial de implantação, créditos anuais e ajustes administrativos.
+Cada movimento possui quantidade assinada, data de referência, motivo, responsável
+e chave idempotente para impedir créditos duplicados.
 
 ### `credenciais`
 
@@ -697,11 +704,17 @@ Antes de criar uma solicitação, o sistema valida (backend **e** frontend):
 
 ### Saldo de férias
 
-```
-dias_restantes = dias_totais − Σ(dias_usados de férias aprovadas ou pendentes no ciclo atual)
+```text
+dias_restantes =
+  Σ(movimentações de saldo)
+  − Σ(dias de férias aprovadas ou pendentes após a implantação)
 ```
 
-O ciclo é baseado no aniversário de empresa do colaborador (data de admissão).
+No cadastro, o administrador informa o saldo real disponível na implantação.
+A data de admissão não gera créditos retroativos. Ela pode sugerir a próxima
+concessão; a data efetiva fica registrada em `proxima_concessao_ferias`. Quando
+essa data chega, o sistema credita `dias_totais` uma única vez e avança a próxima
+concessão em um ano. Ajustes manuais exigem motivo e geram auditoria.
 
 Férias marcadas como **"por acordo"** (`ferias_acordo = true`) não descontam o saldo.
 

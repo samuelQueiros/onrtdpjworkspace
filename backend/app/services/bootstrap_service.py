@@ -27,7 +27,9 @@ def garantir_admin_inicial(db: Session) -> str:
     if settings.environment == "production":
         fracas = {"admin123", "password", "12345678", "administrador"}
         if len(admin_password) < 12 or admin_password.lower() in fracas:
-            raise RuntimeError("ADMIN_PASSWORD deve ser forte e ter pelo menos 12 caracteres em producao.")
+            raise RuntimeError(
+                "ADMIN_PASSWORD deve ser forte e ter pelo menos 12 caracteres em producao."
+            )
 
     admin = User(
         nome=settings.admin_name,
@@ -42,4 +44,8 @@ def garantir_admin_inicial(db: Session) -> str:
         detalhes="Administrador inicial criado automaticamente.",
     )
     bootstrap_repository.salvar_admin_com_log(db, admin, log)
+
+    from app.services.ferias_service import registrar_saldo_inicial
+
+    registrar_saldo_inicial(db, admin, 30, admin.id)
     return "admin_criado"

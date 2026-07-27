@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 import unittest
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fastapi import HTTPException
 
@@ -88,53 +88,60 @@ class FeriasServiceTests(unittest.TestCase):
         self.assertEqual(ferias_service.calcular_anos_completos(None, hoje=hoje), 0)
         self.assertEqual(ferias_service.calcular_anos_completos(date(2027, 1, 1), hoje=hoje), 0)
 
-    def test_calcular_extrato_saldo_acumula_e_identifica_vencidas(self):
-        hoje = date.today()
-        data_admissao = date(hoje.year - 3, 1, 1)
-        user = SimpleNamespace(id=1, dias_totais=30, data_admissao=data_admissao, saldo_manual_dias=None)
-        ferias_fake = [SimpleNamespace(dias_usados=40)]
+    def test_calcular_extrato_usa_movimentos_e_nao_tempo_de_admissao(self):
+        user = SimpleNamespace(id=1, dias_totais=30, data_admissao=date(2020, 1, 1))
+        marco = datetime(2026, 7, 1)
+        movimentos = [
+            SimpleNamespace(quantidade_dias=15, criado_em=marco),
+            SimpleNamespace(quantidade_dias=5, criado_em=datetime(2026, 7, 2)),
+        ]
+        ferias_fake = [SimpleNamespace(dias_usados=7)]
 
-        with patch(
-            "app.services.ferias_service.ferias_repository.listar_ferias_para_saldo_total",
-            return_value=ferias_fake,
+        with (
+            patch("app.services.ferias_service.sincronizar_creditos_anuais"),
+            patch("app.services.ferias_service.ferias_repository.listar_movimentos_saldo", return_value=movimentos),
+            patch("app.services.ferias_service.ferias_repository.listar_ferias_para_saldo_desde", return_value=ferias_fake),
         ):
             extrato = ferias_service.calcular_extrato_saldo(SimpleNamespace(), user)
 
-        self.assertEqual(extrato["anos_completos"], 3)
-        self.assertEqual(extrato["dias_direito_total"], 90)
-        self.assertEqual(extrato["dias_usados_total"], 40)
-        self.assertEqual(extrato["saldo"], 50)
-        self.assertEqual(extrato["dias_vencidos_total"], 20)
-        self.assertEqual(len(extrato["vencidas"]), 1)
-        self.assertEqual(extrato["vencidas"][0]["ano_referencia"], 2)
-        self.assertEqual(extrato["vencidas"][0]["dias"], 20)
+        self.assertEqual(extrato["dias_direito_total"], 20)
+        self.assertEqual(extrato["dias_usados_total"], 7)
+        self.assertEqual(extrato["saldo"], 13)
+        self.assertEqual(extrato["vencidas"], [])
 
-    def test_calcular_extrato_saldo_sem_admissao_zera_direito(self):
-        user = SimpleNamespace(id=1, dias_totais=30, data_admissao=None, saldo_manual_dias=None)
+    def test_proxima_concessao_usa_aniversario_de_admissao_futuro(self):
+        self.assertEqual(
+            ferias_service.proxima_concessao_apos(date(2024, 1, 1), date(2026, 7, 26)),
+            date(2027, 1, 1),
+        )
+
+    def test_credito_anual_e_idempotente_e_avanca_proxima_concessao(self):
+        user = SimpleNamespace(
+            id=9,
+            dias_totais=30,
+            data_admissao=date(2024, 1, 1),
+            proxima_concessao_ferias=date(2026, 1, 1),
+        )
+        db = MagicMock()
+
         with patch(
-            "app.services.ferias_service.ferias_repository.listar_ferias_para_saldo_total",
-            return_value=[],
+            "app.services.ferias_service.ferias_repository.obter_movimento_por_chave",
+            return_value=None,
         ):
-            extrato = ferias_service.calcular_extrato_saldo(SimpleNamespace(), user)
+            criados = ferias_service.sincronizar_creditos_anuais(
+                db, user, hoje=date(2026, 7, 26)
+            )
 
-        self.assertEqual(extrato["saldo"], 0)
-        self.assertEqual(extrato["vencidas"], [])
-
-    def test_calcular_extrato_saldo_com_override_manual_ignora_ferias_reais(self):
-        hoje = date.today()
-        data_admissao = date(hoje.year - 3, 1, 1)
-        # 3 anos completos (90 dias de direito). O administrador define que o
-        # saldo correto e 30 dias, o que deve "regularizar" as vencidas.
-        user = SimpleNamespace(id=1, dias_totais=30, data_admissao=data_admissao, saldo_manual_dias=30)
-        with patch(
-            "app.services.ferias_service.ferias_repository.listar_ferias_para_saldo_total",
-        ) as repo_mock:
-            extrato = ferias_service.calcular_extrato_saldo(SimpleNamespace(), user)
-
-        repo_mock.assert_not_called()
-        self.assertEqual(extrato["dias_usados_total"], 60)
-        self.assertEqual(extrato["saldo"], 30)
-        self.assertEqual(extrato["vencidas"], [])
+        self.assertEqual(criados, 1)
+        movimento = next(
+            chamada.args[0]
+            for chamada in db.add.call_args_list
+            if chamada.args[0].__class__.__name__ == "SaldoFeriasMovimento"
+        )
+        self.assertEqual(movimento.quantidade_dias, 30)
+        self.assertEqual(movimento.data_referencia, date(2026, 1, 1))
+        self.assertEqual(user.proxima_concessao_ferias, date(2027, 1, 1))
+        db.commit.assert_called_once()
 
     def test_calcular_saldo_e_atalho_para_o_saldo_do_extrato(self):
         user = SimpleNamespace(id=1, dias_totais=30, data_admissao=date(2020, 1, 1))

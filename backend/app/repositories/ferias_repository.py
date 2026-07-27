@@ -4,6 +4,7 @@ from app.models.bloqueio import BloqueioData
 from app.models.departamento import Departamento
 from app.models.ferias import Ferias
 from app.models.log import Log
+from app.models.saldo_ferias import SaldoFeriasMovimento
 from app.models.user import User
 
 
@@ -58,6 +59,40 @@ def listar_ferias_para_saldo_total(db: Session, user_id: int, excluir_ferias_id:
     if excluir_ferias_id:
         query = query.filter(Ferias.id != excluir_ferias_id)
     return query.all()
+
+
+def listar_ferias_para_saldo_desde(
+    db: Session,
+    user_id: int,
+    desde,
+    excluir_ferias_id: int | None = None,
+):
+    query = db.query(Ferias).filter(
+        Ferias.user_id == user_id,
+        Ferias.ferias_acordo.is_(False),
+        Ferias.status.in_(["aprovada", "pendente"]),
+        Ferias.criado_em >= desde,
+    )
+    if excluir_ferias_id:
+        query = query.filter(Ferias.id != excluir_ferias_id)
+    return query.all()
+
+
+def listar_movimentos_saldo(db: Session, user_id: int) -> list[SaldoFeriasMovimento]:
+    return (
+        db.query(SaldoFeriasMovimento)
+        .filter(SaldoFeriasMovimento.user_id == user_id)
+        .order_by(SaldoFeriasMovimento.criado_em, SaldoFeriasMovimento.id)
+        .all()
+    )
+
+
+def obter_movimento_por_chave(db: Session, chave: str) -> SaldoFeriasMovimento | None:
+    return (
+        db.query(SaldoFeriasMovimento)
+        .filter(SaldoFeriasMovimento.chave_idempotencia == chave)
+        .first()
+    )
 
 
 def listar_ferias_conflitantes(

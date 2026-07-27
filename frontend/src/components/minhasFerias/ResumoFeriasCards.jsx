@@ -1,4 +1,3 @@
-import DiasVencidosAlert from '../comum/DiasVencidosAlert'
 import { formatDate } from '../../utils/formatters'
 
 export default function ResumoFeriasCards({ data, saldo }) {
@@ -16,15 +15,13 @@ export default function ResumoFeriasCards({ data, saldo }) {
           <div className="stat-sub">no acumulado total</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Ciclo atual</div>
+          <div className="stat-label">Próxima concessão</div>
           <div className="stat-value text-sm">
-            {data?.ciclo_inicio ? formatDate(data.ciclo_inicio) : '-'} a {data?.ciclo_fim ? formatDate(data.ciclo_fim) : '-'}
+            {data?.proxima_concessao_ferias ? formatDate(data.proxima_concessao_ferias) : '-'}
           </div>
-          <div className="stat-sub">período aquisitivo em curso</div>
+          <div className="stat-sub">crédito automático da cota anual</div>
         </div>
       </section>
-
-      <DiasVencidosAlert vencidas={data?.dias_vencidos} />
     </>
   )
 }

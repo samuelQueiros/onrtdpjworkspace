@@ -181,7 +181,7 @@ class UsersServiceTests(unittest.TestCase):
 
         self.assertEqual(response, [{"nome": "Pessoa A", "data_aniversario": usuarios[0].data_aniversario}])
 
-    def test_listar_usuarios_calcula_saldo_cumulativo_em_lote(self):
+    def test_listar_usuarios_usa_extrato_de_movimentacoes(self):
         hoje = date.today()
         data_admissao = date(hoje.year - 2, 1, 1)
         user = SimpleNamespace(
@@ -202,18 +202,16 @@ class UsersServiceTests(unittest.TestCase):
             saldo_manual_dias=None,
             criado_em=None,
         )
-        ferias_fake = SimpleNamespace(user_id=1, dias_usados=10)
-
         with (
             patch("app.services.users_service.users_repository.listar_usuarios", return_value=[user]),
-            patch("app.services.users_service.users_repository.listar_ferias_para_saldos", return_value=[ferias_fake]),
+            patch("app.services.ferias_service.calcular_extrato_saldo", return_value={"saldo": 15, "dias_usados_total": 10}),
         ):
             resultado = users_service.listar_usuarios(SimpleNamespace())
 
-        self.assertEqual(resultado[0]["dias_restantes"], 50)
+        self.assertEqual(resultado[0]["dias_restantes"], 15)
         self.assertEqual(resultado[0]["dias_usados_total"], 10)
 
-    def test_listar_usuarios_respeita_override_manual_de_saldo(self):
+    def test_listar_usuarios_nao_recalcula_saldo_pela_admissao(self):
         hoje = date.today()
         data_admissao = date(hoje.year - 2, 1, 1)
         user = SimpleNamespace(
@@ -234,15 +232,13 @@ class UsersServiceTests(unittest.TestCase):
             saldo_manual_dias=80,
             criado_em=None,
         )
-        ferias_fake = SimpleNamespace(user_id=1, dias_usados=10)
-
         with (
             patch("app.services.users_service.users_repository.listar_usuarios", return_value=[user]),
-            patch("app.services.users_service.users_repository.listar_ferias_para_saldos", return_value=[ferias_fake]),
+            patch("app.services.ferias_service.calcular_extrato_saldo", return_value={"saldo": 7, "dias_usados_total": 0}),
         ):
             resultado = users_service.listar_usuarios(SimpleNamespace())
 
-        self.assertEqual(resultado[0]["dias_restantes"], 80)
+        self.assertEqual(resultado[0]["dias_restantes"], 7)
 
     def test_atualizar_configuracoes_exige_senha_atual_para_trocar_senha(self):
         current_user = SimpleNamespace(id=1, senha_hash="hash")

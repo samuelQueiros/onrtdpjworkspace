@@ -69,6 +69,7 @@ export default function Usuarios() {
         email: form.email,
         cpf: maskCpf(form.cpf),
         dias_totais: Number(form.dias_totais),
+        proxima_concessao_ferias: form.proxima_concessao_ferias || null,
         departamento_id: form.departamento_id ? Number(form.departamento_id) : null,
         data_admissao: form.data_admissao || null,
         data_aniversario: form.data_aniversario || null,
@@ -84,12 +85,14 @@ export default function Usuarios() {
       }
       if (editing) {
         if (form.senha) payload.senha = form.senha
-        payload.saldo_manual_dias = form.saldo_manual_dias === '' ? null : Number(form.saldo_manual_dias)
+        payload.saldo_atual_dias = Number(form.saldo_atual_dias)
+        if (form.motivo_ajuste_saldo.trim()) payload.motivo_ajuste_saldo = form.motivo_ajuste_saldo.trim()
         await api.editarUsuario(editing, payload)
         toast.success('Usuário atualizado com sucesso.')
       } else {
         payload.senha = form.senha
         payload.role = form.role
+        payload.saldo_inicial_dias = Number(form.saldo_inicial_dias)
         await api.criarUsuario(payload)
         toast.success('Usuário criado com sucesso.')
       }
@@ -128,7 +131,10 @@ export default function Usuarios() {
         cpf_titular: maskCpf(sensitive.dados_bancarios?.cpf_titular),
       },
       cargo: user.cargo || '',
-      saldo_manual_dias: user.saldo_manual_dias ?? '',
+      saldo_inicial_dias: 30,
+      saldo_atual_dias: user.dias_restantes,
+      motivo_ajuste_saldo: '',
+      proxima_concessao_ferias: user.proxima_concessao_ferias || '',
       })
       setModalOpen(true)
     } catch (error) {

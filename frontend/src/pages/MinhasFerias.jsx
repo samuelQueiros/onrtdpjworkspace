@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import '../styles/pages/minhas-ferias.css'
 import { Link } from 'react-router-dom'
 import EditarFeriasModal from '../components/minhasFerias/EditarFeriasModal'
+import ExtratoSaldoFerias from '../components/minhasFerias/ExtratoSaldoFerias'
 import ResumoFeriasCards from '../components/minhasFerias/ResumoFeriasCards'
 import TabelaMinhasFerias from '../components/minhasFerias/TabelaMinhasFerias'
 import { useAuth } from '../contexts/AuthContext'
@@ -54,6 +55,7 @@ export default function MinhasFerias() {
       />
 
       <ResumoFeriasCards data={data} saldo={saldo} />
+      <ExtratoSaldoFerias movimentos={data?.movimentos_saldo} />
 
       <TabelaMinhasFerias
         ferias={ferias}

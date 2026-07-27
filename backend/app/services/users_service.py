@@ -60,6 +60,7 @@ def formatar_usuario(
         "cargo": user.cargo.nome if user.cargo else None,
         "ativo": user.ativo,
         "saldo_manual_dias": user.saldo_manual_dias,
+        "proxima_concessao_ferias": getattr(user, "proxima_concessao_ferias", None),
         "criado_em": user.criado_em,
     }
 
@@ -166,30 +167,17 @@ def preparar_cpf(db: Session, cpf: str, excluir_user_id: int | None = None) -> t
 
 
 def listar_usuarios(db: Session) -> list[dict]:
-    from app.services.ferias_service import calcular_anos_completos
-
+    from app.services.ferias_service import calcular_extrato_saldo
     users = users_repository.listar_usuarios(db)
-    ferias = users_repository.listar_ferias_para_saldos(db, [user.id for user in users])
-    por_usuario: dict[int, list] = {}
-    for periodo in ferias:
-        por_usuario.setdefault(periodo.user_id, []).append(periodo)
-
     resultado = []
     for user in users:
-        anos_completos = calcular_anos_completos(user.data_admissao)
-        dias_direito_total = anos_completos * user.dias_totais
-        if user.saldo_manual_dias is not None:
-            dias_restantes = user.saldo_manual_dias
-            usados = dias_direito_total - dias_restantes
-        else:
-            usados = sum(periodo.dias_usados for periodo in por_usuario.get(user.id, []))
-            dias_restantes = dias_direito_total - usados
+        extrato = calcular_extrato_saldo(db, user)
         resultado.append(
             formatar_usuario(
                 user,
                 db,
-                dias_restantes=dias_restantes,
-                dias_usados_total=usados,
+                dias_restantes=extrato["saldo"],
+                dias_usados_total=extrato["dias_usados_total"],
             )
         )
     return resultado
@@ -207,6 +195,7 @@ def criar_usuario(db: Session, payload: UserCreate, current_user: User) -> dict:
         senha_hash=hash_senha(payload.senha),
         role=payload.role,
         dias_totais=payload.dias_totais,
+        proxima_concessao_ferias=payload.proxima_concessao_ferias,
         departamento_id=payload.departamento_id,
         data_admissao=payload.data_admissao,
         data_aniversario=payload.data_aniversario,
@@ -232,6 +221,9 @@ def criar_usuario(db: Session, payload: UserCreate, current_user: User) -> dict:
         db.rollback()
         raise HTTPException(status_code=409, detail="E-mail ou CPF ja cadastrado") from exc
 
+    from app.services.ferias_service import registrar_saldo_inicial
+    registrar_saldo_inicial(db, novo_user, payload.saldo_inicial_dias, current_user.id)
+
     return formatar_usuario(novo_user, db)
 
 
@@ -245,8 +237,8 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
         user.email = payload.email
     if payload.dias_totais is not None:
         user.dias_totais = payload.dias_totais
-    if "saldo_manual_dias" in payload.model_fields_set:
-        user.saldo_manual_dias = payload.saldo_manual_dias
+    if "proxima_concessao_ferias" in payload.model_fields_set:
+        user.proxima_concessao_ferias = payload.proxima_concessao_ferias
     if payload.departamento_id is not None:
         if payload.departamento_id == 0:
             user.departamento_id = None
@@ -285,6 +277,13 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
         user.cargo_id = cargo.id if cargo else None
     if "cpf" in payload.model_fields_set and payload.cpf:
         user.cpf_criptografado, user.cpf_hash = preparar_cpf(db, payload.cpf, user.id)
+
+    if payload.saldo_atual_dias is not None:
+        from app.services.ferias_service import ajustar_saldo, calcular_saldo
+        if payload.saldo_atual_dias != calcular_saldo(db, user):
+            if not payload.motivo_ajuste_saldo:
+                raise HTTPException(status_code=400, detail="Informe o motivo do ajuste de saldo")
+            ajustar_saldo(db, user, payload.saldo_atual_dias, payload.motivo_ajuste_saldo, current_user)
 
     log = Log(
         user_id=current_user.id,
