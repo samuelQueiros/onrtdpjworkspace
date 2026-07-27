@@ -9,6 +9,7 @@ from app.core.security import hash_senha
 from app.models.cargo import Cargo
 from app.models.departamento import Departamento
 from app.models.log import Log
+from app.models.saldo_ferias import SaldoFeriasMovimento
 from app.models.user import User
 from app.repositories import bootstrap_repository
 from app.storage.documentos_storage import inicializar_diretorios_upload
@@ -54,6 +55,8 @@ def garantir_admin_inicial(db: Session) -> str:
         detalhes="Administrador inicial criado automaticamente.",
     )
     bootstrap_repository.salvar_admin_com_log(db, admin, log)
+    from app.services.ferias_service import registrar_saldo_inicial
+    registrar_saldo_inicial(db, admin, 30, admin.id)
     return "admin_criado"
 
 
@@ -127,6 +130,15 @@ def garantir_usuarios_teste(db: Session) -> int:
         )
         db.add(user)
         db.flush()
+        db.add(SaldoFeriasMovimento(
+            user_id=user.id,
+            tipo="saldo_inicial",
+            quantidade_dias=30,
+            data_referencia=date.today(),
+            motivo="Saldo inicial do usuario de teste.",
+            criado_por_id=None,
+            chave_idempotencia=f"saldo-inicial:{user.id}",
+        ))
         db.add(Log(
             user_id=user.id,
             acao="USUARIO_CRIADO",

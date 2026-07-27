@@ -65,6 +65,14 @@ class FeriasVencidaOut(BaseModel):
     ciclo_fim: date
 
 
+class SaldoFeriasMovimentoOut(BaseModel):
+    tipo: str
+    quantidade_dias: int
+    data_referencia: date
+    motivo: Optional[str] = None
+    criado_em: datetime
+
+
 class MinhasFeriasOut(BaseModel):
     ferias: List[FeriasOut]
     saldo: int
@@ -73,6 +81,8 @@ class MinhasFeriasOut(BaseModel):
     dias_usados_total: int = 0
     dias_direito_total: int = 0
     dias_vencidos: List[FeriasVencidaOut] = []
+    movimentos_saldo: List[SaldoFeriasMovimentoOut] = []
+    proxima_concessao_ferias: Optional[date] = None
 
 
 class FeriadoOut(BaseModel):

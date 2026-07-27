@@ -59,6 +59,7 @@ class BootstrapServiceTests(unittest.TestCase):
             patch("app.services.bootstrap_service.bootstrap_repository.obter_admin", return_value=None),
             patch("app.services.bootstrap_service.hash_senha", return_value="hash"),
             patch("app.services.bootstrap_service.bootstrap_repository.salvar_admin_com_log") as salvar,
+            patch("app.services.ferias_service.registrar_saldo_inicial"),
         ):
             response = bootstrap_service.garantir_admin_inicial(SimpleNamespace())
 

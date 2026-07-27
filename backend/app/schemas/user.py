@@ -49,6 +49,8 @@ class UserCreate(BaseModel):
     senha: str = Field(min_length=8, max_length=128)
     role: Literal["user", "admin"]
     dias_totais: int = Field(ge=0, le=365)
+    saldo_inicial_dias: int = Field(ge=0, le=3650)
+    proxima_concessao_ferias: Optional[date] = None
     departamento_id: int = Field(gt=0)
     data_admissao: date
     data_aniversario: date
@@ -101,7 +103,9 @@ class UserUpdate(BaseModel):
     dados_bancarios: Optional[DadosBancarios] = None
     cargo: Optional[str] = Field(default=None, max_length=100)
     cpf: Optional[str] = Field(default=None, min_length=11, max_length=14)
-    saldo_manual_dias: Optional[int] = Field(default=None, ge=0, le=3650)
+    saldo_atual_dias: Optional[int] = Field(default=None, ge=0, le=3650)
+    motivo_ajuste_saldo: Optional[str] = Field(default=None, min_length=3, max_length=500)
+    proxima_concessao_ferias: Optional[date] = None
 
     @field_validator("nome", "telefone", "telefone_emergencia", "telefone_emergencia_2", "cargo", mode="before")
     @classmethod
@@ -182,6 +186,7 @@ class UserResponse(BaseModel):
     cargo: Optional[str] = None
     ativo: bool = True
     saldo_manual_dias: Optional[int] = None
+    proxima_concessao_ferias: Optional[date] = None
     criado_em: datetime
 
 

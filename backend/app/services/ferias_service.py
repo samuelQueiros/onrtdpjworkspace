@@ -7,6 +7,7 @@ from sqlalchemy import text
 
 from app.models.ferias import Ferias
 from app.models.log import Log
+from app.models.saldo_ferias import SaldoFeriasMovimento
 from app.models.user import User
 from app.repositories import ferias_repository
 from app.schemas.ferias import FeriasAprovar, FeriasCreate, FeriasUpdate
@@ -166,6 +167,104 @@ def calcular_anos_completos(data_admissao, hoje: date | None = None) -> int:
     return max(anos, 0)
 
 
+def proxima_concessao_apos(data_admissao: date | None, referencia: date | None = None) -> date | None:
+    if not data_admissao:
+        return None
+    referencia = referencia or date.today()
+    candidata = _somar_anos(data_admissao, max(referencia.year - data_admissao.year, 0))
+    if candidata <= referencia:
+        candidata = _somar_anos(candidata, 1)
+    return candidata
+
+
+def registrar_saldo_inicial(
+    db: Session,
+    user: User,
+    saldo_dias: int,
+    criado_por_id: int | None = None,
+) -> None:
+    chave = f"saldo-inicial:{user.id}"
+    if ferias_repository.obter_movimento_por_chave(db, chave):
+        return
+    db.add(SaldoFeriasMovimento(
+        user_id=user.id,
+        tipo="saldo_inicial",
+        quantidade_dias=saldo_dias,
+        data_referencia=date.today(),
+        motivo="Saldo informado na implantacao/cadastro do colaborador.",
+        criado_por_id=criado_por_id,
+        chave_idempotencia=chave,
+    ))
+    db.commit()
+
+
+def sincronizar_creditos_anuais(db: Session, user: User, hoje: date | None = None) -> int:
+    hoje = hoje or date.today()
+    if getattr(user, "proxima_concessao_ferias", None) is None:
+        user.proxima_concessao_ferias = proxima_concessao_apos(user.data_admissao, hoje)
+        if user.proxima_concessao_ferias is not None:
+            db.commit()
+        return 0
+
+    criados = 0
+    avancou = False
+    while user.proxima_concessao_ferias <= hoje:
+        referencia = user.proxima_concessao_ferias
+        chave = f"credito-anual:{user.id}:{referencia.isoformat()}"
+        if not ferias_repository.obter_movimento_por_chave(db, chave):
+            db.add(SaldoFeriasMovimento(
+                user_id=user.id,
+                tipo="credito_anual",
+                quantidade_dias=user.dias_totais,
+                data_referencia=referencia,
+                motivo=f"Credito anual de ferias referente a {referencia.strftime('%d/%m/%Y')}.",
+                criado_por_id=None,
+                chave_idempotencia=chave,
+            ))
+            db.add(Log(
+                user_id=user.id,
+                acao="SALDO_FERIAS_CREDITADO",
+                detalhes=f"Credito automatico de {user.dias_totais} dia(s) em {referencia.strftime('%d/%m/%Y')}.",
+            ))
+            criados += 1
+        user.proxima_concessao_ferias = _somar_anos(referencia, 1)
+        avancou = True
+    if avancou:
+        db.commit()
+    return criados
+
+
+def ajustar_saldo(
+    db: Session,
+    user: User,
+    novo_saldo: int,
+    motivo: str,
+    current_user: User,
+) -> None:
+    saldo_atual = calcular_saldo(db, user)
+    diferenca = novo_saldo - saldo_atual
+    if diferenca == 0:
+        return
+    db.add(SaldoFeriasMovimento(
+        user_id=user.id,
+        tipo="ajuste_manual",
+        quantidade_dias=diferenca,
+        data_referencia=date.today(),
+        motivo=motivo,
+        criado_por_id=current_user.id,
+        chave_idempotencia=f"ajuste:{user.id}:{datetime.utcnow().isoformat()}",
+    ))
+    db.add(Log(
+        user_id=current_user.id,
+        acao="SALDO_FERIAS_AJUSTADO",
+        detalhes=(
+            f"Saldo de {user.nome} ajustado de {saldo_atual} para {novo_saldo} dia(s). "
+            f"Motivo: {motivo}"
+        ),
+    ))
+    db.commit()
+
+
 def _datas_do_ano_aquisitivo(data_admissao, indice: int) -> tuple:
     inicio = _somar_anos(data_admissao, indice - 1)
     fim = _somar_anos(data_admissao, indice) - timedelta(days=1)
@@ -173,50 +272,28 @@ def _datas_do_ano_aquisitivo(data_admissao, indice: int) -> tuple:
 
 
 def calcular_extrato_saldo(db: Session, user: User, excluir_ferias_id: int | None = None) -> dict:
-    """Saldo cumulativo: cada ano completo de empresa concede `dias_totais` dias.
+    """Saldo desde a implantacao: movimentos creditam/ajustam e ferias consomem."""
+    sincronizar_creditos_anuais(db, user)
+    movimentos = ferias_repository.listar_movimentos_saldo(db, user.id)
+    if not movimentos:
+        registrar_saldo_inicial(db, user, user.saldo_manual_dias if user.saldo_manual_dias is not None else 0)
+        movimentos = ferias_repository.listar_movimentos_saldo(db, user.id)
 
-    Dias de anos aquisitivos ja encerrados (ha pelo menos mais um ano completo
-    desde a concessao) e ainda nao utilizados sao reportados como "vencidos".
-    """
-    anos_completos = calcular_anos_completos(user.data_admissao)
-    dias_por_ano = user.dias_totais
-    dias_direito_total = anos_completos * dias_por_ano
-    tem_override_manual = user.saldo_manual_dias is not None
-
-    if tem_override_manual:
-        # O administrador definiu o saldo correto diretamente. Isso substitui
-        # tambem a quebra automatica por ano (nao ha como saber, a partir de
-        # um numero unico, quais anos especificos ainda estariam vencidos).
-        dias_usados_total = dias_direito_total - user.saldo_manual_dias
-    else:
-        ferias_contabeis = ferias_repository.listar_ferias_para_saldo_total(db, user.id, excluir_ferias_id)
-        dias_usados_total = sum(f.dias_usados for f in ferias_contabeis)
-
-    vencidas = []
-    if not tem_override_manual:
-        restante = dias_usados_total
-        for indice in range(1, anos_completos + 1):
-            consumido = min(dias_por_ano, max(restante, 0))
-            restante -= consumido
-            saldo_da_cota = dias_por_ano - consumido
-            if indice < anos_completos and saldo_da_cota > 0:
-                ciclo_inicio, ciclo_fim = _datas_do_ano_aquisitivo(user.data_admissao, indice)
-                vencidas.append(
-                    {
-                        "ano_referencia": indice,
-                        "dias": saldo_da_cota,
-                        "ciclo_inicio": ciclo_inicio,
-                        "ciclo_fim": ciclo_fim,
-                    }
-                )
+    marco = movimentos[0].criado_em
+    ferias_contabeis = ferias_repository.listar_ferias_para_saldo_desde(
+        db, user.id, marco, excluir_ferias_id
+    )
+    dias_usados_total = sum(f.dias_usados for f in ferias_contabeis)
+    total_movimentos = sum(m.quantidade_dias for m in movimentos)
 
     return {
-        "saldo": dias_direito_total - dias_usados_total,
-        "dias_direito_total": dias_direito_total,
+        "saldo": total_movimentos - dias_usados_total,
+        "dias_direito_total": total_movimentos,
         "dias_usados_total": dias_usados_total,
-        "anos_completos": anos_completos,
-        "dias_vencidos_total": sum(v["dias"] for v in vencidas),
-        "vencidas": vencidas,
+        "anos_completos": 0,
+        "dias_vencidos_total": 0,
+        "vencidas": [],
+        "movimentos": movimentos,
     }
 
 
@@ -273,6 +350,17 @@ def minhas_ferias(db: Session, current_user: User) -> dict:
         "dias_usados_total": extrato["dias_usados_total"],
         "dias_direito_total": extrato["dias_direito_total"],
         "dias_vencidos": extrato["vencidas"],
+        "movimentos_saldo": [
+            {
+                "tipo": movimento.tipo,
+                "quantidade_dias": movimento.quantidade_dias,
+                "data_referencia": movimento.data_referencia,
+                "motivo": movimento.motivo,
+                "criado_em": movimento.criado_em,
+            }
+            for movimento in reversed(extrato["movimentos"])
+        ],
+        "proxima_concessao_ferias": current_user.proxima_concessao_ferias,
     }
 
 
