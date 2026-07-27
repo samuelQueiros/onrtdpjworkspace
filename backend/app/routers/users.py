@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_user, require_admin
+from app.core.config import settings
+from app.core.security import criar_token, get_current_user, require_admin
 from app.database import get_db
 from app.models.user import User
 from app.schemas.common import MensagemOut
@@ -82,10 +83,29 @@ def reativar_usuario(
 @router.put("/me/configuracoes", response_model=UserResponse)
 def atualizar_configuracoes(
     payload: UserConfigUpdate,
+    response: Response,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return users_service.atualizar_configuracoes(db, payload, current_user)
+    resultado = users_service.atualizar_configuracoes(db, payload, current_user)
+    senha_alterada = bool(payload.nova_senha and payload.nova_senha.strip())
+    if senha_alterada:
+        token = criar_token({
+            "sub": str(current_user.id),
+            "role": current_user.role,
+            "nome": current_user.nome,
+            "token_version": current_user.token_version,
+        })
+        response.set_cookie(
+            "access_token",
+            token,
+            httponly=True,
+            secure=settings.cookie_secure,
+            samesite="lax",
+            max_age=settings.access_token_expire_minutes * 60,
+            path="/",
+        )
+    return resultado
 
 
 @router.get("/users/me/perfil", response_model=MeuPerfilOut)
