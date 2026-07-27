@@ -18,6 +18,8 @@ class SettingsTests(unittest.TestCase):
             "CREDENTIALS_ENCRYPTION_KEY",
             "UPLOAD_DIR",
             "COOKIE_SECURE",
+            "CREATE_TEST_USERS",
+            "TEST_USER_PASSWORD",
         ]
         self.old_values = {key: os.environ.get(key) for key in self.keys}
 
@@ -40,6 +42,17 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.secret_key, "chave-secreta-padrao-troque-em-producao")
         self.assertEqual(settings.credentials_encryption_key, "chave-local-para-credenciais")
         self.assertFalse(settings.cookie_secure)
+        self.assertFalse(settings.create_test_users)
+        self.assertIsNone(settings.test_user_password)
+
+    def test_seed_de_usuarios_pode_ser_habilitado(self):
+        os.environ["CREATE_TEST_USERS"] = "true"
+        os.environ["TEST_USER_PASSWORD"] = "senha-de-teste"
+
+        settings = Settings()
+
+        self.assertTrue(settings.create_test_users)
+        self.assertEqual(settings.test_user_password, "senha-de-teste")
 
     def test_cookie_secure_pode_ser_configurado_em_http_controlado(self):
         os.environ["ENVIRONMENT"] = "production"

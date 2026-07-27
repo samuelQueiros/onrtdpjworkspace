@@ -36,6 +36,8 @@ services:
       ADMIN_NAME: ${ADMIN_NAME:-Administrador}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      CREATE_TEST_USERS: ${CREATE_TEST_USERS:-false}
+      TEST_USER_PASSWORD: ${TEST_USER_PASSWORD:-}
       UPLOAD_DIR: ${UPLOAD_DIR:-/app/uploads}
       DATABASE_URL: postgresql://${POSTGRES_USER:-ferias}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-ferias}
     depends_on:

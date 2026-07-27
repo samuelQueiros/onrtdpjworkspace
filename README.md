@@ -463,6 +463,8 @@ server {
 | `ADMIN_NAME` | Nome do administrador inicial criado no primeiro startup | `Administrador` |
 | `ADMIN_EMAIL` | E-mail do administrador inicial | — |
 | `ADMIN_PASSWORD` | Senha do administrador inicial | — |
+| `CREATE_TEST_USERS` | Cria três usuários fictícios no startup | `false` |
+| `TEST_USER_PASSWORD` | Senha dos usuários fictícios (mínimo de 8 caracteres) | — |
 | `VITE_API_URL` | URL usada pelo frontend para acessar a API | `/api` no Docker |
 | `FRONTEND_URL` | URL pública do frontend, usada como origem liberada no CORS | `http://localhost` |
 | `CORS_ORIGINS` | Lista opcional de origens extras liberadas no CORS, separadas por vírgula. Quando vazio, usa apenas `FRONTEND_URL` | — |

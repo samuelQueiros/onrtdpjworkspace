@@ -46,6 +46,15 @@ class Settings:
         return os.getenv("ADMIN_NAME", "Administrador")
 
     @property
+    def create_test_users(self) -> bool:
+        valor = os.getenv("CREATE_TEST_USERS", "false")
+        return valor.strip().lower() in {"1", "true", "sim", "yes", "on"}
+
+    @property
+    def test_user_password(self) -> str | None:
+        return os.getenv("TEST_USER_PASSWORD")
+
+    @property
     def secret_key(self) -> str:
         secret = os.getenv("SECRET_KEY")
         if secret:

@@ -91,6 +91,9 @@ def startup():
             print(f"Admin inicial criado: {settings.admin_email}")
         elif resultado == "admin_nao_configurado":
             print("Nenhum administrador encontrado. Configure ADMIN_EMAIL e ADMIN_PASSWORD.")
+        usuarios_teste_criados = bootstrap_service.garantir_usuarios_teste(db)
+        if usuarios_teste_criados:
+            print(f"Usuarios de teste criados: {usuarios_teste_criados}")
     finally:
         db.close()
 
