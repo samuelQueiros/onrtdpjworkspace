@@ -55,13 +55,16 @@ export default function MinhasFerias() {
       />
 
       <ResumoFeriasCards data={data} saldo={saldo} />
-      <ExtratoSaldoFerias movimentos={data?.movimentos_saldo} />
 
-      <TabelaMinhasFerias
-        ferias={ferias}
-        onCancel={cancel}
-        onEdit={setEditando}
-      />
+      <div className="minhas-ferias-sections">
+        <ExtratoSaldoFerias movimentos={data?.movimentos_saldo} />
+
+        <TabelaMinhasFerias
+          ferias={ferias}
+          onCancel={cancel}
+          onEdit={setEditando}
+        />
+      </div>
 
       {editando && (
         <EditarFeriasModal

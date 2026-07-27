@@ -77,6 +77,12 @@ export default function SolicitarFerias() {
         data_fim: dataFim,
         ferias_acordo: feriasAcordo,
       })
+      // Limpa a seleção antes de atualizar o saldo. Caso contrário, o
+      // formulário compara o novo saldo com o período que acabou de ser
+      // enviado e exibe temporariamente um falso "saldo insuficiente".
+      setDataInicio('')
+      setDataFim('')
+      setFeriasAcordo(false)
       await refreshUser()
       toast.success(res.status === 'pendente'
         ? 'Solicitação enviada! Aguarde a aprovação do administrador.'
