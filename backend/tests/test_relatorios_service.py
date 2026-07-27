@@ -1,12 +1,37 @@
 from datetime import date, datetime
+from io import BytesIO
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
+
+from openpyxl import load_workbook
 
 from app.services import relatorios_service
 
 
 class RelatoriosServiceTests(unittest.TestCase):
+    def test_exportar_logs_xlsx_preserva_acentos(self):
+        usuario = SimpleNamespace(nome="João da Silva", email="joao@sistema.com")
+        logs = [
+            SimpleNamespace(
+                criado_em=datetime(2026, 7, 27, 14, 30),
+                acao="USUÁRIO_ATUALIZADO",
+                usuario=usuario,
+                detalhes="Alteração concluída com sucesso.",
+            )
+        ]
+        with patch(
+            "app.services.relatorios_service.relatorios_repository.listar_todos_logs",
+            return_value=logs,
+        ):
+            conteudo = relatorios_service.exportar_logs_xlsx(SimpleNamespace())
+
+        planilha = load_workbook(BytesIO(conteudo))["Logs"]
+        self.assertEqual(planilha["B2"].value, "USUÁRIO_ATUALIZADO")
+        self.assertEqual(planilha["C2"].value, "João da Silva")
+        self.assertEqual(planilha["E2"].value, "Alteração concluída com sucesso.")
+        self.assertEqual(planilha.freeze_panes, "A2")
+
     def test_relatorio_colaboradores_monta_shape_para_csv(self):
         user = SimpleNamespace(
             id=1,

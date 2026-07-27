@@ -4,7 +4,6 @@ import LogsActions from '../components/logs/LogsActions'
 import LogsTabela from '../components/logs/LogsTabela'
 import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
-import { exportLogs } from '../utils/logsExport'
 import { LoadingCard, PageHeader } from '../components/comum/PageHelpers'
 
 export default function Logs() {
@@ -13,6 +12,7 @@ export default function Logs() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [importing, setImporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const pageSize = 50
@@ -54,17 +54,22 @@ export default function Logs() {
   }
 
   const handleExport = async () => {
+    setExporting(true)
     try {
-      const pageSizeExport = 200
-      const pages = Math.max(1, Math.ceil(total / pageSizeExport))
-      const allLogs = []
-      for (let targetPage = 1; targetPage <= pages; targetPage += 1) {
-        const response = await api.logs(targetPage, pageSizeExport)
-        allLogs.push(...response.items)
-      }
-      exportLogs(allLogs)
+      const blob = await api.exportarLogs()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `logs-sistema-${new Date().toISOString().slice(0, 10)}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      toast.success('Planilha de logs exportada com sucesso.')
     } catch (error) {
       toast.error(error.message)
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -78,6 +83,7 @@ export default function Logs() {
         action={
           <LogsActions
             fileRef={fileRef}
+            exporting={exporting}
             importing={importing}
             logs={logs}
             onExport={handleExport}

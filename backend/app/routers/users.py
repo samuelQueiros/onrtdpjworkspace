@@ -1,4 +1,8 @@
+from datetime import date
+from io import BytesIO
+
 from fastapi import APIRouter, Depends, Response, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -23,6 +27,20 @@ router = APIRouter(tags=["Usuarios"])
 @router.get("/users", response_model=list[UserResponse])
 def listar_usuarios(db: Session = Depends(get_db), _=Depends(require_admin)):
     return users_service.listar_usuarios(db)
+
+
+@router.get("/users/exportar")
+def exportar_usuarios(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    conteudo = users_service.exportar_usuarios_xlsx(db, current_user)
+    nome_arquivo = f"colaboradores-{date.today().isoformat()}.xlsx"
+    return StreamingResponse(
+        BytesIO(conteudo),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{nome_arquivo}"'},
+    )
 
 
 @router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

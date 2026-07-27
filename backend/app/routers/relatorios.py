@@ -1,4 +1,8 @@
+from datetime import date
+from io import BytesIO
+
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.security import require_admin
@@ -27,3 +31,14 @@ def listar_logs(
     _=Depends(require_admin),
 ):
     return relatorios_service.listar_logs(db, page, page_size)
+
+
+@router.get("/logs/exportar")
+def exportar_logs(db: Session = Depends(get_db), _=Depends(require_admin)):
+    conteudo = relatorios_service.exportar_logs_xlsx(db)
+    nome_arquivo = f"logs-sistema-{date.today().isoformat()}.xlsx"
+    return StreamingResponse(
+        BytesIO(conteudo),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{nome_arquivo}"'},
+    )

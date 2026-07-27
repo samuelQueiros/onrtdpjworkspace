@@ -99,5 +99,9 @@ def listar_logs(db: Session, offset: int = 0, limit: int = 50) -> list[Log]:
     return db.query(Log).order_by(Log.criado_em.desc()).offset(offset).limit(limit).all()
 
 
+def listar_todos_logs(db: Session) -> list[Log]:
+    return db.query(Log).order_by(Log.criado_em.desc()).all()
+
+
 def contar_logs(db: Session) -> int:
     return db.query(Log).count()

@@ -1,7 +1,8 @@
-import { req } from '../httpClient'
+import { download, req } from '../httpClient'
 
 export const usersService = {
   listarUsuarios: () => req('GET', '/users'),
+  exportarUsuarios: () => download('/users/exportar'),
   listarAniversariantes: () => req('GET', '/users/aniversariantes'),
   criarUsuario: body => req('POST', '/users', body),
   editarUsuario: (id, body) => req('PUT', `/users/${id}`, body),

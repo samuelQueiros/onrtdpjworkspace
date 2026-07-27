@@ -1,5 +1,8 @@
 from datetime import date, timedelta
+from io import BytesIO
 
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
 from sqlalchemy.orm import Session
 
 from app.repositories import relatorios_repository
@@ -133,3 +136,39 @@ def listar_logs(db: Session, page: int = 1, page_size: int = 50) -> dict:
         for log in relatorios_repository.listar_logs(db, (page - 1) * page_size, page_size)
     ]
     return {"items": items, "page": page, "page_size": page_size, "total": relatorios_repository.contar_logs(db)}
+
+
+def exportar_logs_xlsx(db: Session) -> bytes:
+    workbook = Workbook()
+    planilha = workbook.active
+    planilha.title = "Logs"
+    planilha.append(["Data", "Ação", "Usuário", "E-mail", "Detalhes"])
+
+    for log in relatorios_repository.listar_todos_logs(db):
+        planilha.append([
+            log.criado_em,
+            log.acao,
+            log.usuario.nome if log.usuario else "Sistema",
+            log.usuario.email if log.usuario else "",
+            log.detalhes or "",
+        ])
+
+    preenchimento = PatternFill("solid", fgColor="14213D")
+    for celula in planilha[1]:
+        celula.fill = preenchimento
+        celula.font = Font(color="FFFFFF", bold=True)
+        celula.alignment = Alignment(horizontal="center")
+
+    for celula in planilha["A"][1:]:
+        if celula.value:
+            celula.number_format = "dd/mm/yyyy hh:mm:ss"
+
+    for coluna, largura in zip(("A", "B", "C", "D", "E"), (22, 34, 28, 32, 80)):
+        planilha.column_dimensions[coluna].width = largura
+
+    planilha.freeze_panes = "A2"
+    planilha.auto_filter.ref = planilha.dimensions
+
+    arquivo = BytesIO()
+    workbook.save(arquivo)
+    return arquivo.getvalue()

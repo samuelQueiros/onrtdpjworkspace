@@ -1,9 +1,11 @@
 import unittest
 from datetime import date
+from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from fastapi import HTTPException
+from openpyxl import load_workbook
 
 from app.schemas.user import DadosBancarios, UserConfigUpdate
 from app.services import users_service
@@ -239,6 +241,84 @@ class UsersServiceTests(unittest.TestCase):
             resultado = users_service.listar_usuarios(SimpleNamespace())
 
         self.assertEqual(resultado[0]["dias_restantes"], 7)
+
+    def test_exportar_usuarios_xlsx_gera_planilha_com_dados_da_listagem(self):
+        usuario = {
+            "id": 7,
+            "nome": "Gabriel",
+            "email": "gabriel@sistema.com",
+            "cargo": "Analista",
+            "departamento": {"id": 1, "nome": "Tecnologia"},
+            "telefone": "(61) 99999-9999",
+            "role": "user",
+            "ativo": True,
+            "data_admissao": date(2024, 1, 1),
+            "data_aniversario": date(1995, 5, 10),
+            "dias_restantes": 15,
+            "dias_usados_total": 15,
+            "proxima_concessao_ferias": date(2027, 1, 1),
+        }
+        usuario_model = SimpleNamespace(
+            id=7,
+            cpf_criptografado="cpf-criptografado",
+            telefone_emergencia="(61) 98888-8888",
+            telefone_emergencia_2="(61) 97777-7777",
+            endereco="endereco-criptografado",
+            dados_bancarios="banco-criptografado",
+        )
+
+        class FakeDb:
+            def __init__(self):
+                self.added = []
+                self.committed = False
+
+            def add(self, value):
+                self.added.append(value)
+
+            def commit(self):
+                self.committed = True
+
+        db = FakeDb()
+        dados_sensiveis = {
+            "cpf": "529.982.247-25",
+            "telefone_emergencia": "(61) 98888-8888",
+            "telefone_emergencia_2": "(61) 97777-7777",
+            "endereco": {
+                "logradouro": "Rua Exemplo",
+                "numero": "10",
+                "bairro": "Centro",
+                "cidade": "Brasília",
+                "cep": "70000-000",
+            },
+            "dados_bancarios": {
+                "banco": "Banco Teste",
+                "agencia": "0001",
+                "conta": "12345-6",
+                "cpf_titular": "529.982.247-25",
+                "nome_titular": "Gabriel",
+                "chave_pix": "gabriel@sistema.com",
+            },
+        }
+        with (
+            patch("app.services.users_service.listar_usuarios", return_value=[usuario]),
+            patch("app.services.users_service.users_repository.listar_usuarios", return_value=[usuario_model]),
+            patch("app.services.users_service.formatar_dados_sensiveis", return_value=dados_sensiveis),
+        ):
+            conteudo = users_service.exportar_usuarios_xlsx(db, SimpleNamespace(id=1))
+
+        planilha = load_workbook(BytesIO(conteudo))["Colaboradores"]
+        self.assertEqual(planilha["A2"].value, "Gabriel")
+        self.assertEqual(planilha["C2"].value, "529.982.247-25")
+        self.assertEqual(planilha["E2"].value, "Tecnologia")
+        self.assertEqual(planilha["G2"].value, "(61) 98888-8888")
+        self.assertEqual(planilha["M2"].value, 15)
+        self.assertEqual(planilha["O2"].value.date(), date(2027, 1, 1))
+        self.assertEqual(planilha["P2"].value, "Rua Exemplo")
+        self.assertEqual(planilha["U2"].value, "Banco Teste")
+        self.assertEqual(planilha["Z2"].value, "gabriel@sistema.com")
+        self.assertEqual(planilha.freeze_panes, "A2")
+        self.assertTrue(db.committed)
+        self.assertEqual(db.added[0].acao, "DADOS_SENSIVEIS_USUARIOS_EXPORTADOS")
 
     def test_atualizar_configuracoes_exige_senha_atual_para_trocar_senha(self):
         current_user = SimpleNamespace(id=1, senha_hash="hash")
