@@ -64,7 +64,8 @@ def gerar_alertas_contabilidade(db: Session, hoje: date | None = None) -> None:
 
 
 def gerar_alertas_ferias_5dias(db: Session, hoje: date | None = None) -> None:
-    alvo = (hoje or date.today()) + timedelta(days=5)
+    alvo = (hoje or date.today()) + timedelta(days=7)
+
     ferias_proximas = alertas_repository.listar_ferias_aprovadas_por_data_inicio(db, alvo)
 
     for ferias in ferias_proximas:
@@ -88,7 +89,7 @@ def gerar_alertas_ferias_5dias(db: Session, hoje: date | None = None) -> None:
 def gerar_alertas_ferias_4dias(db: Session, hoje: date | None = None) -> None:
     """Lembrete urgente do dia anterior ao limite de 5 dias: reaparece a cada
     login do admin (o frontend nao considera o campo `lido` para este tipo)."""
-    alvo = (hoje or date.today()) + timedelta(days=4)
+    alvo = (hoje or date.today()) + timedelta(days=6)
     ferias_proximas = alertas_repository.listar_ferias_aprovadas_por_data_inicio(db, alvo)
 
     for ferias in ferias_proximas:
