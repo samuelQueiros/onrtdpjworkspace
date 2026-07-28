@@ -1,16 +1,179 @@
 import io
+import re
+import unicodedata
 from datetime import date, datetime
 
 from fastapi import HTTPException
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.worksheet.datavalidation import DataValidation
+from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.cpf import validar_cpf
+from app.core.crypto import hash_dado_sensivel
 from app.models.ferias import Ferias
 from app.models.log import Log
 from app.models.user import User
-from app.repositories import importacao_repository
-from app.services import ferias_service
+from app.repositories import (
+    cargos_repository,
+    departamentos_repository,
+    importacao_repository,
+    users_repository,
+)
+from app.schemas.user import DadosBancarios, Endereco, UserCreate
+from app.services import ferias_service, users_service
 
 MAX_IMPORT_SIZE = 5 * 1024 * 1024
+SENHA_TEMPORARIA_COLABORADORES = "Acesso@123456"
+
+CORES_IMPORTACAO = [
+    "#2563EB", "#DC2626", "#16A34A", "#9333EA", "#EA580C", "#0891B2",
+    "#DB2777", "#4F46E5", "#65A30D", "#0F766E", "#B45309", "#7C3AED",
+]
+
+CABECALHOS_COLABORADORES = [
+    "Nome",
+    "E-mail",
+    "CPF",
+    "Cargo",
+    "Departamento",
+    "Telefone",
+    "Contato de emergência 1",
+    "Contato de emergência 2",
+    "Perfil",
+    "Status",
+    "Data de admissão",
+    "Data de aniversário",
+    "Saldo de férias",
+    "Dias usados",
+    "Próxima concessão",
+    "Endereço - Logradouro",
+    "Endereço - Número",
+    "Endereço - Bairro",
+    "Endereço - Cidade",
+    "Endereço - CEP",
+    "Banco",
+    "Agência",
+    "Conta",
+    "CPF do titular",
+    "Nome do titular",
+    "Chave PIX",
+    "Dias de férias por período",
+]
+
+
+def _normalizar_cabecalho(value) -> str:
+    texto = unicodedata.normalize("NFKD", str(value or ""))
+    texto = "".join(char for char in texto if not unicodedata.combining(char))
+    return re.sub(r"[^a-z0-9]+", "_", texto.lower()).strip("_")
+
+
+def _texto(value) -> str:
+    return " ".join(str(value or "").split())
+
+
+def _inteiro(value, padrao: int | None = None) -> int | None:
+    if value is None or str(value).strip() == "":
+        return padrao
+    if isinstance(value, float) and not value.is_integer():
+        raise ValueError(f"valor inteiro inválido: {value}")
+    return int(value)
+
+
+def _perfil(value) -> str:
+    normalizado = _normalizar_cabecalho(value)
+    if normalizado in {"usuario", "user", "colaborador"}:
+        return "user"
+    if normalizado in {"administrador", "admin"}:
+        return "admin"
+    raise ValueError("Perfil deve ser Usuário ou Administrador")
+
+
+def _status_ativo(value) -> bool:
+    normalizado = _normalizar_cabecalho(value or "Ativo")
+    if normalizado in {"ativo", "sim", "true", "1"}:
+        return True
+    if normalizado in {"inativo", "nao", "false", "0"}:
+        return False
+    raise ValueError("Status deve ser Ativo ou Inativo")
+
+
+def _cor_automatica(indice: int, cores_em_uso: set[str]) -> str:
+    disponiveis = [cor for cor in CORES_IMPORTACAO if cor.lower() not in cores_em_uso]
+    if disponiveis:
+        cor = disponiveis[indice % len(disponiveis)]
+    else:
+        cor = CORES_IMPORTACAO[indice % len(CORES_IMPORTACAO)]
+    cores_em_uso.add(cor.lower())
+    return cor
+
+
+def gerar_modelo_colaboradores_xlsx(db: Session | None = None) -> bytes:
+    workbook = Workbook()
+    instrucoes = workbook.active
+    instrucoes.title = "Instruções"
+    instrucoes.append(["MODELO PARA IMPORTAÇÃO DE COLABORADORES"])
+    instrucoes.append(["Preencha uma linha por colaborador na aba Colaboradores."])
+    instrucoes.append(["Não altere os nomes dos cabeçalhos. Campos cadastrais e bancários são obrigatórios."])
+    instrucoes.append([f"A senha inicial será criada automaticamente como {SENHA_TEMPORARIA_COLABORADORES}."])
+    instrucoes.append(["A cor de identificação será gerada automaticamente pelo sistema."])
+    instrucoes.append(["Cargo e Departamento devem estar previamente cadastrados no sistema."])
+    instrucoes.append(["Perfil: Usuário ou Administrador. Status: Ativo ou Inativo."])
+    instrucoes.append(["Datas aceitas: DD/MM/AAAA ou AAAA-MM-DD. Dias usados é apenas informativo e não será importado."])
+    instrucoes.column_dimensions["A"].width = 110
+    instrucoes["A1"].font = Font(bold=True, color="FFFFFF")
+    instrucoes["A1"].fill = PatternFill("solid", fgColor="14213D")
+
+    planilha = workbook.create_sheet("Colaboradores")
+    planilha.append(CABECALHOS_COLABORADORES)
+    planilha.append([
+        "Nome de Exemplo", "nome@empresa.com.br", "529.982.247-25", "Analista",
+        "Tecnologia", "(61) 99999-9999", "(61) 98888-8888", "(61) 97777-7777",
+        "Usuário", "Ativo", date(2024, 1, 10), date(1995, 5, 20), 30, 0,
+        date(2027, 1, 10), "Rua Exemplo", "100", "Centro", "Brasília", "70000-000",
+        "Banco Exemplo", "0001", "12345-6", "529.982.247-25", "Nome de Exemplo",
+        "nome@empresa.com.br", 30,
+    ])
+
+    preenchimento = PatternFill("solid", fgColor="14213D")
+    for celula in planilha[1]:
+        celula.fill = preenchimento
+        celula.font = Font(color="FFFFFF", bold=True)
+        celula.alignment = Alignment(horizontal="center", wrap_text=True)
+    for coluna in ("K", "L", "O"):
+        planilha[f"{coluna}2"].number_format = "dd/mm/yyyy"
+    for indice in range(1, len(CABECALHOS_COLABORADORES) + 1):
+        planilha.column_dimensions[planilha.cell(1, indice).column_letter].width = 22
+    planilha.column_dimensions["A"].width = 30
+    planilha.column_dimensions["B"].width = 32
+    planilha.freeze_panes = "A2"
+    planilha.auto_filter.ref = f"A1:{planilha.cell(2, len(CABECALHOS_COLABORADORES)).coordinate}"
+
+    perfil = DataValidation(type="list", formula1='"Usuário,Administrador"')
+    status = DataValidation(type="list", formula1='"Ativo,Inativo"')
+    planilha.add_data_validation(perfil)
+    planilha.add_data_validation(status)
+    perfil.add("I2:I1000")
+    status.add("J2:J1000")
+
+    if db is not None:
+        listas = workbook.create_sheet("Cadastros disponíveis")
+        listas.append(["Departamentos", "Cargos"])
+        departamentos = departamentos_repository.listar_departamentos(db)
+        cargos = cargos_repository.listar_cargos(db)
+        for indice in range(max(len(departamentos), len(cargos))):
+            listas.append([
+                departamentos[indice].nome if indice < len(departamentos) else "",
+                cargos[indice].nome if indice < len(cargos) else "",
+            ])
+        listas.column_dimensions["A"].width = 35
+        listas.column_dimensions["B"].width = 35
+
+    arquivo = io.BytesIO()
+    workbook.save(arquivo)
+    return arquivo.getvalue()
 
 
 def parse_date(value) -> date | None:
@@ -69,7 +232,7 @@ def carregar_linhas_planilha(conteudo: bytes) -> list[tuple]:
 
     try:
         wb = openpyxl.load_workbook(io.BytesIO(conteudo), read_only=True, data_only=True)
-        ws = wb.active
+        ws = wb["Colaboradores"] if "Colaboradores" in wb.sheetnames else wb.active
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Erro ao ler planilha: {exc}") from exc
 
@@ -82,6 +245,189 @@ def carregar_linhas_planilha(conteudo: bytes) -> list[tuple]:
 def ignorar_cabecalho(rows: list[tuple]) -> list[tuple]:
     header = rows[0]
     return rows[1:] if header and isinstance(header[0], str) and not parse_date(header[0]) else rows
+
+
+def _erro_validacao(exc: ValidationError) -> str:
+    mensagens = []
+    for erro in exc.errors():
+        campo = ".".join(str(parte) for parte in erro["loc"])
+        mensagens.append(f"{campo}: {erro['msg']}")
+    return "; ".join(mensagens)
+
+
+def importar_colaboradores(
+    db: Session,
+    filename: str | None,
+    conteudo: bytes,
+    current_user: User,
+) -> dict:
+    validar_extensao_planilha(filename)
+    rows = carregar_linhas_planilha(conteudo)
+    if len(rows) < 2:
+        return {
+            "inseridos": 0,
+            "erros": ["A planilha não possui colaboradores para importar."],
+            "mensagem": "Nenhum colaborador importado. Corrija a planilha e tente novamente.",
+        }
+
+    cabecalhos = {
+        _normalizar_cabecalho(valor): indice
+        for indice, valor in enumerate(rows[0])
+        if valor is not None
+    }
+    obrigatorios = {
+        "nome", "e_mail", "cpf", "cargo", "departamento", "telefone",
+        "contato_de_emergencia_1", "contato_de_emergencia_2", "perfil",
+        "data_de_admissao", "data_de_aniversario", "saldo_de_ferias",
+        "endereco_logradouro", "endereco_numero", "endereco_bairro",
+        "endereco_cidade", "endereco_cep", "banco", "agencia", "conta",
+        "cpf_do_titular", "nome_do_titular", "chave_pix",
+    }
+    faltantes = sorted(obrigatorios - set(cabecalhos))
+    if faltantes:
+        nomes = ", ".join(nome.replace("_", " ") for nome in faltantes)
+        raise HTTPException(status_code=400, detail=f"Colunas obrigatórias ausentes: {nomes}")
+
+    def valor(row: tuple, nome: str, padrao=None):
+        indice = cabecalhos.get(nome)
+        return row[indice] if indice is not None and indice < len(row) else padrao
+
+    cores_em_uso = {
+        usuario.cor.lower()
+        for usuario in users_repository.listar_usuarios(db)
+        if usuario.cor
+    }
+    emails_planilha: set[str] = set()
+    cpfs_planilha: set[str] = set()
+    preparados: list[tuple[int, UserCreate, bool]] = []
+    erros: list[str] = []
+
+    for numero_linha, row in enumerate(rows[1:], start=2):
+        if not any(celula is not None and str(celula).strip() for celula in row):
+            continue
+        try:
+            email = _texto(valor(row, "e_mail")).lower()
+            cpf_normalizado = validar_cpf(_texto(valor(row, "cpf")))
+            if email in emails_planilha:
+                raise ValueError(f"E-mail repetido na planilha: {email}")
+            if cpf_normalizado in cpfs_planilha:
+                raise ValueError("CPF repetido na planilha")
+            if users_repository.obter_usuario_por_email(db, email):
+                raise ValueError(f"E-mail já cadastrado: {email}")
+            if users_repository.obter_usuario_por_cpf_hash(db, hash_dado_sensivel(cpf_normalizado)):
+                raise ValueError("CPF já cadastrado para outro colaborador")
+
+            departamento_nome = _texto(valor(row, "departamento"))
+            departamento = departamentos_repository.obter_departamento_por_nome(db, departamento_nome)
+            if not departamento:
+                raise ValueError(f"Departamento não cadastrado: {departamento_nome}")
+            cargo_nome = _texto(valor(row, "cargo"))
+            if not cargos_repository.obter_cargo_por_nome(db, cargo_nome):
+                raise ValueError(f"Cargo não cadastrado: {cargo_nome}")
+
+            data_admissao = parse_date(valor(row, "data_de_admissao"))
+            data_aniversario = parse_date(valor(row, "data_de_aniversario"))
+            proxima_concessao_valor = valor(row, "proxima_concessao")
+            proxima_concessao = parse_date(proxima_concessao_valor)
+            if not data_admissao:
+                raise ValueError("Data de admissão inválida")
+            if not data_aniversario:
+                raise ValueError("Data de aniversário inválida")
+            if proxima_concessao_valor and not proxima_concessao:
+                raise ValueError("Próxima concessão inválida")
+
+            payload = UserCreate(
+                nome=_texto(valor(row, "nome")),
+                email=email,
+                cpf=cpf_normalizado,
+                senha=SENHA_TEMPORARIA_COLABORADORES,
+                role=_perfil(valor(row, "perfil")),
+                dias_totais=_inteiro(valor(row, "dias_de_ferias_por_periodo"), 30),
+                saldo_inicial_dias=_inteiro(valor(row, "saldo_de_ferias"), 0),
+                proxima_concessao_ferias=proxima_concessao,
+                departamento_id=departamento.id,
+                data_admissao=data_admissao,
+                data_aniversario=data_aniversario,
+                cor=_cor_automatica(len(preparados), cores_em_uso),
+                telefone=_texto(valor(row, "telefone")),
+                telefone_emergencia=_texto(valor(row, "contato_de_emergencia_1")),
+                telefone_emergencia_2=_texto(valor(row, "contato_de_emergencia_2")),
+                endereco=Endereco(
+                    logradouro=valor(row, "endereco_logradouro"),
+                    numero=valor(row, "endereco_numero"),
+                    bairro=valor(row, "endereco_bairro"),
+                    cidade=valor(row, "endereco_cidade"),
+                    cep=valor(row, "endereco_cep"),
+                ),
+                dados_bancarios=DadosBancarios(
+                    banco=valor(row, "banco"),
+                    agencia=valor(row, "agencia"),
+                    conta=valor(row, "conta"),
+                    cpf_titular=valor(row, "cpf_do_titular"),
+                    nome_titular=valor(row, "nome_do_titular"),
+                    chave_pix=valor(row, "chave_pix"),
+                ),
+                cargo=cargo_nome,
+            )
+            ativo = _status_ativo(valor(row, "status", "Ativo"))
+            emails_planilha.add(email)
+            cpfs_planilha.add(cpf_normalizado)
+            preparados.append((numero_linha, payload, ativo))
+        except ValidationError as exc:
+            erros.append(f"Linha {numero_linha}: {_erro_validacao(exc)}")
+        except (TypeError, ValueError) as exc:
+            erros.append(f"Linha {numero_linha}: {exc}")
+
+    if erros:
+        return {
+            "inseridos": 0,
+            "erros": erros,
+            "mensagem": (
+                f"Nenhum colaborador foi importado. "
+                f"Corrija {len(erros)} erro(s) e envie a planilha novamente."
+            ),
+        }
+    if not preparados:
+        return {
+            "inseridos": 0,
+            "erros": ["A planilha não possui colaboradores para importar."],
+            "mensagem": "Nenhum colaborador importado.",
+        }
+
+    inseridos = 0
+    try:
+        for _, payload, ativo in preparados:
+            users_service.criar_usuario(db, payload, current_user)
+            if not ativo:
+                usuario = users_repository.obter_usuario_por_email(db, payload.email)
+                usuario.ativo = False
+                db.commit()
+            inseridos += 1
+        db.add(Log(
+            user_id=current_user.id,
+            acao="COLABORADORES_IMPORTADOS",
+            detalhes=(
+                f"{inseridos} colaborador(es) importado(s) via planilha. "
+                "Cores geradas automaticamente e senha temporária aplicada."
+            ),
+        ))
+        db.commit()
+    except (HTTPException, IntegrityError) as exc:
+        db.rollback()
+        detalhe = exc.detail if isinstance(exc, HTTPException) else "E-mail ou CPF duplicado"
+        raise HTTPException(
+            status_code=409,
+            detail=f"Falha durante a importação após {inseridos} registro(s): {detalhe}",
+        ) from exc
+
+    return {
+        "inseridos": inseridos,
+        "erros": [],
+        "mensagem": (
+            f"{inseridos} colaborador(es) importado(s) com sucesso. "
+            f"Senha inicial: {SENHA_TEMPORARIA_COLABORADORES}"
+        ),
+    }
 
 
 def importar_ferias(db: Session, filename: str | None, conteudo: bytes, current_user: User) -> dict:

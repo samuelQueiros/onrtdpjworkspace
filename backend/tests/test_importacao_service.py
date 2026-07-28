@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from fastapi import HTTPException
+from openpyxl import load_workbook
 
 from app.services import importacao_service
 
@@ -76,6 +77,72 @@ class ImportacaoServiceTests(unittest.TestCase):
         log = adicionar_log.call_args.args[1]
         self.assertEqual(log.criado_em, datetime(2026, 7, 5, 10, 30))
         commit.assert_called_once()
+
+    def test_gerar_modelo_colaboradores_inclui_abas_e_campos(self):
+        conteudo = importacao_service.gerar_modelo_colaboradores_xlsx()
+        workbook = load_workbook(importacao_service.io.BytesIO(conteudo))
+
+        self.assertEqual(workbook.sheetnames, ["Instruções", "Colaboradores"])
+        planilha = workbook["Colaboradores"]
+        self.assertEqual(planilha["A1"].value, "Nome")
+        self.assertEqual(planilha["AA1"].value, "Dias de férias por período")
+        self.assertEqual(planilha.freeze_panes, "A2")
+
+    def test_importar_colaboradores_valida_tudo_antes_de_inserir(self):
+        rows = [
+            tuple(importacao_service.CABECALHOS_COLABORADORES),
+            (
+                "Pessoa A", "pessoa@empresa.com", "529.982.247-25", "Analista",
+                "Tecnologia", "61999999999", "61988888888", "61977777777",
+                "Usuário", "Ativo", "10/01/2024", "20/05/1995", 30, 0,
+                "10/01/2027", "Rua A", "10", "Centro", "Brasília", "70000-000",
+                "Banco", "0001", "123-4", "529.982.247-25", "Pessoa A",
+                "pessoa@empresa.com", 30,
+            ),
+        ]
+        departamento = SimpleNamespace(id=4, nome="Tecnologia")
+        cargo = SimpleNamespace(id=5, nome="Analista")
+        db = SimpleNamespace(add=lambda _: None, commit=lambda: None, rollback=lambda: None)
+        current_user = SimpleNamespace(id=1, nome="Admin")
+
+        with (
+            patch("app.services.importacao_service.carregar_linhas_planilha", return_value=rows),
+            patch("app.services.importacao_service.users_repository.listar_usuarios", return_value=[]),
+            patch("app.services.importacao_service.users_repository.obter_usuario_por_email", return_value=None),
+            patch("app.services.importacao_service.users_repository.obter_usuario_por_cpf_hash", return_value=None),
+            patch("app.services.importacao_service.departamentos_repository.obter_departamento_por_nome", return_value=departamento),
+            patch("app.services.importacao_service.cargos_repository.obter_cargo_por_nome", return_value=cargo),
+            patch("app.services.importacao_service.users_service.criar_usuario") as criar,
+        ):
+            resultado = importacao_service.importar_colaboradores(
+                db, "colaboradores.xlsx", b"conteudo", current_user
+            )
+
+        self.assertEqual(resultado["inseridos"], 1)
+        payload = criar.call_args.args[1]
+        self.assertEqual(payload.senha, "Acesso@123456")
+        self.assertIn(payload.cor, importacao_service.CORES_IMPORTACAO)
+
+    def test_importar_colaboradores_nao_insere_quando_uma_linha_tem_erro(self):
+        rows = [
+            tuple(importacao_service.CABECALHOS_COLABORADORES),
+            tuple([""] * len(importacao_service.CABECALHOS_COLABORADORES)),
+            ("Pessoa sem dados",) + tuple([""] * (len(importacao_service.CABECALHOS_COLABORADORES) - 1)),
+        ]
+        db = SimpleNamespace()
+
+        with (
+            patch("app.services.importacao_service.carregar_linhas_planilha", return_value=rows),
+            patch("app.services.importacao_service.users_repository.listar_usuarios", return_value=[]),
+            patch("app.services.importacao_service.users_service.criar_usuario") as criar,
+        ):
+            resultado = importacao_service.importar_colaboradores(
+                db, "colaboradores.xlsx", b"conteudo", SimpleNamespace(id=1)
+            )
+
+        self.assertEqual(resultado["inseridos"], 0)
+        self.assertTrue(resultado["erros"])
+        criar.assert_not_called()
 
 
 if __name__ == "__main__":

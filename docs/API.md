@@ -260,6 +260,15 @@ Resposta:
 
 ## Usuarios
 
+### Importação de colaboradores
+
+`GET /importacao/colaboradores/modelo` baixa o modelo `.xlsx` com instruções,
+exemplo e os cargos/departamentos cadastrados. `POST /importacao/colaboradores`
+recebe o arquivo preenchido. Todas as linhas são validadas antes do início da
+carga; CPF, e-mail, cargo, departamento, datas e campos obrigatórios são
+conferidos. As cores são atribuídas automaticamente e a senha inicial é
+`Acesso@123456`.
+
 ### GET `/users`
 
 Lista usuarios.

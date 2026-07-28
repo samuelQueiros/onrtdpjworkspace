@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import '../styles/pages/usuarios.css'
 import UserForm, { blankUserForm } from '../components/usuarios/UserForm'
 import UsersTable from '../components/usuarios/UsersTable'
@@ -34,6 +34,9 @@ export default function Usuarios() {
   const [modalOpen, setModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [downloadingModel, setDownloadingModel] = useState(false)
+  const importFileRef = useRef(null)
 
   const load = () =>
     Promise.all([api.listarUsuarios(), api.listarDepartamentos(), api.listarCargos()])
@@ -190,6 +193,47 @@ export default function Usuarios() {
     }
   }
 
+  const baixarModelo = async () => {
+    setDownloadingModel(true)
+    try {
+      const blob = await api.baixarModeloColaboradores()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'modelo-importacao-colaboradores.xlsx'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setDownloadingModel(false)
+    }
+  }
+
+  const importar = async event => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const resultado = await api.importarColaboradores(formData)
+      if (resultado.erros?.length) {
+        toast.error(`${resultado.mensagem} ${resultado.erros.slice(0, 3).join(' · ')}`)
+      } else {
+        toast.success(resultado.mensagem)
+        await load()
+      }
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setImporting(false)
+      if (importFileRef.current) importFileRef.current.value = ''
+    }
+  }
+
   if (loading) return <LoadingCard />
 
   return (
@@ -199,6 +243,25 @@ export default function Usuarios() {
         subtitle="Cadastre colaboradores, ajuste saldos e defina cores de identificação."
         action={
           <div className="users-header-actions">
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={baixarModelo}
+              disabled={downloadingModel}
+            >
+              {downloadingModel ? 'Baixando...' : 'Baixar modelo'}
+            </button>
+            <label className="btn btn-outline clickable-label">
+              {importing ? 'Importando...' : 'Importar Excel'}
+              <input
+                ref={importFileRef}
+                type="file"
+                accept=".xlsx"
+                className="hidden-input"
+                onChange={importar}
+                disabled={importing}
+              />
+            </label>
             <button
               className="btn btn-outline"
               type="button"

@@ -608,7 +608,8 @@ O token é obtido via `POST /auth/login` e expira após `ACCESS_TOKEN_EXPIRE_MIN
 | `POST` | `/autorizacoes-equipamentos/{id}/entrega` | Admin | Registrar entrega |
 | `POST` | `/autorizacoes-equipamentos/{id}/aceite` | Dono | Registrar aceite eletrônico |
 | `POST` | `/autorizacoes-equipamentos/{id}/devolucao` | Admin | Registrar devolução |
-| `POST` | `/importacao` | Admin | Importar colaboradores via Excel |
+| `GET` | `/importacao/colaboradores/modelo` | Admin | Baixar modelo Excel para carga de colaboradores |
+| `POST` | `/importacao/colaboradores` | Admin | Importar colaboradores via Excel |
 
 ---
 
