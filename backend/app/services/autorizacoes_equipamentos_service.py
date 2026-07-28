@@ -1,4 +1,5 @@
 import json
+import math
 from datetime import datetime
 
 from fastapi import HTTPException, Request
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.cpf import mascarar_cpf
 from app.core.crypto import descriptografar_dado_sensivel
+from app.core.security import obter_ip_cliente
 from app.models.log import Log
 from app.models.patrimonio import (
     STATUS_SOLICITACAO,
@@ -279,17 +281,33 @@ def listar_solicitacoes_admin(
     equipamento_id: int | None = None,
     criado_de: datetime | None = None,
     criado_ate: datetime | None = None,
-) -> list[dict]:
+    page: int = 1,
+    page_size: int = 25,
+) -> dict:
     if status and status not in STATUS_SOLICITACAO:
         raise HTTPException(status_code=400, detail="Status de solicitacao invalido")
     if criado_de and criado_ate and criado_de > criado_ate:
         raise HTTPException(status_code=400, detail="A data inicial nao pode ser posterior a data final")
-    return [
+    items, total = patrimonios_repository.listar_solicitacoes_admin(
+        db,
+        status,
+        user_id,
+        equipamento_id,
+        criado_de,
+        criado_ate,
+        offset=(page - 1) * page_size,
+        limit=page_size,
+    )
+    return {
+        "items": [
         formatar_solicitacao(item, current_user)
-        for item in patrimonios_repository.listar_solicitacoes_admin(
-            db, status, user_id, equipamento_id, criado_de, criado_ate
-        )
-    ]
+            for item in items
+        ],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": math.ceil(total / page_size) if total else 0,
+    }
 
 
 def cancelar_solicitacao(
@@ -579,7 +597,7 @@ def registrar_aceite(
     agora = agora_utc()
     anterior = solicitacao.status
     solicitacao.aceito_em = agora
-    solicitacao.aceite_ip = request.client.host if request.client else None
+    solicitacao.aceite_ip = obter_ip_cliente(request)
     solicitacao.aceite_request_id = getattr(request.state, "request_id", None)
     solicitacao.aceite_declaracao = True
     solicitacao.local_aceite = payload.local_aceite

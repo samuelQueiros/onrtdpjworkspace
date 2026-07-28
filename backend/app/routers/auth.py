@@ -3,7 +3,13 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import get_current_user, limpar_falhas_login, registrar_falha_login, verificar_limite_login
+from app.core.security import (
+    get_current_user,
+    limpar_falhas_login,
+    obter_ip_cliente,
+    registrar_falha_login,
+    verificar_limite_login,
+)
 from app.database import get_db
 from app.models.user import User
 from app.schemas.auth import AuthUserOut, SessionOut, TokenOut
@@ -13,7 +19,7 @@ router = APIRouter(prefix="/auth", tags=["Autenticacao"])
 
 
 def _autenticar_limitado(request: Request, form_data: OAuth2PasswordRequestForm, db: Session):
-    ip = request.client.host if request.client else "desconhecido"
+    ip = obter_ip_cliente(request)
     chave = f"{ip}|{form_data.username.strip().lower()}"
     verificar_limite_login(chave)
     try:

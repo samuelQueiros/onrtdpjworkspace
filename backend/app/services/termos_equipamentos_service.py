@@ -79,32 +79,42 @@ class TermoGerado:
     nome_arquivo: str
 
 
-def obter_conteudo_template() -> str:
+def _caminhos_versao(codigo: str) -> tuple[Path, Path]:
+    if not codigo or not codigo.replace("_", "").replace("-", "").isalnum():
+        raise TermoEquipamentoError("Codigo de versao de termo invalido.")
+    if codigo == TERMO_VERSAO_CODIGO:
+        return TEMPLATE_PATH, CLAUSULAS_PATH
+    return TEMPLATE_DIR / f"{codigo}.html", TEMPLATE_DIR / f"{codigo}_clausulas.txt"
+
+
+def obter_conteudo_template(codigo: str = TERMO_VERSAO_CODIGO) -> str:
+    template_path, _ = _caminhos_versao(codigo)
     try:
-        conteudo = TEMPLATE_PATH.read_text(encoding="utf-8")
+        conteudo = template_path.read_text(encoding="utf-8")
     except OSError as exc:
         raise TermoEquipamentoError("Template do termo de equipamentos nao encontrado.") from exc
     # O hash nao pode variar apenas por conversao LF/CRLF entre Linux e Windows.
     return conteudo.replace("\r\n", "\n").replace("\r", "\n")
 
 
-def obter_hash_template() -> str:
+def obter_hash_template(codigo: str = TERMO_VERSAO_CODIGO) -> str:
     """Identifica a versão visual e textual, incluindo o logotipo usado."""
     digest = hashlib.sha256()
     try:
-        digest.update(obter_conteudo_template().encode("utf-8"))
+        digest.update(obter_conteudo_template(codigo).encode("utf-8"))
         digest.update(b"\0logo\0")
         digest.update(LOGO_PATH.read_bytes())
         digest.update(b"\0clausulas\0")
-        digest.update(obter_clausulas_termo().encode("utf-8"))
+        digest.update(obter_clausulas_termo(codigo).encode("utf-8"))
     except OSError as exc:
         raise TermoEquipamentoError("Recursos do termo de equipamentos nao encontrados.") from exc
     return digest.hexdigest()
 
 
-def obter_clausulas_termo() -> str:
+def obter_clausulas_termo(codigo: str = TERMO_VERSAO_CODIGO) -> str:
+    _, clausulas_path = _caminhos_versao(codigo)
     try:
-        conteudo = CLAUSULAS_PATH.read_text(encoding="utf-8")
+        conteudo = clausulas_path.read_text(encoding="utf-8")
     except OSError as exc:
         raise TermoEquipamentoError("Clausulas do termo de equipamentos nao encontradas.") from exc
     return conteudo.replace("\r\n", "\n").replace("\r", "\n").strip()
@@ -159,11 +169,8 @@ def _validar_versao_solicitacao(solicitacao: SolicitacaoEquipamento) -> None:
     if versao is None:
         return
 
-    if versao.codigo != TERMO_VERSAO_CODIGO:
-        raise TermoEquipamentoError(f"Versao de termo nao suportada: {versao.codigo}.")
-
-    hash_atual = obter_hash_template()
-    if versao.conteudo_hash != hash_atual or versao.clausulas != obter_clausulas_termo():
+    hash_atual = obter_hash_template(versao.codigo)
+    if versao.conteudo_hash != hash_atual or versao.clausulas != obter_clausulas_termo(versao.codigo):
         raise TermoEquipamentoError(
             "O template versionado foi alterado sem atualizacao da versao do termo."
         )
@@ -203,7 +210,11 @@ def _itens_snapshot(solicitacao: SolicitacaoEquipamento) -> list[dict[str, str |
     return itens
 
 
-def _contexto_termo(solicitacao: SolicitacaoEquipamento, cpf_completo: str) -> dict:
+def _contexto_termo(
+    solicitacao: SolicitacaoEquipamento,
+    cpf_completo: str,
+    versao_codigo: str = TERMO_VERSAO_CODIGO,
+) -> dict:
     solicitacao_id = getattr(solicitacao, "id", None)
     if not isinstance(solicitacao_id, int) or solicitacao_id <= 0:
         raise TermoEquipamentoError("Solicitacao invalida para geracao do termo.")
@@ -242,7 +253,7 @@ def _contexto_termo(solicitacao: SolicitacaoEquipamento, cpf_completo: str) -> d
 
     return {
         "identificador": f"AUT-EQP-{solicitacao_id:06d}",
-        "versao_codigo": TERMO_VERSAO_CODIGO,
+        "versao_codigo": versao_codigo,
         # A emissão é o aceite oficial do backend, não o relógio da regeneração.
         "emitido_em": _formatar_data_hora(solicitacao.aceito_em, "Data do aceite"),
         "logo_data_uri": _logo_data_uri(),
@@ -280,9 +291,14 @@ def _contexto_termo(solicitacao: SolicitacaoEquipamento, cpf_completo: str) -> d
 
 
 def renderizar_termo_html(solicitacao: SolicitacaoEquipamento, cpf_completo: str) -> str:
+    versao_codigo = (
+        solicitacao.termo_versao.codigo
+        if getattr(solicitacao, "termo_versao", None)
+        else TERMO_VERSAO_CODIGO
+    )
     try:
-        template = _JINJA.from_string(obter_conteudo_template())
-        return template.render(**_contexto_termo(solicitacao, cpf_completo))
+        template = _JINJA.from_string(obter_conteudo_template(versao_codigo))
+        return template.render(**_contexto_termo(solicitacao, cpf_completo, versao_codigo))
     except TermoEquipamentoError:
         raise
     except Exception as exc:
@@ -290,6 +306,11 @@ def renderizar_termo_html(solicitacao: SolicitacaoEquipamento, cpf_completo: str
 
 
 def gerar_termo_pdf(solicitacao: SolicitacaoEquipamento, cpf_completo: str) -> TermoGerado:
+    versao_codigo = (
+        solicitacao.termo_versao.codigo
+        if getattr(solicitacao, "termo_versao", None)
+        else TERMO_VERSAO_CODIGO
+    )
     html = renderizar_termo_html(solicitacao, cpf_completo)
     try:
         # Import tardio: metadados/versionamento continuam acessíveis em tarefas de migração
@@ -309,15 +330,15 @@ def gerar_termo_pdf(solicitacao: SolicitacaoEquipamento, cpf_completo: str) -> T
         "Nome do colaborador",
     )
     return TermoGerado(
-        versao_codigo=TERMO_VERSAO_CODIGO,
-        conteudo_hash=obter_hash_template(),
+        versao_codigo=versao_codigo,
+        conteudo_hash=obter_hash_template(versao_codigo),
         html=html,
         pdf_bytes=pdf_bytes,
         pdf_hash=hashlib.sha256(pdf_bytes).hexdigest(),
         nome_arquivo=montar_nome_arquivo_termo(
             nome_colaborador,
             solicitacao.id,
-            TERMO_VERSAO_CODIGO,
+            versao_codigo,
         ),
     )
 
@@ -388,9 +409,8 @@ def _obter_ou_criar_versao(db: Session, solicitacao: SolicitacaoEquipamento) -> 
     if versao is None:
         versao = garantir_versao_termo(db)
     elif (
-        versao.codigo != TERMO_VERSAO_CODIGO
-        or versao.conteudo_hash != obter_hash_template()
-        or versao.clausulas != obter_clausulas_termo()
+        versao.conteudo_hash != obter_hash_template(versao.codigo)
+        or versao.clausulas != obter_clausulas_termo(versao.codigo)
     ):
         raise TermoEquipamentoError(
             "A versao historica do termo nao corresponde ao template versionado disponivel."

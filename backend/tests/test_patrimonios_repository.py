@@ -26,6 +26,15 @@ class FakeQuery:
         self.ordenacao = args
         return self
 
+    def count(self):
+        return 1
+
+    def offset(self, _value):
+        return self
+
+    def limit(self, _value):
+        return self
+
     def all(self):
         return [(7, datetime(2026, 7, 13, tzinfo=timezone.utc))]
 
@@ -54,7 +63,9 @@ class PatrimoniosRepositoryTests(unittest.TestCase):
         self.assertEqual(db.colunas, (SolicitacaoEquipamento.id, SolicitacaoEquipamento.criado_em))
         self.assertTrue(db.query_obj.distinct_aplicado)
         self.assertEqual(len(db.query_obj.ordenacao), 2)
-        self.assertEqual([item.id for item in resultado], [7])
+        items, total = resultado
+        self.assertEqual([item.id for item in items], [7])
+        self.assertEqual(total, 1)
 
 
 if __name__ == "__main__":

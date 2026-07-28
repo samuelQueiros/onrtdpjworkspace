@@ -103,12 +103,30 @@ class TermosEquipamentosTests(unittest.TestCase):
             self.solicitacao("Maria <script>alert(1)</script>"),
             "52998224725",
         )
-
         self.assertIn("Maria &lt;script&gt;alert(1)&lt;/script&gt;", html)
         self.assertNotIn("Maria <script>", html)
         self.assertIn("Dell Latitude 5450", html)
         self.assertIn("529.982.247-25", html)
         self.assertIn("req-123", html)
+
+    def test_renderiza_versao_historica_sem_snapshot_html(self):
+        solicitacao = self.solicitacao()
+        solicitacao.termo_versao = SimpleNamespace(
+            codigo="v1",
+            conteudo_hash=termos_equipamentos_service.obter_hash_template("v1"),
+            clausulas=termos_equipamentos_service.obter_clausulas_termo("v1"),
+        )
+
+        html = termos_equipamentos_service.renderizar_termo_html(
+            solicitacao,
+            "52998224725",
+        )
+
+        self.assertIn("v1", html)
+        self.assertNotEqual(
+            termos_equipamentos_service.obter_hash_template("v1"),
+            termos_equipamentos_service.obter_hash_template("v2"),
+        )
 
     def test_geracao_calcula_hash_e_nome_previsivel(self):
         pdf = b"%PDF-1.7\ntermo-controlado"

@@ -25,7 +25,9 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:-}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      ALLOW_INSECURE_PRODUCTION_COOKIE: ${ALLOW_INSECURE_PRODUCTION_COOKIE:-false}
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
       FRONTEND_URL: ${FRONTEND_URL:-http://chat-server}
       ADMIN_NAME: ${ADMIN_NAME:-Administrador}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
@@ -40,7 +42,7 @@ services:
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=3)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
       interval: 30s
       timeout: 5s
       retries: 3

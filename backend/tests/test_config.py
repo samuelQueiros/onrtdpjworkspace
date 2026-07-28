@@ -18,6 +18,8 @@ class SettingsTests(unittest.TestCase):
             "CREDENTIALS_ENCRYPTION_KEY",
             "UPLOAD_DIR",
             "COOKIE_SECURE",
+            "ALLOW_INSECURE_PRODUCTION_COOKIE",
+            "TRUSTED_PROXY_IPS",
         ]
         self.old_values = {key: os.environ.get(key) for key in self.keys}
 
@@ -45,6 +47,31 @@ class SettingsTests(unittest.TestCase):
         os.environ["ENVIRONMENT"] = "production"
         os.environ["COOKIE_SECURE"] = "false"
         self.assertFalse(Settings().cookie_secure)
+
+    def test_runtime_rejeita_cookie_inseguro_em_producao_sem_excecao(self):
+        os.environ.update(
+            {
+                "ENVIRONMENT": "production",
+                "SECRET_KEY": "segredo",
+                "CREDENTIALS_ENCRYPTION_KEY": "criptografia",
+                "COOKIE_SECURE": "false",
+                "ALLOW_INSECURE_PRODUCTION_COOKIE": "false",
+            }
+        )
+        with self.assertRaises(RuntimeError):
+            Settings().validate_runtime()
+
+    def test_runtime_permite_http_controlado_quando_explicito(self):
+        os.environ.update(
+            {
+                "ENVIRONMENT": "production",
+                "SECRET_KEY": "segredo",
+                "CREDENTIALS_ENCRYPTION_KEY": "criptografia",
+                "COOKIE_SECURE": "false",
+                "ALLOW_INSECURE_PRODUCTION_COOKIE": "true",
+            }
+        )
+        Settings().validate_runtime()
 
     def test_producao_exige_secret_key(self):
         os.environ["ENVIRONMENT"] = "production"

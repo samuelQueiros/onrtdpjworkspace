@@ -17,6 +17,7 @@ from app.schemas.patrimonio import (
     RejeicaoSolicitacaoCreate,
     SolicitacaoEquipamentoCreate,
     SolicitacaoEquipamentoOut,
+    SolicitacoesEquipamentosPageOut,
 )
 from app.services import autorizacoes_equipamentos_service
 
@@ -41,18 +42,28 @@ def minhas_solicitacoes(
     return autorizacoes_equipamentos_service.listar_minhas_solicitacoes(db, current_user)
 
 
-@router.get("/admin", response_model=list[SolicitacaoEquipamentoOut])
+@router.get("/admin", response_model=SolicitacoesEquipamentosPageOut)
 def listar_solicitacoes_admin(
     status_solicitacao: str | None = Query(default=None, alias="status"),
     user_id: int | None = None,
     equipamento_id: int | None = None,
     criado_de: datetime | None = None,
     criado_ate: datetime | None = None,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
     return autorizacoes_equipamentos_service.listar_solicitacoes_admin(
-        db, current_user, status_solicitacao, user_id, equipamento_id, criado_de, criado_ate
+        db,
+        current_user,
+        status_solicitacao,
+        user_id,
+        equipamento_id,
+        criado_de,
+        criado_ate,
+        page,
+        page_size,
     )
 
 

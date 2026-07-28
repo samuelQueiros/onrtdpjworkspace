@@ -1,8 +1,24 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from typing import Literal, Optional
 from datetime import datetime, date
+import re
 
 from app.core.cpf import formatar_cpf, validar_cpf
+
+
+def _validar_telefone(valor: str | None) -> str | None:
+    if valor is None:
+        return None
+    digitos = re.sub(r"\D", "", valor)
+    if len(digitos) not in {10, 11}:
+        raise ValueError("Telefone deve conter DDD e 10 ou 11 digitos")
+    return valor
+
+
+def _validar_campos_completos(valores: dict, rotulo: str) -> None:
+    preenchidos = [bool(valor) for valor in valores.values()]
+    if any(preenchidos) and not all(preenchidos):
+        raise ValueError(f"Todos os campos de {rotulo} devem ser preenchidos")
 
 
 class DadosBancarios(BaseModel):
@@ -42,6 +58,13 @@ class Endereco(BaseModel):
         texto = " ".join(str(valor).split())
         return texto or None
 
+    @field_validator("cep")
+    @classmethod
+    def validar_cep(cls, valor: str | None) -> str | None:
+        if valor and len(re.sub(r"\D", "", valor)) != 8:
+            raise ValueError("CEP deve conter 8 digitos")
+        return valor
+
 
 class UserCreate(BaseModel):
     nome: str = Field(min_length=2, max_length=150)
@@ -70,6 +93,11 @@ class UserCreate(BaseModel):
             return None
         texto = " ".join(str(valor).split())
         return texto or None
+
+    @field_validator("telefone", "telefone_emergencia", "telefone_emergencia_2")
+    @classmethod
+    def validar_telefones(cls, valor):
+        return _validar_telefone(valor)
 
     @field_validator("cpf")
     @classmethod
@@ -115,10 +143,23 @@ class UserUpdate(BaseModel):
         texto = " ".join(str(valor).split())
         return texto or None
 
+    @field_validator("telefone", "telefone_emergencia", "telefone_emergencia_2")
+    @classmethod
+    def validar_telefones(cls, valor):
+        return _validar_telefone(valor)
+
     @field_validator("cpf")
     @classmethod
     def validar_cpf_colaborador(cls, valor: str | None) -> str | None:
         return formatar_cpf(validar_cpf(valor)) if valor else None
+
+    @model_validator(mode="after")
+    def validar_campos_estruturados(self):
+        if self.endereco is not None:
+            _validar_campos_completos(self.endereco.model_dump(), "endereco")
+        if self.dados_bancarios is not None:
+            _validar_campos_completos(self.dados_bancarios.model_dump(), "dados bancarios")
+        return self
 
 
 class UserConfigUpdate(BaseModel):
@@ -136,7 +177,7 @@ class UserConfigUpdate(BaseModel):
         if valor is None:
             return None
         texto = " ".join(str(valor).split())
-        return texto or None
+        return _validar_telefone(texto or None)
 
 
 class UserOut(BaseModel):

@@ -52,6 +52,7 @@ export default function AutorizacoesEquipamentosPainel() {
   const confirmar = useConfirm()
   const toast = useToast()
   const [items, setItems] = useState([])
+  const [pagination, setPagination] = useState({ page: 1, pages: 0, total: 0 })
   const [users, setUsers] = useState([])
   const [filters, setFilters] = useState(INITIAL_FILTERS)
   const [loading, setLoading] = useState(true)
@@ -63,13 +64,20 @@ export default function AutorizacoesEquipamentosPainel() {
   const [downloading, setDownloading] = useState(false)
   const requestSequence = useRef(0)
 
-  const load = async (activeFilters = filters) => {
+  const load = async (activeFilters = filters, page = 1) => {
     const sequence = ++requestSequence.current
     setLoading(true)
     setError('')
     try {
-      const response = await autorizacoesEquipamentosService.listarAutorizacoesAdmin(toApiFilters(activeFilters))
-      if (sequence === requestSequence.current) setItems(response)
+      const response = await autorizacoesEquipamentosService.listarAutorizacoesAdmin({
+        ...toApiFilters(activeFilters),
+        page,
+        page_size: 25,
+      })
+      if (sequence === requestSequence.current) {
+        setItems(response.items)
+        setPagination({ page: response.page, pages: response.pages, total: response.total })
+      }
     } catch (err) {
       if (sequence === requestSequence.current) setError(err.message)
     } finally {
@@ -203,13 +211,36 @@ export default function AutorizacoesEquipamentosPainel() {
       {loading && !items.length && !error ? (
         <LoadingCard text="Carregando autorizações de equipamentos..." />
       ) : (
-        <TabelaAutorizacoesEquipamentos
-          items={items}
-          loading={loading}
-          mutatingId={mutatingId}
-          onAction={action}
-          onDetails={setDetails}
-        />
+        <>
+          <TabelaAutorizacoesEquipamentos
+            items={items}
+            loading={loading}
+            mutatingId={mutatingId}
+            onAction={action}
+            onDetails={setDetails}
+          />
+          {pagination.pages > 1 && (
+            <nav className="pagination" aria-label="Paginação das autorizações">
+              <button
+                className="btn btn-outline btn-sm"
+                disabled={loading || pagination.page <= 1}
+                onClick={() => load(filters, pagination.page - 1)}
+                type="button"
+              >
+                Anterior
+              </button>
+              <span>Página {pagination.page} de {pagination.pages} · {pagination.total} registros</span>
+              <button
+                className="btn btn-outline btn-sm"
+                disabled={loading || pagination.page >= pagination.pages}
+                onClick={() => load(filters, pagination.page + 1)}
+                type="button"
+              >
+                Próxima
+              </button>
+            </nav>
+          )}
+        </>
       )}
 
       {details && (

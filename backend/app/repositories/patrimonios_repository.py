@@ -204,7 +204,9 @@ def listar_solicitacoes_admin(
     equipamento_id: int | None = None,
     criado_de: datetime | None = None,
     criado_ate: datetime | None = None,
-) -> list[SolicitacaoEquipamento]:
+    offset: int = 0,
+    limit: int = 25,
+) -> tuple[list[SolicitacaoEquipamento], int]:
     # O PostgreSQL exige que toda coluna usada no ORDER BY esteja presente no
     # SELECT quando DISTINCT e aplicado. A data tambem participa do SELECT para
     # manter a deduplicacao dos IDs resultantes do join com os itens.
@@ -221,13 +223,17 @@ def listar_solicitacoes_admin(
         query = query.filter(SolicitacaoEquipamento.criado_em >= criado_de)
     if criado_ate:
         query = query.filter(SolicitacaoEquipamento.criado_em <= criado_ate)
+    total = query.distinct().count()
     ids = [
         row[0]
         for row in query.distinct()
         .order_by(SolicitacaoEquipamento.criado_em.desc(), SolicitacaoEquipamento.id.desc())
+        .offset(offset)
+        .limit(limit)
         .all()
     ]
-    return [solicitacao for item_id in ids if (solicitacao := obter_solicitacao(db, item_id))]
+    items = [solicitacao for item_id in ids if (solicitacao := obter_solicitacao(db, item_id))]
+    return items, total
 
 
 def existe_solicitacao_concorrente(db: Session, user_id: int, equipamento_id: int) -> bool:
@@ -264,6 +270,27 @@ def existe_autorizacao_entregue_em_aberto(db: Session, equipamento_id: int) -> b
             ),
             SolicitacaoEquipamentoItem.equipamento_id == equipamento_id,
             SolicitacaoEquipamentoItem.status_item == "entregue",
+        )
+        .first()
+        is not None
+    )
+
+
+def existe_fluxo_aberto_para_usuario(db: Session, user_id: int) -> bool:
+    return (
+        db.query(SolicitacaoEquipamento.id)
+        .filter(
+            SolicitacaoEquipamento.user_id == user_id,
+            SolicitacaoEquipamento.status.in_(
+                [
+                    "pendente",
+                    "aprovada",
+                    "aguardando_entrega",
+                    "aguardando_aceite",
+                    "aceite_registrado_aguardando_documento",
+                    "entregue",
+                ]
+            ),
         )
         .first()
         is not None

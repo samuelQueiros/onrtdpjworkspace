@@ -223,6 +223,14 @@ class SolicitacaoEquipamentoOut(BaseModel):
     acoes_permitidas: list[str] = Field(default_factory=list)
 
 
+class SolicitacoesEquipamentosPageOut(BaseModel):
+    items: list[SolicitacaoEquipamentoOut]
+    total: int
+    page: int
+    page_size: int
+    pages: int
+
+
 class AprovacaoSolicitacaoCreate(TextoNormalizadoMixin):
     item_ids_aprovados: list[int] = Field(min_length=1)
     motivo_ajuste: str | None = Field(default=None, max_length=2000)

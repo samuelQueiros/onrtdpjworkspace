@@ -71,8 +71,8 @@ def formatar_usuario(
 def formatar_dados_sensiveis(user: User) -> dict:
     return {
         "cpf": formatar_cpf(descriptografar_dado_sensivel(user.cpf_criptografado)) if user.cpf_criptografado else None,
-        "telefone_emergencia": user.telefone_emergencia,
-        "telefone_emergencia_2": user.telefone_emergencia_2,
+        "telefone_emergencia": descriptografar_dado_sensivel(user.telefone_emergencia),
+        "telefone_emergencia_2": descriptografar_dado_sensivel(user.telefone_emergencia_2),
         "endereco": _desserializar_endereco(user.endereco),
         "dados_bancarios": _desserializar_dados_bancarios(user.dados_bancarios),
     }
@@ -310,8 +310,8 @@ def criar_usuario(db: Session, payload: UserCreate, current_user: User) -> dict:
         data_aniversario=payload.data_aniversario,
         cor=payload.cor,
         telefone=payload.telefone,
-        telefone_emergencia=payload.telefone_emergencia,
-        telefone_emergencia_2=payload.telefone_emergencia_2,
+        telefone_emergencia=criptografar_dado_sensivel(payload.telefone_emergencia),
+        telefone_emergencia_2=criptografar_dado_sensivel(payload.telefone_emergencia_2),
         endereco=_serializar_endereco(payload.endereco),
         dados_bancarios=_serializar_dados_bancarios(payload.dados_bancarios),
         cargo_id=cargo.id if cargo else None,
@@ -367,13 +367,13 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
         user.telefone = payload.telefone.strip() if payload.telefone and payload.telefone.strip() else None
     if "telefone_emergencia" in payload.model_fields_set:
         user.telefone_emergencia = (
-            payload.telefone_emergencia.strip()
+            criptografar_dado_sensivel(payload.telefone_emergencia.strip())
             if payload.telefone_emergencia and payload.telefone_emergencia.strip()
             else None
         )
     if "telefone_emergencia_2" in payload.model_fields_set:
         user.telefone_emergencia_2 = (
-            payload.telefone_emergencia_2.strip()
+            criptografar_dado_sensivel(payload.telefone_emergencia_2.strip())
             if payload.telefone_emergencia_2 and payload.telefone_emergencia_2.strip()
             else None
         )
@@ -425,6 +425,16 @@ def desativar_usuario(db: Session, user_id: int, current_user: User) -> None:
         raise HTTPException(status_code=400, detail="O ultimo administrador ativo nao pode ser desativado")
     if not user.ativo:
         return
+    from app.repositories import patrimonios_repository
+
+    if patrimonios_repository.existe_fluxo_aberto_para_usuario(db, user.id):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "O colaborador possui autorizacao de equipamento em aberto. "
+                "Conclua ou encerre o fluxo antes de desativar a conta."
+            ),
+        )
     user.ativo = False
     log = Log(
         user_id=current_user.id,
@@ -461,9 +471,17 @@ def atualizar_configuracoes(db: Session, payload: UserConfigUpdate, current_user
     if "telefone" in payload.model_fields_set:
         current_user.telefone = payload.telefone
     if "telefone_emergencia" in payload.model_fields_set:
-        current_user.telefone_emergencia = payload.telefone_emergencia
+        current_user.telefone_emergencia = (
+            criptografar_dado_sensivel(payload.telefone_emergencia)
+            if payload.telefone_emergencia
+            else None
+        )
     if "telefone_emergencia_2" in payload.model_fields_set:
-        current_user.telefone_emergencia_2 = payload.telefone_emergencia_2
+        current_user.telefone_emergencia_2 = (
+            criptografar_dado_sensivel(payload.telefone_emergencia_2)
+            if payload.telefone_emergencia_2
+            else None
+        )
 
     if payload.nova_senha is not None and payload.nova_senha.strip():
         if not payload.senha_atual:

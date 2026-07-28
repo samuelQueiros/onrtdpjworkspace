@@ -24,7 +24,15 @@ class Documento(Base):
     tamanho = Column(Integer, nullable=False)
     criado_por_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     destino_tipo = Column(String, nullable=False, default="usuario")
-    destinatario_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    destinatario_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            name="fk_documentos_destinatario_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
+    )
     criado_em = Column(DateTime, default=datetime.utcnow)
 
     usuario = relationship("User", foreign_keys=[user_id], back_populates="documentos")

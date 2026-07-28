@@ -1,4 +1,5 @@
 import bcrypt
+import ipaddress
 import threading
 import time
 from collections import defaultdict, deque
@@ -22,6 +23,27 @@ _login_attempts: dict[str, deque[float]] = defaultdict(deque)
 _login_lock = threading.Lock()
 LOGIN_WINDOW_SECONDS = 15 * 60
 LOGIN_MAX_ATTEMPTS = 5
+
+
+def obter_ip_cliente(request: Request) -> str:
+    """Aceita cabeçalhos encaminhados somente de proxies explicitamente confiáveis."""
+    peer_ip = request.client.host if request.client else "desconhecido"
+    try:
+        peer = ipaddress.ip_address(peer_ip)
+        proxy_confiavel = any(
+            peer in ipaddress.ip_network(valor, strict=False)
+            for valor in settings.trusted_proxy_ips
+        )
+    except ValueError:
+        proxy_confiavel = False
+    if not proxy_confiavel:
+        return peer_ip
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        candidato = forwarded.split(",", 1)[0].strip()
+        if candidato:
+            return candidato
+    return request.headers.get("x-real-ip", "").strip() or peer_ip
 
 
 def hash_senha(senha: str) -> str:

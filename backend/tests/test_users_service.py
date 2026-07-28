@@ -171,6 +171,23 @@ class UsersServiceTests(unittest.TestCase):
                 users_service.desativar_usuario(SimpleNamespace(), 2, SimpleNamespace(id=1))
         self.assertEqual(exc.exception.status_code, 400)
 
+    def test_desativar_bloqueia_colaborador_com_autorizacao_aberta(self):
+        user = SimpleNamespace(id=2, role="user", ativo=True)
+        with (
+            patch("app.services.users_service.buscar_usuario", return_value=user),
+            patch(
+                "app.repositories.patrimonios_repository.existe_fluxo_aberto_para_usuario",
+                return_value=True,
+            ),
+        ):
+            with self.assertRaises(HTTPException) as exc:
+                users_service.desativar_usuario(
+                    SimpleNamespace(),
+                    2,
+                    SimpleNamespace(id=1, nome="Admin"),
+                )
+        self.assertEqual(exc.exception.status_code, 409)
+
     def test_listar_aniversariantes_retorna_apenas_mes_atual(self):
         hoje = date.today()
         usuarios = [
@@ -380,12 +397,16 @@ class UsersServiceTests(unittest.TestCase):
         with (
             patch("app.services.users_service.users_repository.salvar_usuario"),
             patch("app.services.users_service.formatar_usuario", return_value={"id": 1}),
+            patch(
+                "app.services.users_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
         ):
             users_service.atualizar_configuracoes(SimpleNamespace(), payload, current_user)
 
         self.assertEqual(current_user.telefone, "(61) 99999-0000")
-        self.assertEqual(current_user.telefone_emergencia, "(61) 98888-0000")
-        self.assertEqual(current_user.telefone_emergencia_2, "(61) 97777-0000")
+        self.assertEqual(current_user.telefone_emergencia, "enc:(61) 98888-0000")
+        self.assertEqual(current_user.telefone_emergencia_2, "enc:(61) 97777-0000")
 
     def test_meu_perfil_combina_dados_basicos_e_sensiveis(self):
         user = SimpleNamespace(
@@ -413,7 +434,14 @@ class UsersServiceTests(unittest.TestCase):
         with (
             patch("app.services.users_service.calcular_dias_restantes", return_value=30),
             patch("app.services.users_service.calcular_dias_usados", return_value=0),
-            patch("app.services.users_service.descriptografar_dado_sensivel", return_value="52998224725"),
+            patch(
+                "app.services.users_service.descriptografar_dado_sensivel",
+                side_effect=lambda valor: {
+                    "cpf-criptografado": "52998224725",
+                    "(61) 98888-8888": "(61) 98888-8888",
+                    None: None,
+                }[valor],
+            ),
         ):
             resultado = users_service.meu_perfil(SimpleNamespace(), user)
 

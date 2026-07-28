@@ -57,6 +57,29 @@ class Settings:
         return valor.strip().lower() in {"1", "true", "sim", "yes", "on"}
 
     @property
+    def trusted_proxy_ips(self) -> set[str]:
+        valor = os.getenv("TRUSTED_PROXY_IPS", "")
+        return {item.strip() for item in valor.split(",") if item.strip()}
+
+    @property
+    def allow_insecure_production_cookie(self) -> bool:
+        valor = os.getenv("ALLOW_INSECURE_PRODUCTION_COOKIE", "false")
+        return valor.strip().lower() in {"1", "true", "sim", "yes", "on"}
+
+    def validate_runtime(self) -> None:
+        _ = self.secret_key
+        _ = self.credentials_encryption_key
+        if (
+            self.environment == "production"
+            and not self.cookie_secure
+            and not self.allow_insecure_production_cookie
+        ):
+            raise RuntimeError(
+                "COOKIE_SECURE deve ser true em producao. "
+                "Use ALLOW_INSECURE_PRODUCTION_COOKIE=true somente em uma rede HTTP controlada."
+            )
+
+    @property
     def credentials_encryption_key(self) -> str:
         secret = os.getenv("CREDENTIALS_ENCRYPTION_KEY")
         if secret:
