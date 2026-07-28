@@ -1,7 +1,6 @@
 import os
 import tempfile
 import unittest
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import ANY, patch
 
@@ -23,32 +22,45 @@ class DocumentosServiceTests(unittest.TestCase):
             os.environ["UPLOAD_DIR"] = self.old_upload_dir
         self.upload_dir.cleanup()
 
-    def test_upload_admin_cria_somente_arquivo_enviado(self):
+    def test_upload_admin_cria_arquivos_recebido_e_enviado(self):
         admin = SimpleNamespace(id=1, nome="Administrador", role="admin")
         colaborador = SimpleNamespace(id=2, nome="Maria Silva", role="user")
 
-        relativo, caminho_legado, caminho, copia_legada = documentos_service.salvar_arquivo_upload(
+        relativo, caminho_enviado_relativo, caminho, caminho_enviado = documentos_service.salvar_arquivo_upload(
             b"%PDF-1.7", "contracheque.pdf", "application/pdf", colaborador, admin, "contracheque"
-        )
-
-        self.assertTrue(relativo.startswith("enviados/administrador/maria-silva/"))
-        self.assertTrue(caminho.is_file())
-        self.assertIsNone(caminho_legado)
-        self.assertIsNone(copia_legada)
-        self.assertEqual(list((Path(self.upload_dir.name) / "recebidos").rglob("*.*")), [])
-
-    def test_upload_colaborador_cria_somente_arquivo_recebido(self):
-        colaborador = SimpleNamespace(id=2, nome="Maria Silva", role="user")
-
-        relativo, caminho_legado, caminho, copia_legada = documentos_service.salvar_arquivo_upload(
-            b"%PDF-1.7", "atestado.pdf", "application/pdf", colaborador, colaborador, "atestado"
         )
 
         self.assertTrue(relativo.startswith("recebidos/maria-silva/"))
         self.assertTrue(caminho.is_file())
-        self.assertIsNone(caminho_legado)
-        self.assertIsNone(copia_legada)
-        self.assertEqual(list((Path(self.upload_dir.name) / "enviados").rglob("*.*")), [])
+        self.assertTrue(caminho_enviado_relativo.startswith("enviados/administrador/maria-silva/"))
+        self.assertTrue(caminho_enviado.is_file())
+        self.assertEqual(caminho.read_bytes(), caminho_enviado.read_bytes())
+
+    def test_upload_atestado_admin_para_colaborador_segue_fluxo_de_enviados(self):
+        admin = SimpleNamespace(id=1, nome="Administrador", role="admin")
+        colaborador = SimpleNamespace(id=2, nome="Maria Silva", role="user")
+
+        relativo, caminho_enviado_relativo, caminho, caminho_enviado = documentos_service.salvar_arquivo_upload(
+            b"%PDF-1.7", "atestado.pdf", "application/pdf", colaborador, admin, "atestado"
+        )
+
+        self.assertTrue(relativo.startswith("recebidos/maria-silva/"))
+        self.assertTrue(caminho_enviado_relativo.startswith("enviados/administrador/maria-silva/"))
+        self.assertTrue(caminho.is_file())
+        self.assertTrue(caminho_enviado.is_file())
+
+    def test_upload_colaborador_cria_arquivos_recebido_e_enviado_para_administracao(self):
+        colaborador = SimpleNamespace(id=2, nome="Maria Silva", role="user")
+
+        relativo, caminho_enviado_relativo, caminho, caminho_enviado = documentos_service.salvar_arquivo_upload(
+            b"%PDF-1.7", "atestado.pdf", "application/pdf", colaborador, colaborador, "atestado"
+        )
+
+        self.assertTrue(relativo.startswith("recebidos/administracao/maria-silva/"))
+        self.assertTrue(caminho.is_file())
+        self.assertTrue(caminho_enviado_relativo.startswith("enviados/maria-silva/administracao/"))
+        self.assertTrue(caminho_enviado.is_file())
+        self.assertEqual(caminho.read_bytes(), caminho_enviado.read_bytes())
 
     def test_atestado_de_administrador_entra_em_recebidos(self):
         admin = SimpleNamespace(id=1, nome="Catharina", role="admin")
@@ -57,7 +69,7 @@ class DocumentosServiceTests(unittest.TestCase):
             b"%PDF-1.7", "atestado.pdf", "application/pdf", admin, admin, "atestado"
         )
 
-        self.assertTrue(relativo.startswith("recebidos/catharina/"))
+        self.assertTrue(relativo.startswith("recebidos/administracao/catharina/"))
         self.assertTrue(caminho.is_file())
 
     @patch.object(documentos_service.documentos_repository, "listar_documentos_recebidos_por_administradores")
@@ -70,7 +82,9 @@ class DocumentosServiceTests(unittest.TestCase):
         historico = documentos_service.listar_historico_documentos(SimpleNamespace(), admin)
 
         self.assertEqual(historico, {"recebidos": ["atestado"], "enviados": ["contracheque"]})
-        listar_criados.assert_called_once_with(ANY, 1, ["contracheque", "termo_equipamentos"])
+        listar_criados.assert_called_once_with(
+            ANY, 1, ["atestado", "contracheque", "termo_equipamentos"]
+        )
 
     @patch.object(documentos_service.documentos_repository, "listar_documentos_recebidos_por")
     @patch.object(documentos_service.documentos_repository, "listar_documentos_criados_por")

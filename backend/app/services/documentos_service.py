@@ -15,7 +15,9 @@ from app.storage.documentos_storage import (
     corrigir_nome_arquivo,
     gerar_nome_armazenamento,
     obter_diretorio_enviado,
+    obter_diretorio_enviado_administracao,
     obter_diretorio_recebido,
+    obter_diretorio_recebido_administracao,
     obter_upload_dir,
     validar_assinatura_arquivo,
 )
@@ -71,7 +73,7 @@ def listar_documentos_usuario(db: Session, user_id: int) -> list[Documento]:
 def listar_historico_documentos(db: Session, current_user: User) -> dict[str, list[Documento]]:
     if current_user.role == "admin":
         enviados = documentos_repository.listar_documentos_criados_por(
-            db, current_user.id, ["contracheque", "termo_equipamentos"]
+            db, current_user.id, ["atestado", "contracheque", "termo_equipamentos"]
         )
         recebidos = documentos_repository.listar_documentos_recebidos_por_administradores(db)
     else:
@@ -91,14 +93,30 @@ def salvar_arquivo_upload(
     nome_armazenado = gerar_nome_armazenamento(nome_original, mime)
     upload_dir = obter_upload_dir()
 
-    if tipo == "contracheque":
-        caminho_principal = obter_diretorio_enviado(current_user, target_user) / nome_armazenado
-    else:
-        caminho_principal = obter_diretorio_recebido(target_user) / nome_armazenado
+    envio_para_colaborador = current_user.role == "admin" and target_user.id != current_user.id
+    diretorio_recebido = (
+        obter_diretorio_recebido(target_user)
+        if envio_para_colaborador
+        else obter_diretorio_recebido_administracao(current_user)
+    )
+    diretorio_enviado = (
+        obter_diretorio_enviado(current_user, target_user)
+        if envio_para_colaborador
+        else obter_diretorio_enviado_administracao(current_user)
+    )
+    caminho_recebido = diretorio_recebido / nome_armazenado
+    caminho_enviado = diretorio_enviado / nome_armazenado
 
-    caminho_principal.write_bytes(arquivo_bytes)
-    caminho_relativo = caminho_principal.relative_to(upload_dir).as_posix()
-    return caminho_relativo, None, caminho_principal, None
+    caminho_recebido.write_bytes(arquivo_bytes)
+    try:
+        caminho_enviado.write_bytes(arquivo_bytes)
+    except Exception:
+        caminho_recebido.unlink(missing_ok=True)
+        raise
+
+    caminho_recebido_relativo = caminho_recebido.relative_to(upload_dir).as_posix()
+    caminho_enviado_relativo = caminho_enviado.relative_to(upload_dir).as_posix()
+    return caminho_recebido_relativo, caminho_enviado_relativo, caminho_recebido, caminho_enviado
 
 
 async def criar_documento_upload(

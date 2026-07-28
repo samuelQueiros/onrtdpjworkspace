@@ -48,7 +48,8 @@ def listar_documentos_recebidos_por(db: Session, user_id: int, excluir_criador_i
 def listar_documentos_recebidos_por_administradores(db: Session) -> list[Documento]:
     return (
         db.query(Documento)
-        .filter(Documento.tipo == "atestado")
+        .join(User, Documento.criado_por_id == User.id)
+        .filter(Documento.tipo == "atestado", User.role != "admin")
         .order_by(Documento.criado_em.desc())
         .all()
     )

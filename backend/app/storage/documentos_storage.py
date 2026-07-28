@@ -43,8 +43,20 @@ def obter_diretorio_enviado(remetente: User, destinatario: User) -> Path:
     return diretorio
 
 
+def obter_diretorio_enviado_administracao(remetente: User) -> Path:
+    diretorio = obter_upload_dir() / "enviados" / nome_pasta_usuario(remetente) / "administracao"
+    diretorio.mkdir(parents=True, exist_ok=True)
+    return diretorio
+
+
 def obter_diretorio_recebido(destinatario: User) -> Path:
     diretorio = obter_upload_dir() / "recebidos" / nome_pasta_usuario(destinatario)
+    diretorio.mkdir(parents=True, exist_ok=True)
+    return diretorio
+
+
+def obter_diretorio_recebido_administracao(remetente: User) -> Path:
+    diretorio = obter_upload_dir() / "recebidos" / "administracao" / nome_pasta_usuario(remetente)
     diretorio.mkdir(parents=True, exist_ok=True)
     return diretorio
 

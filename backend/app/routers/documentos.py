@@ -35,7 +35,11 @@ def _fmt(doc: Documento) -> dict:
         "tamanho": doc.tamanho,
         "criado_por_id": doc.criado_por_id,
         "criado_por_nome": doc.criado_por.nome if doc.criado_por else "Sistema",
-        "destinatario_nome": doc.usuario.nome if doc.usuario else "Colaborador",
+        "destinatario_nome": (
+            doc.usuario.nome
+            if doc.criado_por and doc.criado_por.role == "admin"
+            else "Administração"
+        ),
         "criado_em": doc.criado_em,
     }
 
