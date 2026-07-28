@@ -239,7 +239,7 @@ export default function Usuarios() {
   return (
     <>
       <PageHeader
-        title="Usuários"
+        title="Colaboradores"
         subtitle="Cadastre colaboradores, ajuste saldos e defina cores de identificação."
         action={
           <div className="users-header-actions">

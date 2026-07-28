@@ -487,6 +487,8 @@ def gerar_termo_definitivo(
                 caminho_enviado=None,
                 tamanho=arquivo.tamanho,
                 criado_por_id=criado_por_id,
+                destino_tipo="usuario",
+                destinatario_id=solicitacao.user_id,
             )
             db.add(documento)
             db.flush()
@@ -499,6 +501,8 @@ def gerar_termo_definitivo(
             documento.caminho_arquivo = arquivo.caminho_relativo
             documento.caminho_enviado = None
             documento.tamanho = arquivo.tamanho
+            documento.destino_tipo = "usuario"
+            documento.destinatario_id = solicitacao.user_id
 
         solicitacao.termo_versao_id = solicitacao.termo_versao.id
         if not solicitacao.termo_html_snapshot_criptografado:

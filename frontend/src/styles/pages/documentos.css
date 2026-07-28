@@ -30,6 +30,34 @@
   color: #fff;
 }
 
+.documents-scope {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 3px;
+  width: fit-content;
+  border-radius: 8px;
+  background: var(--surface-soft, #f3f6fa);
+}
+
+.documents-scope button {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted, #5f718d);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.documents-scope button.active {
+  background: var(--surface, #fff);
+  color: var(--primary, #2563eb);
+  box-shadow: 0 1px 3px rgb(15 23 42 / 12%);
+}
+
 @media (max-width: 720px) {
   .documents-header,
   .documents-tabs {
@@ -37,7 +65,12 @@
   }
 
   .documents-header .select-filter,
-  .documents-tab {
+  .documents-tab,
+  .documents-scope {
     width: 100%;
+  }
+
+  .documents-scope button {
+    flex: 1;
   }
 }

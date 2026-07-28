@@ -62,7 +62,7 @@ export default function Sidebar({ user, pendingApprovals }) {
           <div className="nav-group">
             <span className="nav-label">Administração</span>
             <LinkItem to="/aprovacoes" icon={Icon.check} badge={pendingApprovals}>Aprovações</LinkItem>
-            <LinkItem to="/usuarios" icon={Icon.users}>Usuários</LinkItem>
+            <LinkItem to="/usuarios" icon={Icon.users}>Colaboradores</LinkItem>
             <LinkItem to="/patrimonios" icon={Icon.patrimony}>Patrimônios</LinkItem>
             <LinkItem to="/bloqueios" icon={Icon.lock}>Bloqueio de Datas</LinkItem>
             <LinkItem to="/credenciais" icon={Icon.key}>Acessos / Senhas</LinkItem>

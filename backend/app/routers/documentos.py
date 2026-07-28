@@ -35,9 +35,11 @@ def _fmt(doc: Documento) -> dict:
         "tamanho": doc.tamanho,
         "criado_por_id": doc.criado_por_id,
         "criado_por_nome": doc.criado_por.nome if doc.criado_por else "Sistema",
+        "destino_tipo": doc.destino_tipo,
+        "destinatario_id": doc.destinatario_id,
         "destinatario_nome": (
-            doc.usuario.nome
-            if doc.criado_por and doc.criado_por.role == "admin"
+            doc.destinatario.nome
+            if doc.destino_tipo == "usuario" and doc.destinatario
             else "Administração"
         ),
         "criado_em": doc.criado_em,
@@ -70,7 +72,8 @@ def historico_documentos(
 ):
     historico = listar_historico_documentos(db, current_user)
     return {
-        "recebidos": [_fmt(doc) for doc in historico["recebidos"]],
+        "recebidos_pessoais": [_fmt(doc) for doc in historico["recebidos_pessoais"]],
+        "recebidos_administracao": [_fmt(doc) for doc in historico["recebidos_administracao"]],
         "enviados": [_fmt(doc) for doc in historico["enviados"]],
     }
 
@@ -94,10 +97,11 @@ async def upload_documento(
     file: UploadFile = File(...),
     tipo: str = Form(...),
     user_id: int = Form(...),
+    destino_tipo: str = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    doc = await criar_documento_upload(db, file, tipo, user_id, current_user)
+    doc = await criar_documento_upload(db, file, tipo, user_id, destino_tipo, current_user)
     return _fmt(doc)
 
 

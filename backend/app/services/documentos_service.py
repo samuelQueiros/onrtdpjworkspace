@@ -22,18 +22,23 @@ from app.storage.documentos_storage import (
     validar_assinatura_arquivo,
 )
 
-TIPOS_DOCUMENTO = ("atestado", "contracheque")
+TIPOS_DOCUMENTO = ("atestado", "contracheque", "outro")
+DESTINOS_DOCUMENTO = ("usuario", "administracao")
 
 
-def validar_permissao_upload(tipo: str, user_id: int, current_user: User) -> None:
+def validar_permissao_upload(tipo: str, user_id: int, destino_tipo: str, current_user: User) -> None:
     if tipo == "contracheque" and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Apenas administradores podem enviar contracheques")
 
     if tipo not in TIPOS_DOCUMENTO:
-        raise HTTPException(status_code=400, detail="Tipo invalido. Use 'atestado' ou 'contracheque'")
+        raise HTTPException(status_code=400, detail="Tipo de documento invalido")
 
-    if current_user.role != "admin" and user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Voce so pode enviar documentos para si mesmo")
+    if destino_tipo not in DESTINOS_DOCUMENTO:
+        raise HTTPException(status_code=400, detail="Destino de documento invalido")
+
+    if current_user.role != "admin":
+        if destino_tipo != "administracao" or user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Colaboradores so podem enviar documentos para a administracao")
 
 
 def validar_acesso_documento(doc: Documento, current_user: User) -> None:
@@ -71,15 +76,20 @@ def listar_documentos_usuario(db: Session, user_id: int) -> list[Documento]:
 
 
 def listar_historico_documentos(db: Session, current_user: User) -> dict[str, list[Documento]]:
-    if current_user.role == "admin":
-        enviados = documentos_repository.listar_documentos_criados_por(
-            db, current_user.id, ["atestado", "contracheque", "termo_equipamentos"]
-        )
-        recebidos = documentos_repository.listar_documentos_recebidos_por_administradores(db)
-    else:
-        enviados = documentos_repository.listar_documentos_criados_por(db, current_user.id, "atestado")
-        recebidos = documentos_repository.listar_documentos_recebidos_por(db, current_user.id, current_user.id)
-    return {"recebidos": recebidos, "enviados": enviados}
+    enviados = documentos_repository.listar_documentos_criados_por(
+        db, current_user.id, ["atestado", "contracheque", "outro", "termo_equipamentos"]
+    )
+    recebidos_pessoais = documentos_repository.listar_documentos_recebidos_pessoais(db, current_user.id)
+    recebidos_administracao = (
+        documentos_repository.listar_documentos_recebidos_administracao(db)
+        if current_user.role == "admin"
+        else []
+    )
+    return {
+        "recebidos_pessoais": recebidos_pessoais,
+        "recebidos_administracao": recebidos_administracao,
+        "enviados": enviados,
+    }
 
 
 def salvar_arquivo_upload(
@@ -88,20 +98,19 @@ def salvar_arquivo_upload(
     mime: str,
     target_user: User,
     current_user: User,
-    tipo: str,
+    destino_tipo: str,
 ) -> tuple[str, str | None, Path, Path | None]:
     nome_armazenado = gerar_nome_armazenamento(nome_original, mime)
     upload_dir = obter_upload_dir()
 
-    envio_para_colaborador = current_user.role == "admin" and target_user.id != current_user.id
     diretorio_recebido = (
         obter_diretorio_recebido(target_user)
-        if envio_para_colaborador
+        if destino_tipo == "usuario"
         else obter_diretorio_recebido_administracao(current_user)
     )
     diretorio_enviado = (
         obter_diretorio_enviado(current_user, target_user)
-        if envio_para_colaborador
+        if destino_tipo == "usuario"
         else obter_diretorio_enviado_administracao(current_user)
     )
     caminho_recebido = diretorio_recebido / nome_armazenado
@@ -124,9 +133,10 @@ async def criar_documento_upload(
     file: UploadFile,
     tipo: str,
     user_id: int,
+    destino_tipo: str,
     current_user: User,
 ) -> Documento:
-    validar_permissao_upload(tipo, user_id, current_user)
+    validar_permissao_upload(tipo, user_id, destino_tipo, current_user)
 
     target_user = buscar_usuario(db, user_id)
     arquivo_bytes = await file.read(MAX_SIZE + 1)
@@ -144,7 +154,7 @@ async def criar_documento_upload(
         mime=mime,
         target_user=target_user,
         current_user=current_user,
-        tipo=tipo,
+        destino_tipo=destino_tipo,
     )
 
     doc = Documento(
@@ -156,13 +166,16 @@ async def criar_documento_upload(
         caminho_enviado=caminho_legado_relativo,
         tamanho=len(arquivo_bytes),
         criado_por_id=current_user.id,
+        destino_tipo=destino_tipo,
+        destinatario_id=user_id if destino_tipo == "usuario" else None,
     )
 
     try:
+        destinatario_nome = target_user.nome if destino_tipo == "usuario" else "Administração"
         log = Log(
             user_id=current_user.id,
             acao="DOCUMENTO_ENVIADO",
-            detalhes=f"{tipo.title()} '{file.filename}' enviado para {target_user.nome}",
+            detalhes=f"{tipo.title()} '{file.filename}' enviado para {destinatario_nome}",
         )
         documentos_repository.salvar_documento_com_log(db, doc, log)
     except Exception:

@@ -168,6 +168,8 @@ class SchemasDtoTests(unittest.TestCase):
             tamanho=123,
             criado_por_id=2,
             criado_por_nome="Gabriel",
+            destino_tipo="usuario",
+            destinatario_id=2,
             destinatario_nome="Gabriel",
             criado_em=datetime.now(UTC),
         )

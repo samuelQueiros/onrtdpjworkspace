@@ -82,11 +82,11 @@ class DocumentosRepositoryTests(unittest.TestCase):
         self.assertTrue(db.last_query.filtered)
         self.assertTrue(db.last_query.ordered)
 
-    def test_listar_documentos_recebidos_por_administradores_filtra_atestados(self):
+    def test_listar_documentos_recebidos_administracao_filtra_destino(self):
         docs = [SimpleNamespace(id=1)]
         db = FakeDb(query_result=docs)
 
-        self.assertEqual(documentos_repository.listar_documentos_recebidos_por_administradores(db), docs)
+        self.assertEqual(documentos_repository.listar_documentos_recebidos_administracao(db), docs)
         self.assertTrue(db.last_query.filtered)
         self.assertTrue(db.last_query.ordered)
 

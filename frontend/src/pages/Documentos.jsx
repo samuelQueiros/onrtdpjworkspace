@@ -14,13 +14,19 @@ export default function Documentos() {
   const toast = useToast()
   const isAdmin = user?.role === 'admin'
 
-  const [historico, setHistorico] = useState({ recebidos: [], enviados: [] })
+  const [historico, setHistorico] = useState({
+    recebidos_pessoais: [],
+    recebidos_administracao: [],
+    enviados: [],
+  })
   const [aba, setAba] = useState('recebidos')
+  const [escopoRecebidos, setEscopoRecebidos] = useState('pessoal')
   const [users, setUsers] = useState([])
   const [selectedUser, setSelectedUser] = useState('')
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [tipo, setTipo] = useState('atestado')
+  const [destinoTipo, setDestinoTipo] = useState(isAdmin ? 'usuario' : 'administracao')
   const [targetUser, setTargetUser] = useState('')
   const fileRef = useRef(null)
 
@@ -49,8 +55,8 @@ export default function Documentos() {
     const file = fileRef.current?.files?.[0]
     if (!file) return toast.error('Selecione um arquivo.')
 
-    const uid = isAdmin ? (targetUser || user.id) : user.id
-    if (!uid) return toast.error('Selecione o colaborador.')
+    const uid = isAdmin && destinoTipo === 'usuario' ? targetUser : user.id
+    if (!uid) return toast.error('Selecione o destinatário.')
 
     setUploading(true)
 
@@ -59,6 +65,7 @@ export default function Documentos() {
       formData.append('file', file)
       formData.append('tipo', tipo)
       formData.append('user_id', uid)
+      formData.append('destino_tipo', destinoTipo)
       await api.uploadDocumento(formData)
       toast.success('Documento enviado com sucesso.')
       if (fileRef.current) fileRef.current.value = ''
@@ -92,7 +99,11 @@ export default function Documentos() {
       const blob = await api.downloadDocumento(id)
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
-      const doc = [...historico.recebidos, ...historico.enviados].find(item => item.id === id)
+      const doc = [
+        ...historico.recebidos_pessoais,
+        ...historico.recebidos_administracao,
+        ...historico.enviados,
+      ].find(item => item.id === id)
       link.href = url
       link.download = doc?.nome_arquivo || 'documento'
       document.body.appendChild(link)
@@ -104,7 +115,10 @@ export default function Documentos() {
     }
   }
 
-  const docs = historico[aba].filter(doc => (
+  const docsAba = aba === 'enviados'
+    ? historico.enviados
+    : historico[escopoRecebidos === 'administracao' ? 'recebidos_administracao' : 'recebidos_pessoais']
+  const docs = docsAba.filter(doc => (
     !isAdmin || !selectedUser || String(doc.user_id) === String(selectedUser)
   ))
 
@@ -112,7 +126,7 @@ export default function Documentos() {
     <>
       <PageHeader
         title="Documentos"
-        subtitle="Atestados médicos e contracheques dos colaboradores."
+        subtitle="Documentos pessoais e da caixa geral da administração."
       />
 
       <div className="grid-2 grid-2-wide-left">
@@ -121,9 +135,11 @@ export default function Documentos() {
           aba={aba}
           isAdmin={isAdmin}
           loading={loading}
+          escopoRecebidos={escopoRecebidos}
           onDelete={excluir}
           onDownload={baixar}
           onAbaChange={setAba}
+          onEscopoRecebidosChange={setEscopoRecebidos}
           onUserFilter={handleUserFilter}
           selectedUser={selectedUser}
           users={users}
@@ -133,6 +149,8 @@ export default function Documentos() {
           fileRef={fileRef}
           isAdmin={isAdmin}
           onSubmit={handleUpload}
+          destinoTipo={destinoTipo}
+          onDestinoTipoChange={setDestinoTipo}
           onTargetUserChange={setTargetUser}
           onTipoChange={setTipo}
           targetUser={targetUser}

@@ -27,7 +27,7 @@ class DocumentosServiceTests(unittest.TestCase):
         colaborador = SimpleNamespace(id=2, nome="Maria Silva", role="user")
 
         relativo, caminho_enviado_relativo, caminho, caminho_enviado = documentos_service.salvar_arquivo_upload(
-            b"%PDF-1.7", "contracheque.pdf", "application/pdf", colaborador, admin, "contracheque"
+            b"%PDF-1.7", "contracheque.pdf", "application/pdf", colaborador, admin, "usuario"
         )
 
         self.assertTrue(relativo.startswith("recebidos/maria-silva/"))
@@ -41,7 +41,7 @@ class DocumentosServiceTests(unittest.TestCase):
         colaborador = SimpleNamespace(id=2, nome="Maria Silva", role="user")
 
         relativo, caminho_enviado_relativo, caminho, caminho_enviado = documentos_service.salvar_arquivo_upload(
-            b"%PDF-1.7", "atestado.pdf", "application/pdf", colaborador, admin, "atestado"
+            b"%PDF-1.7", "atestado.pdf", "application/pdf", colaborador, admin, "usuario"
         )
 
         self.assertTrue(relativo.startswith("recebidos/maria-silva/"))
@@ -53,7 +53,7 @@ class DocumentosServiceTests(unittest.TestCase):
         colaborador = SimpleNamespace(id=2, nome="Maria Silva", role="user")
 
         relativo, caminho_enviado_relativo, caminho, caminho_enviado = documentos_service.salvar_arquivo_upload(
-            b"%PDF-1.7", "atestado.pdf", "application/pdf", colaborador, colaborador, "atestado"
+            b"%PDF-1.7", "atestado.pdf", "application/pdf", colaborador, colaborador, "administracao"
         )
 
         self.assertTrue(relativo.startswith("recebidos/administracao/maria-silva/"))
@@ -62,53 +62,74 @@ class DocumentosServiceTests(unittest.TestCase):
         self.assertTrue(caminho_enviado.is_file())
         self.assertEqual(caminho.read_bytes(), caminho_enviado.read_bytes())
 
-    def test_atestado_de_administrador_entra_em_recebidos(self):
+    def test_documento_de_administrador_para_si_mesmo_entra_em_recebidos_pessoais(self):
         admin = SimpleNamespace(id=1, nome="Catharina", role="admin")
 
         relativo, _, caminho, _ = documentos_service.salvar_arquivo_upload(
-            b"%PDF-1.7", "atestado.pdf", "application/pdf", admin, admin, "atestado"
+            b"%PDF-1.7", "atestado.pdf", "application/pdf", admin, admin, "usuario"
         )
 
-        self.assertTrue(relativo.startswith("recebidos/administracao/catharina/"))
+        self.assertTrue(relativo.startswith("recebidos/catharina/"))
         self.assertTrue(caminho.is_file())
 
-    @patch.object(documentos_service.documentos_repository, "listar_documentos_recebidos_por_administradores")
+    @patch.object(documentos_service.documentos_repository, "listar_documentos_recebidos_administracao")
+    @patch.object(documentos_service.documentos_repository, "listar_documentos_recebidos_pessoais")
     @patch.object(documentos_service.documentos_repository, "listar_documentos_criados_por")
-    def test_historico_admin_separa_atestados_e_contracheques(self, listar_criados, listar_recebidos):
+    def test_historico_admin_separa_caixas(
+        self, listar_criados, listar_pessoais, listar_administracao
+    ):
         admin = SimpleNamespace(id=1, role="admin")
         listar_criados.return_value = ["contracheque"]
-        listar_recebidos.return_value = ["atestado"]
+        listar_pessoais.return_value = ["pessoal"]
+        listar_administracao.return_value = ["geral"]
 
         historico = documentos_service.listar_historico_documentos(SimpleNamespace(), admin)
 
-        self.assertEqual(historico, {"recebidos": ["atestado"], "enviados": ["contracheque"]})
-        listar_criados.assert_called_once_with(
-            ANY, 1, ["atestado", "contracheque", "termo_equipamentos"]
+        self.assertEqual(
+            historico,
+            {
+                "recebidos_pessoais": ["pessoal"],
+                "recebidos_administracao": ["geral"],
+                "enviados": ["contracheque"],
+            },
         )
+        listar_criados.assert_called_once_with(
+            ANY, 1, ["atestado", "contracheque", "outro", "termo_equipamentos"]
+        )
+        listar_pessoais.assert_called_once_with(ANY, 1)
 
-    @patch.object(documentos_service.documentos_repository, "listar_documentos_recebidos_por")
+    @patch.object(documentos_service.documentos_repository, "listar_documentos_recebidos_pessoais")
     @patch.object(documentos_service.documentos_repository, "listar_documentos_criados_por")
-    def test_historico_colaborador_separa_envios_e_recebimentos(self, listar_criados, listar_recebidos):
+    def test_historico_colaborador_separa_envios_e_recebimentos(self, listar_criados, listar_pessoais):
         colaborador = SimpleNamespace(id=2, role="user")
         listar_criados.return_value = ["enviado"]
-        listar_recebidos.return_value = ["recebido"]
+        listar_pessoais.return_value = ["recebido"]
 
         historico = documentos_service.listar_historico_documentos(SimpleNamespace(), colaborador)
 
-        self.assertEqual(historico, {"recebidos": ["recebido"], "enviados": ["enviado"]})
-        listar_criados.assert_called_once_with(ANY, 2, "atestado")
-        listar_recebidos.assert_called_once_with(ANY, 2, 2)
+        self.assertEqual(
+            historico,
+            {
+                "recebidos_pessoais": ["recebido"],
+                "recebidos_administracao": [],
+                "enviados": ["enviado"],
+            },
+        )
+        listar_criados.assert_called_once_with(
+            ANY, 2, ["atestado", "contracheque", "outro", "termo_equipamentos"]
+        )
+        listar_pessoais.assert_called_once_with(ANY, 2)
 
     def test_admin_pode_enviar_contracheque_para_outro_usuario(self):
         admin = SimpleNamespace(id=1, role="admin")
 
-        documentos_service.validar_permissao_upload("contracheque", 2, admin)
+        documentos_service.validar_permissao_upload("contracheque", 2, "usuario", admin)
 
     def test_usuario_nao_pode_enviar_contracheque(self):
         user = SimpleNamespace(id=2, role="user")
 
         with self.assertRaises(HTTPException) as exc:
-            documentos_service.validar_permissao_upload("contracheque", 2, user)
+            documentos_service.validar_permissao_upload("contracheque", 2, "administracao", user)
 
         self.assertEqual(exc.exception.status_code, 403)
 
@@ -116,7 +137,7 @@ class DocumentosServiceTests(unittest.TestCase):
         user = SimpleNamespace(id=2, role="user")
 
         with self.assertRaises(HTTPException) as exc:
-            documentos_service.validar_permissao_upload("atestado", 3, user)
+            documentos_service.validar_permissao_upload("atestado", 3, "usuario", user)
 
         self.assertEqual(exc.exception.status_code, 403)
 
@@ -124,7 +145,7 @@ class DocumentosServiceTests(unittest.TestCase):
         admin = SimpleNamespace(id=1, role="admin")
 
         with self.assertRaises(HTTPException) as exc:
-            documentos_service.validar_permissao_upload("outro", 2, admin)
+            documentos_service.validar_permissao_upload("invalido", 2, "usuario", admin)
 
         self.assertEqual(exc.exception.status_code, 400)
 

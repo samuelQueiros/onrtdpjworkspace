@@ -7,9 +7,11 @@ export default function DocumentosTabela({
   aba,
   isAdmin,
   loading,
+  escopoRecebidos,
   onDelete,
   onDownload,
   onAbaChange,
+  onEscopoRecebidosChange,
   onUserFilter,
   selectedUser,
   users,
@@ -39,8 +41,26 @@ export default function DocumentosTabela({
               Documentos enviados
             </button>
           </div>
+          {aba === 'recebidos' && isAdmin && (
+            <div className="documents-scope" aria-label="Tipo de caixa recebida">
+              <button
+                type="button"
+                className={escopoRecebidos === 'pessoal' ? 'active' : ''}
+                onClick={() => onEscopoRecebidosChange('pessoal')}
+              >
+                Pessoal
+              </button>
+              <button
+                type="button"
+                className={escopoRecebidos === 'administracao' ? 'active' : ''}
+                onClick={() => onEscopoRecebidosChange('administracao')}
+              >
+                Administração
+              </button>
+            </div>
+          )}
         </div>
-        {isAdmin && (
+        {isAdmin && !(aba === 'recebidos' && escopoRecebidos === 'pessoal') && (
           <select
             value={selectedUser}
             onChange={event => onUserFilter(event.target.value)}
@@ -98,7 +118,7 @@ export default function DocumentosTabela({
         ) : (
           <EmptyState
             title={`Nenhum documento ${aba === 'recebidos' ? 'recebido' : 'enviado'}`}
-            text={selectedUser ? 'Nenhum documento encontrado para o colaborador selecionado.' : 'Ainda não há documentos neste histórico.'}
+            text={selectedUser ? 'Nenhum documento encontrado para o colaborador selecionado.' : 'Ainda não há documentos nesta caixa.'}
           />
         )}
       </div>

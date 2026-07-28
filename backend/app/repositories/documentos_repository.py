@@ -1,4 +1,3 @@
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.documento import Documento
@@ -33,23 +32,22 @@ def listar_documentos_criados_por(db: Session, user_id: int, tipo: str | list[st
     )
 
 
-def listar_documentos_recebidos_por(db: Session, user_id: int, excluir_criador_id: int) -> list[Documento]:
+def listar_documentos_recebidos_pessoais(db: Session, user_id: int) -> list[Documento]:
     return (
         db.query(Documento)
         .filter(
-            Documento.user_id == user_id,
-            or_(Documento.criado_por_id != excluir_criador_id, Documento.tipo == "termo_equipamentos"),
+            Documento.destino_tipo == "usuario",
+            Documento.destinatario_id == user_id,
         )
         .order_by(Documento.criado_em.desc())
         .all()
     )
 
 
-def listar_documentos_recebidos_por_administradores(db: Session) -> list[Documento]:
+def listar_documentos_recebidos_administracao(db: Session) -> list[Documento]:
     return (
         db.query(Documento)
-        .join(User, Documento.criado_por_id == User.id)
-        .filter(Documento.tipo == "atestado", User.role != "admin")
+        .filter(Documento.destino_tipo == "administracao")
         .order_by(Documento.criado_em.desc())
         .all()
     )

@@ -1,6 +1,8 @@
 export default function UploadDocumentoForm({
   fileRef,
   isAdmin,
+  destinoTipo,
+  onDestinoTipoChange,
   onSubmit,
   onTargetUserChange,
   onTipoChange,
@@ -18,24 +20,39 @@ export default function UploadDocumentoForm({
           <select id="documento-tipo" name="tipo" value={tipo} onChange={event => onTipoChange(event.target.value)}>
             <option value="atestado">Atestado médico</option>
             {isAdmin && <option value="contracheque">Contracheque</option>}
+            <option value="outro">Documento geral</option>
           </select>
         </div>
 
         {isAdmin && (
-          <div className="form-group">
-            <label htmlFor="documento-usuario">Colaborador</label>
-            <select
-              id="documento-usuario" name="user_id"
-              value={targetUser}
-              onChange={event => onTargetUserChange(event.target.value)}
-              required
-            >
-              <option value="">Selecione...</option>
-              {users.map(user => (
-                <option key={user.id} value={user.id}>{user.nome}</option>
-              ))}
-            </select>
-          </div>
+          <>
+            <div className="form-group">
+              <label htmlFor="documento-destino">Destino</label>
+              <select
+                id="documento-destino"
+                name="destino_tipo"
+                value={destinoTipo}
+                onChange={event => onDestinoTipoChange(event.target.value)}
+              >
+                <option value="usuario">Caixa pessoal de um usuário</option>
+                <option value="administracao">Administração — caixa geral</option>
+              </select>
+            </div>
+            {destinoTipo === 'usuario' && <div className="form-group">
+              <label htmlFor="documento-usuario">Destinatário</label>
+              <select
+                id="documento-usuario" name="user_id"
+                value={targetUser}
+                onChange={event => onTargetUserChange(event.target.value)}
+                required
+              >
+                <option value="">Selecione...</option>
+                {users.map(user => (
+                  <option key={user.id} value={user.id}>{user.nome}</option>
+                ))}
+              </select>
+            </div>}
+          </>
         )}
 
         <div className="form-group">
