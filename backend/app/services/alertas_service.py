@@ -41,7 +41,7 @@ def formatar_alerta(alerta: Alerta, db: Session | None = None) -> dict:
 
 
 def gerar_alertas_contabilidade(db: Session, hoje: date | None = None) -> None:
-    alvo = (hoje or date.today()) + timedelta(days=4)
+    alvo = (hoje or date.today()) + timedelta(days=6)
     ferias_proximas = alertas_repository.listar_ferias_aprovadas_por_data_inicio(db, alvo)
 
     for ferias in ferias_proximas:

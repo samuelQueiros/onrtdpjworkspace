@@ -95,7 +95,7 @@ def dashboard_admin(db: Session) -> dict:
             )
 
     alertas = []
-    for ferias in relatorios_repository.listar_alertas_contabilidade(db, hoje, hoje + timedelta(days=4)):
+    for ferias in relatorios_repository.listar_alertas_contabilidade(db, hoje, hoje + timedelta(days=6)):
         if ferias.usuario:
             alertas.append(
                 {
