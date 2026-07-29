@@ -1,5 +1,4 @@
 import AdminActionsAndAlerts from './AdminActionsAndAlerts'
-import AdminDashboardAlerts from './AdminDashboardAlerts'
 import AdminStats from './AdminStats'
 import AdminVacationOverview from './AdminVacationOverview'
 
@@ -8,7 +7,6 @@ export default function AdminDashboard({ dash, pendentes }) {
 
   return (
     <div className="admin-dashboard-sections">
-      <AdminDashboardAlerts alertas={alertas} pendentes={pendentes} />
       <AdminStats dash={dash} pendentes={pendentes} />
       <AdminVacationOverview
         pessoasEmFerias={dash.pessoas_em_ferias || []}

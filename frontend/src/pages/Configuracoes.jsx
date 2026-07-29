@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import '../styles/pages/configuracoes.css'
 import { LoadingCard, PageHeader, StatusBadge } from '../components/comum/PageHelpers'
 import { useConfirm } from '../contexts/ConfirmContext'
@@ -18,14 +18,14 @@ export default function Configuracoes() {
   const [departamentoForm, setDepartamentoForm] = useState({ nome: '', limite_simultaneo: 2 })
   const [departamentoEditing, setDepartamentoEditing] = useState(null)
 
-  const load = () => Promise.all([api.listarCargos(), api.listarDepartamentos()])
+  const load = useCallback(() => Promise.all([api.listarCargos(), api.listarDepartamentos()])
     .then(([listaCargos, listaDepartamentos]) => {
       setCargos(listaCargos)
       setDepartamentos(listaDepartamentos)
     })
     .catch(error => toast.error(error.message))
-    .finally(() => setLoading(false))
-  useEffect(() => { load() }, [])
+    .finally(() => setLoading(false)), [toast])
+  useEffect(() => { load() }, [load])
 
   const reset = () => { setNome(''); setEditing(null) }
   const resetDepartamento = () => {

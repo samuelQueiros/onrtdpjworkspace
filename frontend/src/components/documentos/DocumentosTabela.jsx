@@ -4,6 +4,9 @@ import { TIPO_LABEL, TIPO_TONE } from './documentosLabels'
 
 export default function DocumentosTabela({
   docs,
+  total,
+  page,
+  pages,
   aba,
   isAdmin,
   loading,
@@ -12,6 +15,7 @@ export default function DocumentosTabela({
   onDownload,
   onAbaChange,
   onEscopoRecebidosChange,
+  onPageChange,
   onUserFilter,
   selectedUser,
   users,
@@ -97,7 +101,14 @@ export default function DocumentosTabela({
                       {TIPO_LABEL[doc.tipo] || doc.tipo}
                     </StatusBadge>
                   </td>
-                  <td>{doc.nome_arquivo}</td>
+                  <td>
+                    <span className="document-file-name">{doc.nome_arquivo}</span>
+                    {doc.observacao && (
+                      <div className="document-observation">
+                        <strong>Observação:</strong> {doc.observacao}
+                      </div>
+                    )}
+                  </td>
                   <td>{formatBytes(doc.tamanho)}</td>
                   <td>{aba === 'recebidos' ? doc.criado_por_nome : doc.destinatario_nome}</td>
                   <td>{formatDate(doc.criado_em)}</td>
@@ -118,10 +129,40 @@ export default function DocumentosTabela({
         ) : (
           <EmptyState
             title={`Nenhum documento ${aba === 'recebidos' ? 'recebido' : 'enviado'}`}
-            text={selectedUser ? 'Nenhum documento encontrado para o colaborador selecionado.' : 'Ainda não há documentos nesta caixa.'}
+            text={
+              selectedUser && !(aba === 'recebidos' && escopoRecebidos === 'pessoal')
+                ? 'Nenhum documento encontrado para o colaborador selecionado.'
+                : 'Ainda não há documentos nesta caixa.'
+            }
           />
         )}
       </div>
+
+      {!loading && total > 0 && (
+        <nav className="documents-pagination" aria-label="Paginação de documentos">
+          <span>
+            Página {page} de {pages} · {total} documento(s)
+          </span>
+          <div className="button-row">
+            <button
+              className="btn btn-outline btn-sm"
+              type="button"
+              disabled={page <= 1}
+              onClick={() => onPageChange(page - 1)}
+            >
+              Anterior
+            </button>
+            <button
+              className="btn btn-outline btn-sm"
+              type="button"
+              disabled={page >= pages}
+              onClick={() => onPageChange(page + 1)}
+            >
+              Próxima
+            </button>
+          </div>
+        </nav>
+      )}
     </section>
   )
 }

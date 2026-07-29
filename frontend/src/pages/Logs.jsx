@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import '../styles/pages/logs.css'
 import LogsActions from '../components/logs/LogsActions'
 import LogsTabela from '../components/logs/LogsTabela'
@@ -18,15 +18,15 @@ export default function Logs() {
   const pageSize = 50
   const fileRef = useRef(null)
 
-  const load = (targetPage = page) => api.logs(targetPage, pageSize).then(data => {
+  const load = useCallback((targetPage = 1) => api.logs(targetPage, pageSize).then(data => {
     setLogs(data.items)
     setTotal(data.total)
     setPage(data.page)
-  })
+  }), [])
 
   useEffect(() => {
     load().finally(() => setLoading(false))
-  }, [])
+  }, [load])
 
   const filtered = logs.filter(log =>
     !search ||

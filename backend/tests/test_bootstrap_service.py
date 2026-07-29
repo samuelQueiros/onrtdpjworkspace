@@ -1,7 +1,7 @@
 import os
 import unittest
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from app.services import bootstrap_service
 
@@ -30,7 +30,7 @@ class BootstrapServiceTests(unittest.TestCase):
             patch("app.services.bootstrap_service.bootstrap_repository.obter_admin", return_value=SimpleNamespace(id=1)),
             patch("app.services.bootstrap_service.bootstrap_repository.salvar_admin_com_log") as salvar,
         ):
-            response = bootstrap_service.garantir_admin_inicial(SimpleNamespace())
+            response = bootstrap_service.garantir_admin_inicial(MagicMock())
 
         self.assertEqual(response, "admin_existente")
         salvar.assert_not_called()
@@ -40,7 +40,7 @@ class BootstrapServiceTests(unittest.TestCase):
         os.environ.pop("ADMIN_PASSWORD", None)
 
         with patch("app.services.bootstrap_service.bootstrap_repository.obter_admin", return_value=None):
-            response = bootstrap_service.garantir_admin_inicial(SimpleNamespace())
+            response = bootstrap_service.garantir_admin_inicial(MagicMock())
 
         self.assertEqual(response, "admin_nao_configurado")
 
@@ -56,7 +56,7 @@ class BootstrapServiceTests(unittest.TestCase):
             patch("app.services.bootstrap_service.bootstrap_repository.salvar_admin_com_log") as salvar,
             patch("app.services.ferias_service.registrar_saldo_inicial"),
         ):
-            response = bootstrap_service.garantir_admin_inicial(SimpleNamespace())
+            response = bootstrap_service.garantir_admin_inicial(MagicMock())
 
         admin = salvar.call_args.args[1]
         log = salvar.call_args.args[2]

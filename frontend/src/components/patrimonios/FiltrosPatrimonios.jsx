@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { STATUS_EQUIPAMENTO, TIPOS_EQUIPAMENTO } from './patrimoniosLabels'
 
 export const blankPatrimonioFilters = {

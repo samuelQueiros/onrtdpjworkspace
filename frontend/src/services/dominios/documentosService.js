@@ -1,9 +1,8 @@
 import { download, req, upload } from '../httpClient'
+import { queryString } from '../../utils/queryString'
 
 export const documentosService = {
-  historicoDocumentos: () => req('GET', '/documentos/historico'),
-  meusDocumentos: () => req('GET', '/documentos/me'),
-  documentosUsuario: userId => req('GET', `/documentos/usuario/${userId}`),
+  historicoDocumentos: (params = {}) => req('GET', `/documentos/historico${queryString(params)}`),
   uploadDocumento: formData => upload('/documentos/upload', formData),
   downloadDocumento: id => download(`/documentos/${id}/download`),
   excluirDocumento: id => req('DELETE', `/documentos/${id}`),

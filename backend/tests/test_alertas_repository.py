@@ -60,6 +60,20 @@ class AlertasRepositoryTests(unittest.TestCase):
         self.assertEqual(alertas_repository.listar_ferias_aprovadas_por_data_inicio(db, SimpleNamespace()), ferias)
         self.assertTrue(db.last_query.filtered)
 
+    def test_listar_ferias_aprovadas_por_intervalo_filtra_e_ordena(self):
+        ferias = [SimpleNamespace(id=1)]
+        db = FakeDb(query_result=ferias)
+
+        resultado = alertas_repository.listar_ferias_aprovadas_por_intervalo_data_inicio(
+            db,
+            SimpleNamespace(),
+            SimpleNamespace(),
+        )
+
+        self.assertEqual(resultado, ferias)
+        self.assertTrue(db.last_query.filtered)
+        self.assertTrue(db.last_query.ordered)
+
     def test_existe_alerta_por_ferias_e_tipo_retorna_booleano(self):
         db = FakeDb(query_result=SimpleNamespace(id=1))
 

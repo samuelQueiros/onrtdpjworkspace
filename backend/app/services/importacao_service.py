@@ -1,7 +1,8 @@
 import io
 import re
 import unicodedata
-from datetime import date, datetime
+import zipfile
+from datetime import UTC, date, datetime
 
 from fastapi import HTTPException
 from openpyxl import Workbook
@@ -26,7 +27,9 @@ from app.schemas.user import DadosBancarios, Endereco, UserCreate
 from app.services import ferias_service, users_service
 
 MAX_IMPORT_SIZE = 5 * 1024 * 1024
-SENHA_TEMPORARIA_COLABORADORES = "Acesso@123456"
+MAX_IMPORT_UNCOMPRESSED_SIZE = 50 * 1024 * 1024
+MAX_IMPORT_ROWS = 10_000
+MAX_IMPORT_COLUMNS = 100
 
 CORES_IMPORTACAO = [
     "#2563EB", "#DC2626", "#16A34A", "#9333EA", "#EA580C", "#0891B2",
@@ -61,6 +64,7 @@ CABECALHOS_COLABORADORES = [
     "Nome do titular",
     "Chave PIX",
     "Dias de férias por período",
+    "Senha temporária",
 ]
 
 
@@ -117,7 +121,7 @@ def gerar_modelo_colaboradores_xlsx(db: Session | None = None) -> bytes:
     instrucoes.append(["MODELO PARA IMPORTAÇÃO DE COLABORADORES"])
     instrucoes.append(["Preencha uma linha por colaborador na aba Colaboradores."])
     instrucoes.append(["Não altere os nomes dos cabeçalhos. Campos cadastrais e bancários são obrigatórios."])
-    instrucoes.append([f"A senha inicial será criada automaticamente como {SENHA_TEMPORARIA_COLABORADORES}."])
+    instrucoes.append(["Defina uma senha temporária única para cada colaborador. Ela deverá ser trocada no primeiro acesso."])
     instrucoes.append(["A cor de identificação será gerada automaticamente pelo sistema."])
     instrucoes.append(["Cargo e Departamento devem estar previamente cadastrados no sistema."])
     instrucoes.append(["Perfil: Usuário ou Administrador. Status: Ativo ou Inativo."])
@@ -134,7 +138,7 @@ def gerar_modelo_colaboradores_xlsx(db: Session | None = None) -> bytes:
         "Usuário", "Ativo", date(2024, 1, 10), date(1995, 5, 20), 30, 0,
         date(2027, 1, 10), "Rua Exemplo", "100", "Centro", "Brasília", "70000-000",
         "Banco Exemplo", "0001", "12345-6", "529.982.247-25", "Nome de Exemplo",
-        "nome@empresa.com.br", 30,
+        "nome@empresa.com.br", 30, "Defina-uma-senha-unica",
     ])
 
     preenchimento = PatternFill("solid", fgColor="14213D")
@@ -230,13 +234,34 @@ def carregar_linhas_planilha(conteudo: bytes) -> list[tuple]:
     except ImportError as exc:
         raise HTTPException(status_code=500, detail="Biblioteca openpyxl nao instalada no servidor") from exc
 
+    wb = None
     try:
+        with zipfile.ZipFile(io.BytesIO(conteudo)) as arquivo_zip:
+            tamanho_descompactado = sum(item.file_size for item in arquivo_zip.infolist())
+            if tamanho_descompactado > MAX_IMPORT_UNCOMPRESSED_SIZE:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Planilha excede o limite descompactado de 50 MB",
+                )
         wb = openpyxl.load_workbook(io.BytesIO(conteudo), read_only=True, data_only=True)
         ws = wb["Colaboradores"] if "Colaboradores" in wb.sheetnames else wb.active
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Erro ao ler planilha: {exc}") from exc
-
-    rows = list(ws.iter_rows(values_only=True))
+        if ws.max_column > MAX_IMPORT_COLUMNS:
+            raise HTTPException(status_code=400, detail="Planilha possui colunas demais")
+        rows = []
+        for indice, row in enumerate(ws.iter_rows(values_only=True), start=1):
+            if indice > MAX_IMPORT_ROWS:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Planilha excede o limite de {MAX_IMPORT_ROWS} linhas",
+                )
+            rows.append(row)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=400, detail="Planilha XLSX invalida ou corrompida") from None
+    finally:
+        if wb is not None:
+            wb.close()
     if not rows:
         raise HTTPException(status_code=400, detail="Planilha vazia")
     return rows
@@ -282,6 +307,7 @@ def importar_colaboradores(
         "endereco_logradouro", "endereco_numero", "endereco_bairro",
         "endereco_cidade", "endereco_cep", "banco", "agencia", "conta",
         "cpf_do_titular", "nome_do_titular", "chave_pix",
+        "senha_temporaria",
     }
     faltantes = sorted(obrigatorios - set(cabecalhos))
     if faltantes:
@@ -299,6 +325,7 @@ def importar_colaboradores(
     }
     emails_planilha: set[str] = set()
     cpfs_planilha: set[str] = set()
+    senhas_planilha: set[str] = set()
     preparados: list[tuple[int, UserCreate, bool]] = []
     erros: list[str] = []
 
@@ -308,10 +335,13 @@ def importar_colaboradores(
         try:
             email = _texto(valor(row, "e_mail")).lower()
             cpf_normalizado = validar_cpf(_texto(valor(row, "cpf")))
+            senha_temporaria = str(valor(row, "senha_temporaria") or "").strip()
             if email in emails_planilha:
                 raise ValueError(f"E-mail repetido na planilha: {email}")
             if cpf_normalizado in cpfs_planilha:
                 raise ValueError("CPF repetido na planilha")
+            if senha_temporaria in senhas_planilha:
+                raise ValueError("Senha temporária repetida na planilha")
             if users_repository.obter_usuario_por_email(db, email):
                 raise ValueError(f"E-mail já cadastrado: {email}")
             if users_repository.obter_usuario_por_cpf_hash(db, hash_dado_sensivel(cpf_normalizado)):
@@ -340,7 +370,7 @@ def importar_colaboradores(
                 nome=_texto(valor(row, "nome")),
                 email=email,
                 cpf=cpf_normalizado,
-                senha=SENHA_TEMPORARIA_COLABORADORES,
+                senha=senha_temporaria,
                 role=_perfil(valor(row, "perfil")),
                 dias_totais=_inteiro(valor(row, "dias_de_ferias_por_periodo"), 30),
                 saldo_inicial_dias=_inteiro(valor(row, "saldo_de_ferias"), 0),
@@ -372,6 +402,7 @@ def importar_colaboradores(
             ativo = _status_ativo(valor(row, "status", "Ativo"))
             emails_planilha.add(email)
             cpfs_planilha.add(cpf_normalizado)
+            senhas_planilha.add(senha_temporaria)
             preparados.append((numero_linha, payload, ativo))
         except ValidationError as exc:
             erros.append(f"Linha {numero_linha}: {_erro_validacao(exc)}")
@@ -397,18 +428,17 @@ def importar_colaboradores(
     inseridos = 0
     try:
         for _, payload, ativo in preparados:
-            users_service.criar_usuario(db, payload, current_user)
+            users_service.criar_usuario(db, payload, current_user, commit=False)
             if not ativo:
                 usuario = users_repository.obter_usuario_por_email(db, payload.email)
                 usuario.ativo = False
-                db.commit()
             inseridos += 1
         db.add(Log(
             user_id=current_user.id,
             acao="COLABORADORES_IMPORTADOS",
             detalhes=(
                 f"{inseridos} colaborador(es) importado(s) via planilha. "
-                "Cores geradas automaticamente e senha temporária aplicada."
+                "Cores geradas automaticamente e troca de senha obrigatória ativada."
             ),
         ))
         db.commit()
@@ -425,7 +455,7 @@ def importar_colaboradores(
         "erros": [],
         "mensagem": (
             f"{inseridos} colaborador(es) importado(s) com sucesso. "
-            f"Senha inicial: {SENHA_TEMPORARIA_COLABORADORES}"
+            "As senhas temporárias devem ser trocadas no primeiro acesso."
         ),
     }
 
@@ -470,8 +500,20 @@ def importar_ferias(db: Session, filename: str | None, conteudo: bytes, current_
 
         try:
             ferias_service.bloquear_regras_ferias(db, user)
+            ferias_service.garantir_saldo_atualizado(
+                db,
+                user,
+                current_user.id,
+                commit=False,
+            )
             ferias_service.verificar_regras_data(data_inicio, data_fim)
             ferias_service.verificar_bloqueio_datas(db, data_inicio, data_fim)
+            ferias_service.verificar_sobreposicao_usuario(
+                db,
+                user.id,
+                data_inicio,
+                data_fim,
+            )
             dias = ferias_service.calcular_dias(data_inicio, data_fim)
             if not ferias_acordo:
                 if ferias_service.verificar_sobreposicao_departamento(db, user, data_inicio, data_fim):
@@ -480,6 +522,7 @@ def importar_ferias(db: Session, filename: str | None, conteudo: bytes, current_
                 if saldo < dias:
                     raise HTTPException(status_code=400, detail=f"saldo insuficiente ({saldo} dias)")
         except HTTPException as exc:
+            db.rollback()
             erros.append(f"Linha {i}: {exc.detail}")
             continue
         importacao_repository.adicionar_ferias(
@@ -503,8 +546,12 @@ def importar_ferias(db: Session, filename: str | None, conteudo: bytes, current_
         )
         # Cada linha usa sua propria transacao para liberar advisory locks e
         # impedir deadlocks entre lotes processados em ordens diferentes.
-        importacao_repository.commit(db)
-        inseridos += 1
+        try:
+            importacao_repository.commit(db)
+            inseridos += 1
+        except IntegrityError:
+            db.rollback()
+            erros.append(f"Linha {i}: conflito com outro registro gravado simultaneamente")
 
     return {
         "inseridos": inseridos,
@@ -531,21 +578,46 @@ def importar_logs(db: Session, filename: str | None, conteudo: bytes, current_us
         user_id = None
         if email_val:
             user = importacao_repository.obter_usuario_por_email(db, str(email_val).strip())
-            if user:
-                user_id = user.id
+            if not user:
+                erros.append(f"Linha {i}: usuario '{email_val}' nao encontrado")
+                continue
+            user_id = user.id
+
+        criado_em = parse_datetime(data_val)
+        if criado_em is None:
+            erros.append(f"Linha {i}: data invalida ({data_val})")
+            continue
+
+        acao_original = str(acao_val).strip() if acao_val else "SEM_ACAO"
+        detalhes_originais = str(detalhes_val).strip() if detalhes_val else ""
 
         importacao_repository.adicionar_log(
             db,
             Log(
                 user_id=user_id,
-                acao=str(acao_val).strip() if acao_val else "IMPORTADO",
-                detalhes=str(detalhes_val).strip() if detalhes_val else None,
-                criado_em=parse_datetime(data_val) or datetime.utcnow(),
+                acao=f"IMPORTADO::{acao_original}",
+                detalhes=(
+                    f"[Importado pelo administrador #{current_user.id}] "
+                    f"{detalhes_originais}"
+                ).strip(),
+                criado_em=criado_em,
             ),
         )
         inseridos += 1
 
     if inseridos:
+        importacao_repository.adicionar_log(
+            db,
+            Log(
+                user_id=current_user.id,
+                acao="LOTE_LOGS_IMPORTADO",
+                detalhes=(
+                    f"Lote com {inseridos} log(s) historico(s) importado. "
+                    f"{len(erros)} linha(s) rejeitada(s)."
+                ),
+                criado_em=datetime.now(UTC).replace(tzinfo=None),
+            ),
+        )
         importacao_repository.commit(db)
 
     return {

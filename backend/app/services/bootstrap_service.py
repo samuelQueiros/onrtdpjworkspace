@@ -33,19 +33,22 @@ def garantir_admin_inicial(db: Session) -> str:
 
     admin = User(
         nome=settings.admin_name,
-        email=admin_email,
+        email=admin_email.strip().lower(),
         senha_hash=hash_senha(admin_password),
         role="admin",
         dias_totais=30,
+        must_change_password=False,
     )
     log = Log(
         user_id=None,
         acao="USUARIO_CRIADO",
         detalhes="Administrador inicial criado automaticamente.",
     )
-    bootstrap_repository.salvar_admin_com_log(db, admin, log)
+    bootstrap_repository.salvar_admin_com_log(db, admin, log, commit=False)
 
     from app.services.ferias_service import registrar_saldo_inicial
 
-    registrar_saldo_inicial(db, admin, 30, admin.id)
+    registrar_saldo_inicial(db, admin, 30, admin.id, commit=False)
+    db.commit()
+    db.refresh(admin)
     return "admin_criado"

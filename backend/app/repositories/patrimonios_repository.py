@@ -122,20 +122,6 @@ def listar_vinculos_ativos_usuario(db: Session, user_id: int) -> list[Equipament
     )
 
 
-def listar_vinculos_equipamento(db: Session, equipamento_id: int) -> list[EquipamentoVinculo]:
-    return (
-        db.query(EquipamentoVinculo)
-        .options(
-            joinedload(EquipamentoVinculo.usuario),
-            joinedload(EquipamentoVinculo.vinculado_por),
-            joinedload(EquipamentoVinculo.desvinculado_por),
-        )
-        .filter(EquipamentoVinculo.equipamento_id == equipamento_id)
-        .order_by(EquipamentoVinculo.vinculado_em.desc())
-        .all()
-    )
-
-
 def listar_disponiveis(db: Session) -> list[Equipamento]:
     return (
         db.query(Equipamento)
@@ -170,10 +156,7 @@ def obter_usuario_bloqueado(db: Session, user_id: int) -> User | None:
     return db.query(User).filter(User.id == user_id).with_for_update(of=User).first()
 
 
-def obter_solicitacao(db: Session, solicitacao_id: int, bloquear: bool = False) -> SolicitacaoEquipamento | None:
-    query = db.query(SolicitacaoEquipamento).filter(SolicitacaoEquipamento.id == solicitacao_id)
-    if bloquear:
-        query = query.with_for_update(of=SolicitacaoEquipamento)
+def _carregar_solicitacoes(query):
     return query.options(
         joinedload(SolicitacaoEquipamento.usuario).joinedload(User.cargo),
         joinedload(SolicitacaoEquipamento.usuario).joinedload(User.departamento),
@@ -183,7 +166,27 @@ def obter_solicitacao(db: Session, solicitacao_id: int, bloquear: bool = False) 
         joinedload(SolicitacaoEquipamento.termo_versao),
         selectinload(SolicitacaoEquipamento.itens).joinedload(SolicitacaoEquipamentoItem.equipamento),
         selectinload(SolicitacaoEquipamento.eventos).joinedload(SolicitacaoEquipamentoEvento.criado_por),
-    ).first()
+    )
+
+
+def obter_solicitacao(db: Session, solicitacao_id: int, bloquear: bool = False) -> SolicitacaoEquipamento | None:
+    query = db.query(SolicitacaoEquipamento).filter(SolicitacaoEquipamento.id == solicitacao_id)
+    if bloquear:
+        query = query.with_for_update(of=SolicitacaoEquipamento)
+    return _carregar_solicitacoes(query).first()
+
+
+def _listar_solicitacoes_por_ids(
+    db: Session,
+    ids: list[int],
+) -> list[SolicitacaoEquipamento]:
+    if not ids:
+        return []
+    solicitacoes = _carregar_solicitacoes(
+        db.query(SolicitacaoEquipamento).filter(SolicitacaoEquipamento.id.in_(ids))
+    ).all()
+    por_id = {solicitacao.id: solicitacao for solicitacao in solicitacoes}
+    return [por_id[item_id] for item_id in ids if item_id in por_id]
 
 
 def listar_solicitacoes_usuario(db: Session, user_id: int) -> list[SolicitacaoEquipamento]:
@@ -194,7 +197,7 @@ def listar_solicitacoes_usuario(db: Session, user_id: int) -> list[SolicitacaoEq
         .order_by(SolicitacaoEquipamento.criado_em.desc())
         .all()
     ]
-    return [solicitacao for item_id in ids if (solicitacao := obter_solicitacao(db, item_id))]
+    return _listar_solicitacoes_por_ids(db, ids)
 
 
 def listar_solicitacoes_admin(
@@ -232,7 +235,7 @@ def listar_solicitacoes_admin(
         .limit(limit)
         .all()
     ]
-    items = [solicitacao for item_id in ids if (solicitacao := obter_solicitacao(db, item_id))]
+    items = _listar_solicitacoes_por_ids(db, ids)
     return items, total
 
 
@@ -245,7 +248,6 @@ def existe_solicitacao_concorrente(db: Session, user_id: int, equipamento_id: in
             SolicitacaoEquipamento.status.in_(
                 [
                     "pendente",
-                    "aprovada",
                     "aguardando_entrega",
                     "aguardando_aceite",
                     "aceite_registrado_aguardando_documento",
@@ -284,7 +286,6 @@ def existe_fluxo_aberto_para_usuario(db: Session, user_id: int) -> bool:
             SolicitacaoEquipamento.status.in_(
                 [
                     "pendente",
-                    "aprovada",
                     "aguardando_entrega",
                     "aguardando_aceite",
                     "aceite_registrado_aguardando_documento",

@@ -32,13 +32,6 @@ from app.schemas.patrimonio import (
     SolicitacaoEquipamentoCreate,
 )
 
-STATUS_EM_ANDAMENTO = {
-    "pendente",
-    "aprovada",
-    "aguardando_entrega",
-    "aguardando_aceite",
-    "aceite_registrado_aguardando_documento",
-}
 MAQUINAS_PRINCIPAIS = {"notebook", "desktop"}
 
 

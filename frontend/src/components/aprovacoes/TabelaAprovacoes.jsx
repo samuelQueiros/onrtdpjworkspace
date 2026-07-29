@@ -2,7 +2,7 @@ import { EmptyState, StatusBadge } from '../comum/PageHelpers'
 import { formatDate } from '../../utils/formatters'
 import HistoricoAprovacao from './HistoricoAprovacao'
 import { EMPTY_STATE, FILTER_LABELS, STATUS_LABELS } from './statusAprovacoes'
-import UserDot from './UserDot'
+import UserDot from '../painel/UserDot'
 
 export default function TabelaAprovacoes({ ferias, filtro, onAprovar, onRejeitar }) {
   return (

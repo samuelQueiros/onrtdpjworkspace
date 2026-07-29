@@ -17,9 +17,10 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 CARGOS_INICIAIS = (
-    "Gerente Executiva",
+    "Gerente Executivo",
     "Gerente Administrativo",
     "Auxiliar Administrativo",
+    "Assistente Administrativo",
     "Jornalista",
     "Analista de BI",
     "Desenvolvedor",

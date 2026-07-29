@@ -31,6 +31,9 @@ app = FastAPI(
     title="Gestão RH",
     description="API para gerenciamento de férias e RH de colaboradores",
     version="2.0.0",
+    docs_url=None if settings.environment == "production" else "/docs",
+    redoc_url=None if settings.environment == "production" else "/redoc",
+    openapi_url=None if settings.environment == "production" else "/openapi.json",
 )
 
 app.add_middleware(

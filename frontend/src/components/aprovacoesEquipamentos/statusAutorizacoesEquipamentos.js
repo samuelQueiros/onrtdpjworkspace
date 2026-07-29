@@ -1,13 +1,12 @@
 export const STATUS_AUTORIZACAO = {
   pendente: { label: 'Pendente', tone: 'amber' },
-  aprovada: { label: 'Aprovada', tone: 'blue' },
   rejeitada: { label: 'Rejeitada', tone: 'red' },
   cancelada: { label: 'Cancelada', tone: 'gray' },
   aguardando_entrega: { label: 'Aguardando entrega', tone: 'blue' },
   aguardando_aceite: { label: 'Aguardando aceite', tone: 'purple' },
-  aceite_registrado_aguardando_documento: { label: 'Gerando termo', tone: 'amber' },
-  entregue: { label: 'Entregue', tone: 'green' },
-  devolvida: { label: 'Devolvida', tone: 'gray' },
+  aceite_registrado_aguardando_documento: { label: 'Gerando termo', tone: 'purple' },
+  entregue: { label: 'Entregue e aceita', tone: 'green' },
+  devolvida: { label: 'Devolvida', tone: 'navy' },
 }
 
 export const STATUS_DOCUMENTO = {

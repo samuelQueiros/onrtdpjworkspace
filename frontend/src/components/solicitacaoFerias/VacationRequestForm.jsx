@@ -7,10 +7,8 @@ export default function VacationRequestForm({
   dataInicio,
   dias,
   erroDatas,
-  feriasAcordo,
   onDataFimChange,
   onDataInicioChange,
-  onFeriasAcordoChange,
   onSubmit,
   podeSolicitar,
   saldoInsuficiente,
@@ -50,24 +48,12 @@ export default function VacationRequestForm({
           </div>
         </div>
 
-        <div className="form-group">
-          <label className="checkbox-label">
-            <input
-              hidden
-              type="checkbox"
-              checked={feriasAcordo}
-              onChange={event => onFeriasAcordoChange(event.target.checked)}
-            />
-            <span hidden>Férias por acordo (não desconta saldo)</span>
-          </label>
-        </div>
-
         <div className="summary-panel">
           <div><span>Dias solicitados</span><strong>{dias || '-'}</strong></div>
           <div><span>Saldo atual</span><strong>{user?.dias_restantes}</strong></div>
           <div>
             <span>Saldo após envio</span>
-            <strong>{feriasAcordo ? user?.dias_restantes : (dias ? (user?.dias_restantes - dias) : '-')}</strong>
+            <strong>{dias ? (user?.dias_restantes - dias) : '-'}</strong>
           </div>
         </div>
 

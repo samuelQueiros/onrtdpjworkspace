@@ -1,6 +1,5 @@
 const STATUS_OPTIONS = [
   ['pendente', 'Pendentes'],
-  ['aprovada', 'Aprovadas'],
   ['aguardando_entrega', 'Aguardando entrega'],
   ['aguardando_aceite', 'Aguardando aceite'],
   ['aceite_registrado_aguardando_documento', 'Gerando termo'],

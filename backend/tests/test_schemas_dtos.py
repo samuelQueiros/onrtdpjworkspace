@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from app.schemas.auth import AuthUserOut, TokenOut
 from app.schemas.common import MensagemOut
-from app.schemas.documento import DocumentoOut
+from app.schemas.documento import DocumentoOut, DocumentosPageOut
 from app.schemas.ferias import DisponibilidadeOut, FeriasOut, MinhasFeriasOut
 from app.schemas.importacao import ImportacaoOut
 from app.schemas.relatorio import DashboardOut, LogDetalhadoOut, RelatorioColaboradoresOut
@@ -171,10 +171,21 @@ class SchemasDtoTests(unittest.TestCase):
             destino_tipo="usuario",
             destinatario_id=2,
             destinatario_nome="Gabriel",
+            observacao="Documento referente a julho.",
             criado_em=datetime.now(UTC),
         )
 
         self.assertEqual(documento.mime_type, "application/pdf")
+        self.assertEqual(documento.observacao, "Documento referente a julho.")
+
+        pagina = DocumentosPageOut(
+            items=[documento],
+            total=11,
+            page=1,
+            page_size=10,
+            pages=2,
+        )
+        self.assertEqual(pagina.pages, 2)
 
     def test_ferias_out_aceita_formato_das_rotas(self):
         ferias = FeriasOut(

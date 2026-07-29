@@ -2,7 +2,7 @@ import unittest
 from datetime import date
 from io import BytesIO
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fastapi import HTTPException
 from openpyxl import load_workbook
@@ -342,9 +342,23 @@ class UsersServiceTests(unittest.TestCase):
         payload = UserConfigUpdate(nova_senha="nova-senha")
 
         with self.assertRaises(HTTPException) as exc:
-            users_service.atualizar_configuracoes(SimpleNamespace(), payload, current_user)
+            users_service.atualizar_configuracoes(MagicMock(), payload, current_user)
 
         self.assertEqual(exc.exception.status_code, 400)
+
+    def test_primeiro_acesso_nao_permite_continuar_sem_definir_senha(self):
+        current_user = SimpleNamespace(
+            id=1,
+            senha_hash="hash",
+            must_change_password=True,
+        )
+        payload = UserConfigUpdate(telefone="(61) 99999-0000")
+
+        with self.assertRaises(HTTPException) as exc:
+            users_service.atualizar_configuracoes(MagicMock(), payload, current_user)
+
+        self.assertEqual(exc.exception.status_code, 400)
+        self.assertIn("obrigatoria", exc.exception.detail)
 
     def test_atualizar_configuracoes_rejeita_senha_atual_incorreta(self):
         current_user = SimpleNamespace(id=1, senha_hash="hash")
@@ -352,7 +366,7 @@ class UsersServiceTests(unittest.TestCase):
 
         with patch("app.services.users_service.verificar_senha", return_value=False):
             with self.assertRaises(HTTPException) as exc:
-                users_service.atualizar_configuracoes(SimpleNamespace(), payload, current_user)
+                users_service.atualizar_configuracoes(MagicMock(), payload, current_user)
 
         self.assertEqual(exc.exception.status_code, 400)
 
@@ -361,6 +375,7 @@ class UsersServiceTests(unittest.TestCase):
             id=1,
             senha_hash="hash-antigo",
             token_version=2,
+            must_change_password=True,
         )
         payload = UserConfigUpdate(
             senha_atual="senha-antiga",
@@ -368,15 +383,16 @@ class UsersServiceTests(unittest.TestCase):
         )
 
         with (
-            patch("app.services.users_service.verificar_senha", return_value=True),
+            patch("app.services.users_service.verificar_senha", side_effect=[True, False]),
             patch("app.services.users_service.hash_senha", return_value="hash-novo"),
             patch("app.services.users_service.users_repository.salvar_usuario"),
             patch("app.services.users_service.formatar_usuario", return_value={"id": 1}),
         ):
-            users_service.atualizar_configuracoes(SimpleNamespace(), payload, current_user)
+            users_service.atualizar_configuracoes(MagicMock(), payload, current_user)
 
         self.assertEqual(current_user.senha_hash, "hash-novo")
         self.assertEqual(current_user.token_version, 3)
+        self.assertFalse(current_user.must_change_password)
 
     def test_atualizar_configuracoes_atualiza_telefones_do_proprio_perfil(self):
         current_user = SimpleNamespace(
@@ -402,7 +418,7 @@ class UsersServiceTests(unittest.TestCase):
                 side_effect=lambda valor: f"enc:{valor}",
             ),
         ):
-            users_service.atualizar_configuracoes(SimpleNamespace(), payload, current_user)
+            users_service.atualizar_configuracoes(MagicMock(), payload, current_user)
 
         self.assertEqual(current_user.telefone, "(61) 99999-0000")
         self.assertEqual(current_user.telefone_emergencia, "enc:(61) 98888-0000")

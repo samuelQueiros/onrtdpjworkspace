@@ -21,8 +21,8 @@ export default function Login() {
     event.preventDefault()
     setLoading(true)
     try {
-      await login(email, senha)
-      navigate('/', { replace: true })
+      const authenticatedUser = await login(email, senha)
+      navigate(authenticatedUser.must_change_password ? '/alterar-senha' : '/', { replace: true })
     } catch {
       toast.error('E-mail ou senha inválidos.')
     } finally {

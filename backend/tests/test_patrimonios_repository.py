@@ -55,8 +55,8 @@ class PatrimoniosRepositoryTests(unittest.TestCase):
 
         with patch.object(
             patrimonios_repository,
-            "obter_solicitacao",
-            side_effect=lambda _db, item_id: SimpleNamespace(id=item_id),
+            "_listar_solicitacoes_por_ids",
+            side_effect=lambda _db, ids: [SimpleNamespace(id=item_id) for item_id in ids],
         ):
             resultado = patrimonios_repository.listar_solicitacoes_admin(db, status="pendente")
 

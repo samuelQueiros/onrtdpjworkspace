@@ -34,7 +34,6 @@ TIPOS_EQUIPAMENTO = (
 STATUS_EQUIPAMENTO = ("disponivel", "vinculado", "reservado", "manutencao", "baixado")
 STATUS_SOLICITACAO = (
     "pendente",
-    "aprovada",
     "rejeitada",
     "cancelada",
     "aguardando_entrega",
@@ -161,7 +160,7 @@ class SolicitacaoEquipamento(Base):
             name="ck_solicitacoes_equipamentos_tipo",
         ),
         CheckConstraint(
-            "status IN ('pendente','aprovada','rejeitada','cancelada','aguardando_entrega',"
+            "status IN ('pendente','rejeitada','cancelada','aguardando_entrega',"
             "'aguardando_aceite','aceite_registrado_aguardando_documento','entregue','devolvida')",
             name="ck_solicitacoes_equipamentos_status",
         ),

@@ -35,9 +35,14 @@ class DocumentosStorageTests(unittest.TestCase):
         self.assertEqual(documentos_storage.nome_pasta_usuario(user), "usuario")
 
     def test_validar_assinatura_arquivo_permite_tipos_esperados(self):
-        self.assertTrue(documentos_storage.validar_assinatura_arquivo(b"%PDF-1.7", "application/pdf"))
-        self.assertTrue(documentos_storage.validar_assinatura_arquivo(b"\xff\xd8\xff\xe0", "image/jpeg"))
-        self.assertTrue(documentos_storage.validar_assinatura_arquivo(b"\x89PNG\r\n\x1a\n", "image/png"))
+        self.assertTrue(documentos_storage.validar_assinatura_arquivo(b"%PDF-1.7\n%%EOF", "application/pdf"))
+        self.assertTrue(documentos_storage.validar_assinatura_arquivo(b"\xff\xd8\xff\xe0data\xff\xd9", "image/jpeg"))
+        self.assertTrue(
+            documentos_storage.validar_assinatura_arquivo(
+                b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDRdataIEND\xaeB`\x82",
+                "image/png",
+            )
+        )
 
     def test_validar_assinatura_arquivo_recusa_conteudo_invalido(self):
         self.assertFalse(documentos_storage.validar_assinatura_arquivo(b"<script></script>", "application/pdf"))

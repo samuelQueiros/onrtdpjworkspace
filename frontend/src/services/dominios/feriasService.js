@@ -7,7 +7,6 @@ export const feriasService = {
   registrarFerias: body => req('POST', '/ferias', body),
   editarFerias: (id, body) => req('PUT', `/ferias/${id}`, body),
   cancelarFerias: id => req('DELETE', `/ferias/${id}`),
-  feriasPendentes: () => req('GET', '/ferias/pendentes'),
   todasFerias: () => req('GET', '/ferias/todas'),
   aprovarFerias: id => req('PUT', `/ferias/${id}/aprovar`),
   rejeitarFerias: (id, motivo) => req('PUT', `/ferias/${id}/rejeitar`, { motivo_rejeicao: motivo }),

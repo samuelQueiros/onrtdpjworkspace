@@ -16,6 +16,8 @@ class TermoArquivo:
     nome_arquivo: str
     tamanho: int
     pdf_hash: str
+    criado_novo: bool = False
+    caminho_backup: Path | None = None
 
 
 def _slug(valor: str, fallback: str, limite: int = 80) -> str:
@@ -64,7 +66,12 @@ def _hash_arquivo(caminho: Path) -> str:
     return digest.hexdigest()
 
 
-def _resultado(caminho: Path, pdf_hash: str) -> TermoArquivo:
+def _resultado(
+    caminho: Path,
+    pdf_hash: str,
+    criado_novo: bool = False,
+    caminho_backup: Path | None = None,
+) -> TermoArquivo:
     upload_dir = obter_upload_dir().resolve()
     caminho_resolvido = caminho.resolve()
     if upload_dir not in caminho_resolvido.parents:
@@ -75,6 +82,8 @@ def _resultado(caminho: Path, pdf_hash: str) -> TermoArquivo:
         nome_arquivo=caminho_resolvido.name,
         tamanho=caminho_resolvido.stat().st_size,
         pdf_hash=pdf_hash,
+        criado_novo=criado_novo,
+        caminho_backup=caminho_backup,
     )
 
 
@@ -94,10 +103,12 @@ def salvar_termo_pdf(
     destino = diretorio / nome_arquivo
 
     # Chamadas repetidas com o mesmo conteúdo não reescrevem o artefato.
-    if destino.is_file() and _hash_arquivo(destino) == pdf_hash:
+    destino_existia = destino.is_file()
+    if destino_existia and _hash_arquivo(destino) == pdf_hash:
         return _resultado(destino, pdf_hash)
 
     temporario: Path | None = None
+    backup: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(
             mode="wb",
@@ -111,17 +122,47 @@ def salvar_termo_pdf(
             arquivo.flush()
             os.fsync(arquivo.fileno())
 
+        if destino_existia:
+            with tempfile.NamedTemporaryFile(
+                dir=diretorio,
+                prefix=f".{nome_arquivo}.",
+                suffix=".bak",
+                delete=False,
+            ) as arquivo_backup:
+                backup = Path(arquivo_backup.name)
+            os.replace(destino, backup)
         os.replace(temporario, destino)
         temporario = None
-        return _resultado(destino, pdf_hash)
+        return _resultado(
+            destino,
+            pdf_hash,
+            criado_novo=not destino_existia,
+            caminho_backup=backup,
+        )
+    except Exception:
+        if backup is not None and backup.exists():
+            destino.unlink(missing_ok=True)
+            os.replace(backup, destino)
+            backup = None
+        raise
     finally:
         if temporario is not None:
             temporario.unlink(missing_ok=True)
 
 
-def resolver_caminho_termo(caminho_relativo: str) -> Path:
-    upload_dir = obter_upload_dir().resolve()
-    caminho = (upload_dir / caminho_relativo).resolve()
-    if upload_dir not in caminho.parents or not caminho.is_file():
-        raise FileNotFoundError("Arquivo do termo nao encontrado.")
-    return caminho
+def confirmar_termo_pdf(arquivo: TermoArquivo) -> None:
+    if arquivo.caminho_backup is not None:
+        try:
+            arquivo.caminho_backup.unlink(missing_ok=True)
+        except OSError:
+            # O artefato definitivo ja foi persistido. Um backup residual pode
+            # ser removido posteriormente sem invalidar o documento confirmado.
+            pass
+
+
+def reverter_termo_pdf(arquivo: TermoArquivo) -> None:
+    if arquivo.caminho_backup is not None and arquivo.caminho_backup.exists():
+        arquivo.caminho_absoluto.unlink(missing_ok=True)
+        os.replace(arquivo.caminho_backup, arquivo.caminho_absoluto)
+    elif arquivo.criado_novo:
+        arquivo.caminho_absoluto.unlink(missing_ok=True)

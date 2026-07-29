@@ -1,5 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useState, useEffect } from 'react'
 import { api } from '../services/api'
+import { limparAvisosFeriasDispensados } from '../utils/alertasFerias'
 
 const Ctx = createContext(null)
 
@@ -32,18 +34,20 @@ export function AuthProvider({ children }) {
 
   const login = async (email, senha) => {
     const data = await api.login(email, senha)
+    limparAvisosFeriasDispensados()
     setAvailabilityError(null)
     setUser(data.user)
     return data.user
   }
 
   const logout = () => {
+    limparAvisosFeriasDispensados()
     setUser(null)
     api.logout().catch(error => console.error('Falha ao encerrar sessão no servidor', error))
   }
 
-  const refreshUser = () =>
-    api.me().then(u => { setUser(u); return u })
+  const refreshUser = useCallback(() =>
+    api.me().then(u => { setUser(u); return u }), [])
 
   return (
     <Ctx.Provider value={{ user, login, logout, loading, availabilityError, retrySession: loadSession, refreshUser }}>

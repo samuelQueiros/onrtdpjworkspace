@@ -5,6 +5,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from sqlalchemy.orm import Session
 
+from app.core.timezone import hoje_sao_paulo
 from app.repositories import relatorios_repository
 from app.services.ferias_service import calcular_saldo, get_ciclo_atual
 
@@ -64,7 +65,7 @@ def relatorio_colaboradores(db: Session) -> dict:
 
 
 def dashboard_admin(db: Session) -> dict:
-    hoje = date.today()
+    hoje = hoje_sao_paulo()
 
     pessoas_em_ferias = []
     for ferias in relatorios_repository.listar_ferias_em_andamento(db, hoje):
@@ -97,13 +98,20 @@ def dashboard_admin(db: Session) -> dict:
     alertas = []
     for ferias in relatorios_repository.listar_alertas_contabilidade(db, hoje, hoje + timedelta(days=6)):
         if ferias.usuario:
+            ciclo_inicio, ciclo_fim = get_ciclo_atual(ferias.usuario.data_admissao)
+            cargo = ferias.usuario.cargo.nome if ferias.usuario.cargo else None
             alertas.append(
                 {
                     "ferias_id": ferias.id,
                     "nome_usuario": ferias.usuario.nome,
                     "data_inicio": ferias.data_inicio,
                     "data_fim": ferias.data_fim,
+                    "dias_usados": ferias.dias_usados,
                     "dias_para_inicio": (ferias.data_inicio - hoje).days,
+                    "cargo_usuario": cargo,
+                    "ciclo_inicio": ciclo_inicio,
+                    "ciclo_fim": ciclo_fim,
+                    "retorno_trabalho": ferias.data_fim + timedelta(days=1),
                 }
             )
 

@@ -9,6 +9,8 @@ class FakeQuery:
         self.result = result
         self.filtered = False
         self.ordered = False
+        self.offset_value = None
+        self.limit_value = None
 
     def filter(self, *_args):
         self.filtered = True
@@ -17,12 +19,26 @@ class FakeQuery:
     def join(self, *_args):
         return self
 
+    def options(self, *_args):
+        return self
+
     def order_by(self, *_args):
         self.ordered = True
         return self
 
     def first(self):
         return self.result
+
+    def offset(self, value):
+        self.offset_value = value
+        return self
+
+    def limit(self, value):
+        self.limit_value = value
+        return self
+
+    def count(self):
+        return len(self.result)
 
     def all(self):
         return self.result
@@ -74,21 +90,37 @@ class DocumentosRepositoryTests(unittest.TestCase):
         self.assertTrue(db.last_query.filtered)
         self.assertTrue(db.last_query.ordered)
 
-    def test_listar_documentos_criados_por_filtra_autor_e_tipo(self):
+    def test_listar_historico_paginado_filtra_ordena_e_limita(self):
         docs = [SimpleNamespace(id=1)]
         db = FakeDb(query_result=docs)
 
-        self.assertEqual(documentos_repository.listar_documentos_criados_por(db, 1, "atestado"), docs)
+        resultado = documentos_repository.listar_historico_paginado(
+            db,
+            "enviados",
+            usuario_id=1,
+            filtro_usuario_id=2,
+            offset=10,
+            limit=10,
+        )
+
+        self.assertEqual(resultado, docs)
         self.assertTrue(db.last_query.filtered)
         self.assertTrue(db.last_query.ordered)
+        self.assertEqual(db.last_query.offset_value, 10)
+        self.assertEqual(db.last_query.limit_value, 10)
 
-    def test_listar_documentos_recebidos_administracao_filtra_destino(self):
-        docs = [SimpleNamespace(id=1)]
-        db = FakeDb(query_result=docs)
+    def test_contar_historico_retorna_total_filtrado(self):
+        db = FakeDb(query_result=[SimpleNamespace(id=1), SimpleNamespace(id=2)])
 
-        self.assertEqual(documentos_repository.listar_documentos_recebidos_administracao(db), docs)
+        total = documentos_repository.contar_historico(
+            db,
+            "recebidos_administracao",
+            usuario_id=1,
+            filtro_usuario_id=None,
+        )
+
+        self.assertEqual(total, 2)
         self.assertTrue(db.last_query.filtered)
-        self.assertTrue(db.last_query.ordered)
 
     def test_salvar_documento_com_log_persiste_e_atualiza_documento(self):
         doc = SimpleNamespace(id=None)

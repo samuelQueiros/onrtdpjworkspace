@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import '../styles/pages/documentos.css'
 import DocumentosTabela from '../components/documentos/DocumentosTabela'
 import UploadDocumentoForm from '../components/documentos/UploadDocumentoForm'
@@ -14,40 +14,90 @@ export default function Documentos() {
   const toast = useToast()
   const isAdmin = user?.role === 'admin'
 
-  const [historico, setHistorico] = useState({
-    recebidos_pessoais: [],
-    recebidos_administracao: [],
-    enviados: [],
+  const [documentos, setDocumentos] = useState({
+    items: [],
+    total: 0,
+    page: 1,
+    page_size: 10,
+    pages: 1,
   })
   const [aba, setAba] = useState('recebidos')
   const [escopoRecebidos, setEscopoRecebidos] = useState('pessoal')
+  const [page, setPage] = useState(1)
   const [users, setUsers] = useState([])
   const [selectedUser, setSelectedUser] = useState('')
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [tipo, setTipo] = useState('atestado')
+  const [observacao, setObservacao] = useState('')
   const [destinoTipo, setDestinoTipo] = useState(isAdmin ? 'usuario' : 'administracao')
   const [targetUser, setTargetUser] = useState('')
   const fileRef = useRef(null)
+  const loadRequestRef = useRef(0)
 
-  const loadDocs = async () => {
+  const caixa = aba === 'enviados'
+    ? 'enviados'
+    : escopoRecebidos === 'administracao'
+      ? 'recebidos_administracao'
+      : 'recebidos_pessoais'
+  const filtroUsuario = isAdmin && caixa !== 'recebidos_pessoais' ? selectedUser : ''
+
+  const loadDocs = useCallback(async () => {
+    const requestId = ++loadRequestRef.current
+    setLoading(true)
     try {
-      setHistorico(await api.historicoDocumentos())
+      const data = await api.historicoDocumentos({
+        caixa,
+        page,
+        page_size: 10,
+        user_id: filtroUsuario,
+      })
+      if (requestId !== loadRequestRef.current) return
+      if (page > data.pages) {
+        setPage(data.pages)
+        return
+      }
+      setDocumentos(data)
+    } catch (err) {
+      if (requestId === loadRequestRef.current) {
+        setDocumentos({
+          items: [],
+          total: 0,
+          page,
+          page_size: 10,
+          pages: 1,
+        })
+        toast.error(err.message || 'Não foi possível carregar os documentos.')
+      }
     } finally {
-      setLoading(false)
+      if (requestId === loadRequestRef.current) setLoading(false)
     }
-  }
+  }, [caixa, filtroUsuario, page, toast])
 
   useEffect(() => {
-    const init = async () => {
-      if (isAdmin) setUsers(await api.listarUsuarios())
-      await loadDocs()
-    }
-    init()
-  }, [])
+    loadDocs()
+  }, [loadDocs])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    api.listarUsuarios()
+      .then(setUsers)
+      .catch(err => toast.error(err.message || 'Não foi possível carregar os colaboradores.'))
+  }, [isAdmin, toast])
 
   const handleUserFilter = uid => {
     setSelectedUser(uid)
+    setPage(1)
+  }
+
+  const handleAbaChange = proximaAba => {
+    setAba(proximaAba)
+    setPage(1)
+  }
+
+  const handleEscopoRecebidosChange = escopo => {
+    setEscopoRecebidos(escopo)
+    setPage(1)
   }
 
   const handleUpload = async event => {
@@ -66,10 +116,13 @@ export default function Documentos() {
       formData.append('tipo', tipo)
       formData.append('user_id', uid)
       formData.append('destino_tipo', destinoTipo)
+      formData.append('observacao', observacao)
       await api.uploadDocumento(formData)
       toast.success('Documento enviado com sucesso.')
       if (fileRef.current) fileRef.current.value = ''
-      await loadDocs()
+      setObservacao('')
+      if (page === 1) await loadDocs()
+      else setPage(1)
     } catch (err) {
       toast.error(err.message)
     } finally {
@@ -99,11 +152,7 @@ export default function Documentos() {
       const blob = await api.downloadDocumento(id)
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
-      const doc = [
-        ...historico.recebidos_pessoais,
-        ...historico.recebidos_administracao,
-        ...historico.enviados,
-      ].find(item => item.id === id)
+      const doc = documentos.items.find(item => item.id === id)
       link.href = url
       link.download = doc?.nome_arquivo || 'documento'
       document.body.appendChild(link)
@@ -115,13 +164,6 @@ export default function Documentos() {
     }
   }
 
-  const docsAba = aba === 'enviados'
-    ? historico.enviados
-    : historico[escopoRecebidos === 'administracao' ? 'recebidos_administracao' : 'recebidos_pessoais']
-  const docs = docsAba.filter(doc => (
-    !isAdmin || !selectedUser || String(doc.user_id) === String(selectedUser)
-  ))
-
   return (
     <>
       <PageHeader
@@ -131,15 +173,19 @@ export default function Documentos() {
 
       <div className="grid-2 grid-2-wide-left">
         <DocumentosTabela
-          docs={docs}
+          docs={documentos.items}
+          total={documentos.total}
+          page={documentos.page}
+          pages={documentos.pages}
           aba={aba}
           isAdmin={isAdmin}
           loading={loading}
           escopoRecebidos={escopoRecebidos}
           onDelete={excluir}
           onDownload={baixar}
-          onAbaChange={setAba}
-          onEscopoRecebidosChange={setEscopoRecebidos}
+          onAbaChange={handleAbaChange}
+          onEscopoRecebidosChange={handleEscopoRecebidosChange}
+          onPageChange={setPage}
           onUserFilter={handleUserFilter}
           selectedUser={selectedUser}
           users={users}
@@ -151,6 +197,8 @@ export default function Documentos() {
           onSubmit={handleUpload}
           destinoTipo={destinoTipo}
           onDestinoTipoChange={setDestinoTipo}
+          observacao={observacao}
+          onObservacaoChange={setObservacao}
           onTargetUserChange={setTargetUser}
           onTipoChange={setTipo}
           targetUser={targetUser}

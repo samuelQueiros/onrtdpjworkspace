@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import '../styles/pages/mural.css'
 import AniversariantesMes from '../components/mural/AniversariantesMes'
 import AvisoForm, { blankAvisoForm } from '../components/mural/AvisoForm'
@@ -22,7 +22,7 @@ export default function Mural() {
   const [editing, setEditing] = useState(null)
   const [showForm, setShowForm] = useState(false)
 
-  const load = () => {
+  const load = useCallback(() => {
     const fn = isAdmin ? api.listarTodosAvisos : api.listarAvisos
     return Promise.all([fn(), api.listarAniversariantes().catch(() => [])])
       .then(([avisosData, aniversariantesData]) => {
@@ -30,9 +30,9 @@ export default function Mural() {
         setAniversariantes(aniversariantesData)
       })
       .finally(() => setLoading(false))
-  }
+  }, [isAdmin])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [load])
 
   const resetForm = () => {
     setForm(blankAvisoForm)

@@ -14,6 +14,23 @@ def listar_ferias_aprovadas_por_data_inicio(db: Session, data_inicio: date) -> l
     )
 
 
+def listar_ferias_aprovadas_por_intervalo_data_inicio(
+    db: Session,
+    data_inicio: date,
+    data_fim: date,
+) -> list[Ferias]:
+    return (
+        db.query(Ferias)
+        .filter(
+            Ferias.data_inicio >= data_inicio,
+            Ferias.data_inicio <= data_fim,
+            Ferias.status == "aprovada",
+        )
+        .order_by(Ferias.data_inicio.asc())
+        .all()
+    )
+
+
 def existe_alerta_por_ferias_e_tipo(db: Session, ferias_id: int, tipo: str) -> bool:
     return (
         db.query(Alerta)

@@ -19,6 +19,7 @@ const Usuarios = lazy(() => import('../pages/Usuarios'))
 const Configuracoes = lazy(() => import('../pages/Configuracoes'))
 const Patrimonios = lazy(() => import('../pages/Patrimonios'))
 const MinhasAutorizacoes = lazy(() => import('../pages/MinhasAutorizacoes'))
+const AlterarSenha = lazy(() => import('../pages/AlterarSenha'))
 
 function Shell({ children, adminOnly = false }) {
   return (
@@ -33,6 +34,10 @@ export default function AppRoutes() {
     <Suspense fallback={<div className="loading-screen"><div className="spinner" /><span>Carregando...</span></div>}>
       <Routes>
       <Route path="/login" element={<Login />} />
+      <Route
+        path="/alterar-senha"
+        element={<PrivateRoute><AlterarSenha /></PrivateRoute>}
+      />
       <Route path="/" element={<Shell><Dashboard /></Shell>} />
       <Route path="/minhas-ferias" element={<Shell><MinhasFerias /></Shell>} />
       <Route path="/minhas-autorizacoes" element={<Shell><MinhasAutorizacoes /></Shell>} />

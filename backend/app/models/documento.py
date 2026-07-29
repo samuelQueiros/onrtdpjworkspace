@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Column, Integer, String, DateTime, ForeignKey, Index
+from sqlalchemy import CheckConstraint, Column, Integer, String, DateTime, ForeignKey, Index, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -11,7 +11,23 @@ class Documento(Base):
             "destino_tipo IN ('usuario', 'administracao')",
             name="ck_documentos_destino_tipo",
         ),
-        Index("ix_documentos_destino_destinatario", "destino_tipo", "destinatario_id"),
+        Index(
+            "ix_documentos_destino_destinatario",
+            "destino_tipo",
+            "destinatario_id",
+            "criado_em",
+        ),
+        Index(
+            "ix_documentos_destino_usuario_criado_em",
+            "destino_tipo",
+            "user_id",
+            "criado_em",
+        ),
+        Index(
+            "ix_documentos_criador_criado_em",
+            "criado_por_id",
+            "criado_em",
+        ),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -33,6 +49,7 @@ class Documento(Base):
         ),
         nullable=True,
     )
+    observacao = Column(Text, nullable=True)
     criado_em = Column(DateTime, default=datetime.utcnow)
 
     usuario = relationship("User", foreign_keys=[user_id], back_populates="documentos")

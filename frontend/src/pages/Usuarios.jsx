@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import '../styles/pages/usuarios.css'
 import UserForm, { blankUserForm } from '../components/usuarios/UserForm'
 import UsersTable from '../components/usuarios/UsersTable'
@@ -38,7 +38,7 @@ export default function Usuarios() {
   const [downloadingModel, setDownloadingModel] = useState(false)
   const importFileRef = useRef(null)
 
-  const load = () =>
+  const load = useCallback(() =>
     Promise.all([api.listarUsuarios(), api.listarDepartamentos(), api.listarCargos()])
       .then(([usuarios, deps, listaCargos]) => {
         setUsers(usuarios)
@@ -46,9 +46,9 @@ export default function Usuarios() {
         setCargos(listaCargos)
       })
       .catch(error => toast.error(error.message))
-      .finally(() => setLoading(false))
+      .finally(() => setLoading(false)), [toast])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [load])
 
   const resetForm = () => {
     setForm(blankUserForm)

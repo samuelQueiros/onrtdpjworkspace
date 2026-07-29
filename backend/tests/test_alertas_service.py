@@ -1,7 +1,7 @@
 from datetime import date, datetime
 import unittest
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import ANY, MagicMock, patch
 
 from app.services import alertas_service
 
@@ -92,9 +92,9 @@ class AlertasServiceTests(unittest.TestCase):
 
         with (
             patch(
-                "app.services.alertas_service.alertas_repository.listar_ferias_aprovadas_por_data_inicio",
+                "app.services.alertas_service.alertas_repository.listar_ferias_aprovadas_por_intervalo_data_inicio",
                 return_value=[ferias],
-            ),
+            ) as listar_intervalo,
             patch(
                 "app.services.alertas_service.alertas_repository.existe_alerta_por_ferias_e_tipo",
                 return_value=False,
@@ -107,6 +107,11 @@ class AlertasServiceTests(unittest.TestCase):
         adicionar.assert_called_once()
         self.assertEqual(adicionar.call_args[0][1].tipo, alertas_service.TIPO_FERIAS_4_DIAS)
         salvar.assert_called_once()
+        listar_intervalo.assert_called_once_with(
+            ANY,
+            date(2026, 7, 6),
+            date(2026, 7, 11),
+        )
 
     def test_gerar_alertas_contabilidade_cria_quando_nao_existe(self):
         ferias = SimpleNamespace(
@@ -118,7 +123,7 @@ class AlertasServiceTests(unittest.TestCase):
 
         with (
             patch(
-                "app.services.alertas_service.alertas_repository.listar_ferias_aprovadas_por_data_inicio",
+                "app.services.alertas_service.alertas_repository.listar_ferias_aprovadas_por_intervalo_data_inicio",
                 return_value=[ferias],
             ),
             patch(
@@ -143,7 +148,7 @@ class AlertasServiceTests(unittest.TestCase):
 
         with (
             patch(
-                "app.services.alertas_service.alertas_repository.listar_ferias_aprovadas_por_data_inicio",
+                "app.services.alertas_service.alertas_repository.listar_ferias_aprovadas_por_intervalo_data_inicio",
                 return_value=[ferias],
             ),
             patch(
@@ -158,6 +163,54 @@ class AlertasServiceTests(unittest.TestCase):
         adicionar.assert_not_called()
         salvar.assert_called_once()
 
+    def test_geradores_nao_confirmam_transacao_quando_commit_desabilitado(self):
+        with (
+            patch(
+                "app.services.alertas_service.alertas_repository.listar_ferias_aprovadas_por_data_inicio",
+                return_value=[],
+            ),
+            patch(
+                "app.services.alertas_service.alertas_repository.listar_ferias_aprovadas_por_intervalo_data_inicio",
+                return_value=[],
+            ),
+            patch("app.services.alertas_service.alertas_repository.salvar_alertas") as salvar,
+        ):
+            db = SimpleNamespace()
+            alertas_service.gerar_alertas_contabilidade(db, hoje=date(2026, 7, 5), commit=False)
+            alertas_service.gerar_alertas_ferias_5dias(db, hoje=date(2026, 7, 5), commit=False)
+            alertas_service.gerar_alertas_ferias_4dias(db, hoje=date(2026, 7, 5), commit=False)
+
+        salvar.assert_not_called()
+
+    def test_sincronizar_alertas_executa_geradores_em_uma_transacao(self):
+        db = MagicMock()
+        db.bind.dialect.name = "sqlite"
+        hoje = date(2026, 7, 5)
+
+        with (
+            patch("app.services.alertas_service.gerar_alertas_contabilidade") as contabilidade,
+            patch("app.services.alertas_service.gerar_alertas_ferias_5dias") as cinco_dias,
+            patch("app.services.alertas_service.gerar_alertas_ferias_4dias") as quatro_dias,
+        ):
+            alertas_service.sincronizar_alertas(db, hoje=hoje)
+
+        contabilidade.assert_called_once_with(db, hoje, commit=False)
+        cinco_dias.assert_called_once_with(db, hoje, commit=False)
+        quatro_dias.assert_called_once_with(db, hoje, commit=False)
+        db.commit.assert_called_once_with()
+
+    def test_gerar_alerta_usa_data_de_sao_paulo(self):
+        with (
+            patch("app.services.alertas_service.hoje_sao_paulo", return_value=date(2026, 7, 5)),
+            patch(
+                "app.services.alertas_service.alertas_repository.listar_ferias_aprovadas_por_data_inicio",
+                return_value=[],
+            ) as listar,
+        ):
+            alertas_service.gerar_alertas_ferias_5dias(SimpleNamespace(), commit=False)
+
+        listar.assert_called_once_with(ANY, date(2026, 7, 12))
+
     def test_marcar_lido_ignora_alerta_inexistente(self):
         with (
             patch("app.services.alertas_service.alertas_repository.obter_alerta_por_id", return_value=None),
@@ -166,6 +219,23 @@ class AlertasServiceTests(unittest.TestCase):
             alertas_service.marcar_lido(SimpleNamespace(), 1)
 
         marcar.assert_not_called()
+
+    def test_listar_alertas_nao_grava_nem_gera_dados(self):
+        db = SimpleNamespace()
+        with (
+            patch(
+                "app.services.alertas_service.alertas_repository.listar_alertas",
+                return_value=[],
+            ),
+            patch("app.services.alertas_service.gerar_alertas_contabilidade") as contabilidade,
+            patch("app.services.alertas_service.gerar_alertas_ferias_5dias") as cinco_dias,
+            patch("app.services.alertas_service.gerar_alertas_ferias_4dias") as quatro_dias,
+        ):
+            self.assertEqual(alertas_service.listar_alertas(db), [])
+
+        contabilidade.assert_not_called()
+        cinco_dias.assert_not_called()
+        quatro_dias.assert_not_called()
 
 
 if __name__ == "__main__":

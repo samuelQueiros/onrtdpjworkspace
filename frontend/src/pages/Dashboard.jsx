@@ -63,7 +63,7 @@ export default function Dashboard() {
 
     load().finally(() => active && setLoading(false))
     return () => { active = false }
-  }, [])
+  }, [refreshUser, toast, user?.role])
 
   if (loading) return <LoadingCard />
 

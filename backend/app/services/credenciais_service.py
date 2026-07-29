@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.core.crypto import criptografar_credencial, descriptografar_credencial
 from app.models.credencial import Credencial
+from app.models.log import Log
+from app.models.user import User
 from app.repositories import credenciais_repository
 from app.schemas.credencial import CredencialCreate, CredencialUpdate
 
@@ -32,9 +34,21 @@ def buscar_credencial(db: Session, credencial_id: int) -> Credencial:
     return credencial
 
 
-def minhas_credenciais(db: Session, user_id: int) -> list[dict]:
+def minhas_credenciais(
+    db: Session,
+    user_id: int,
+    current_user: User | None = None,
+) -> list[dict]:
     credenciais = credenciais_repository.listar_credenciais_por_usuario(db, user_id)
-    return [formatar_credencial(c, incluir_senha=True) for c in credenciais]
+    resultado = [formatar_credencial(c, incluir_senha=True) for c in credenciais]
+    if current_user is not None:
+        db.add(Log(
+            user_id=current_user.id,
+            acao="CREDENCIAIS_COMPARTILHADAS_CONSULTADAS",
+            detalhes=f"{len(credenciais)} credencial(is) descriptografada(s) pelo usuario",
+        ))
+        db.commit()
+    return resultado
 
 
 def listar_credenciais(db: Session) -> list[dict]:
@@ -42,17 +56,32 @@ def listar_credenciais(db: Session) -> list[dict]:
     return [formatar_credencial(c) for c in credenciais]
 
 
-def criar_credencial(db: Session, payload: CredencialCreate) -> dict:
+def criar_credencial(
+    db: Session,
+    payload: CredencialCreate,
+    current_user: User | None = None,
+) -> dict:
     credencial = Credencial(
         descricao=payload.descricao,
         email=payload.email,
         senha=criptografar_credencial(payload.senha),
     )
+    if current_user is not None:
+        db.add(Log(
+            user_id=current_user.id,
+            acao="CREDENCIAL_CRIADA",
+            detalhes=f"Credencial '{payload.descricao}' criada",
+        ))
     credenciais_repository.salvar_credencial(db, credencial)
     return formatar_credencial(credencial)
 
 
-def editar_credencial(db: Session, credencial_id: int, payload: CredencialUpdate) -> dict:
+def editar_credencial(
+    db: Session,
+    credencial_id: int,
+    payload: CredencialUpdate,
+    current_user: User | None = None,
+) -> dict:
     credencial = buscar_credencial(db, credencial_id)
 
     if payload.descricao is not None:
@@ -63,12 +92,28 @@ def editar_credencial(db: Session, credencial_id: int, payload: CredencialUpdate
         credencial.senha = criptografar_credencial(payload.senha)
 
     credencial.atualizado_em = datetime.utcnow()
+    if current_user is not None:
+        db.add(Log(
+            user_id=current_user.id,
+            acao="CREDENCIAL_EDITADA",
+            detalhes=f"Credencial #{credencial_id} editada",
+        ))
     credenciais_repository.salvar_credencial(db, credencial)
     return formatar_credencial(credencial)
 
 
-def excluir_credencial(db: Session, credencial_id: int) -> None:
+def excluir_credencial(
+    db: Session,
+    credencial_id: int,
+    current_user: User | None = None,
+) -> None:
     credencial = buscar_credencial(db, credencial_id)
+    if current_user is not None:
+        db.add(Log(
+            user_id=current_user.id,
+            acao="CREDENCIAL_EXCLUIDA",
+            detalhes=f"Credencial #{credencial_id} ('{credencial.descricao}') excluida",
+        ))
     credenciais_repository.excluir_credencial(db, credencial)
 
 
@@ -88,6 +133,31 @@ def usuarios_credencial(db: Session, credencial_id: int) -> list[dict]:
     ]
 
 
-def salvar_permissoes(db: Session, credencial_id: int, user_ids: list[int]) -> None:
+def salvar_permissoes(
+    db: Session,
+    credencial_id: int,
+    user_ids: list[int],
+    current_user: User | None = None,
+) -> None:
     buscar_credencial(db, credencial_id)
-    credenciais_repository.substituir_permissoes(db, credencial_id, user_ids)
+    ids_unicos = sorted(set(user_ids))
+    usuarios_validos = {
+        user.id for user in credenciais_repository.listar_usuarios(db)
+        if user.ativo
+    }
+    invalidos = sorted(set(ids_unicos) - usuarios_validos)
+    if invalidos:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Usuarios invalidos ou inativos: {', '.join(map(str, invalidos))}",
+        )
+    if current_user is not None:
+        db.add(Log(
+            user_id=current_user.id,
+            acao="CREDENCIAL_PERMISSOES_ATUALIZADAS",
+            detalhes=(
+                f"Permissoes da credencial #{credencial_id} atualizadas "
+                f"para {len(ids_unicos)} usuario(s)"
+            ),
+        ))
+    credenciais_repository.substituir_permissoes(db, credencial_id, ids_unicos)

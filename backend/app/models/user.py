@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, Date, ForeignKey, UniqueConstraint
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, Date, ForeignKey, UniqueConstraint, true
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -29,6 +29,7 @@ class User(Base):
     dados_bancarios = Column(String, nullable=True)
     cargo_id = Column(Integer, ForeignKey("cargos.id", ondelete="SET NULL"), nullable=True)
     ativo = Column(Boolean, nullable=False, default=True)
+    must_change_password = Column(Boolean, nullable=False, default=True, server_default=true())
     token_version = Column(Integer, nullable=False, default=0)
     cpf_criptografado = Column(String, nullable=True)
     cpf_hash = Column(String(64), nullable=True)

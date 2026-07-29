@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from typing import Literal
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -7,14 +9,15 @@ from app.database import get_db
 from app.models.documento import Documento
 from app.models.user import User
 from app.schemas.common import MensagemOut
-from app.schemas.documento import DocumentoOut, HistoricoDocumentosOut
+from app.schemas.documento import DocumentoOut, DocumentosPageOut
 from app.services.documentos_service import (
     buscar_documento,
     buscar_usuario,
     criar_documento_upload,
     excluir_documento_admin,
     listar_documentos_usuario,
-    listar_historico_documentos,
+    listar_historico_documentos_paginado,
+    registrar_acesso_documento,
     validar_acesso_documento,
 )
 from app.storage.documentos_storage import (
@@ -42,15 +45,16 @@ def _fmt(doc: Documento) -> dict:
             if doc.destino_tipo == "usuario" and doc.destinatario
             else "Administração"
         ),
+        "observacao": doc.observacao,
         "criado_em": doc.criado_em,
     }
 
 
-def responder_documento(doc: Documento, disposition: str):
+def responder_documento(doc: Documento, disposition: str, caminho=None):
     headers = {"Content-Disposition": content_disposition(disposition, doc.nome_arquivo)}
 
     return FileResponse(
-        path=caminho_documento(doc),
+        path=caminho or caminho_documento(doc),
         media_type=doc.mime_type,
         headers=headers,
     )
@@ -65,16 +69,30 @@ def meus_documentos(
     return [_fmt(d) for d in docs]
 
 
-@router.get("/historico", response_model=HistoricoDocumentosOut)
+@router.get("/historico", response_model=DocumentosPageOut)
 def historico_documentos(
+    caixa: Literal[
+        "recebidos_pessoais",
+        "recebidos_administracao",
+        "enviados",
+    ] = Query(default="recebidos_pessoais"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+    user_id: int | None = Query(default=None, gt=0),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    historico = listar_historico_documentos(db, current_user)
+    historico = listar_historico_documentos_paginado(
+        db,
+        current_user,
+        caixa,
+        page,
+        page_size,
+        user_id,
+    )
     return {
-        "recebidos_pessoais": [_fmt(doc) for doc in historico["recebidos_pessoais"]],
-        "recebidos_administracao": [_fmt(doc) for doc in historico["recebidos_administracao"]],
-        "enviados": [_fmt(doc) for doc in historico["enviados"]],
+        **historico,
+        "items": [_fmt(doc) for doc in historico["items"]],
     }
 
 
@@ -98,10 +116,19 @@ async def upload_documento(
     tipo: str = Form(...),
     user_id: int = Form(...),
     destino_tipo: str = Form(...),
+    observacao: str | None = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    doc = await criar_documento_upload(db, file, tipo, user_id, destino_tipo, current_user)
+    doc = await criar_documento_upload(
+        db,
+        file,
+        tipo,
+        user_id,
+        destino_tipo,
+        current_user,
+        observacao,
+    )
     return _fmt(doc)
 
 
@@ -113,8 +140,10 @@ def download_documento(
 ):
     doc = buscar_documento(db, doc_id)
     validar_acesso_documento(doc, current_user)
+    caminho = caminho_documento(doc)
+    registrar_acesso_documento(db, doc, current_user, "download")
 
-    return responder_documento(doc, "attachment")
+    return responder_documento(doc, "attachment", caminho)
 
 
 @router.get("/{doc_id}/visualizar")
@@ -125,8 +154,10 @@ def visualizar_documento(
 ):
     doc = buscar_documento(db, doc_id)
     validar_acesso_documento(doc, current_user)
+    caminho = caminho_documento(doc)
+    registrar_acesso_documento(db, doc, current_user, "visualizacao")
 
-    return responder_documento(doc, "inline")
+    return responder_documento(doc, "inline", caminho)
 
 
 @router.delete("/{doc_id}", response_model=MensagemOut, status_code=status.HTTP_200_OK)

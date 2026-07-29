@@ -15,10 +15,13 @@ class DocumentoOut(BaseModel):
     destino_tipo: str
     destinatario_id: int | None
     destinatario_nome: str
+    observacao: str | None = None
     criado_em: datetime
 
 
-class HistoricoDocumentosOut(BaseModel):
-    recebidos_pessoais: list[DocumentoOut]
-    recebidos_administracao: list[DocumentoOut]
-    enviados: list[DocumentoOut]
+class DocumentosPageOut(BaseModel):
+    items: list[DocumentoOut]
+    total: int
+    page: int
+    page_size: int
+    pages: int

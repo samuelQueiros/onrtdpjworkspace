@@ -25,7 +25,7 @@ export default function AutorizacaoEquipamentoForm() {
       })
       .catch(error => toast.error(error.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [toast])
 
   const mudarTipo = novoTipo => {
     setTipo(novoTipo)

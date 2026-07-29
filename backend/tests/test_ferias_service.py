@@ -81,13 +81,6 @@ class FeriasServiceTests(unittest.TestCase):
                     ferias_service.verificar_regras_data(segunda + timedelta(days=delta), segunda + timedelta(days=delta))
                 self.assertIn("feriado", exc.exception.detail)
 
-    def test_calcular_anos_completos_conta_anos_fechados(self):
-        hoje = date(2026, 7, 23)
-        self.assertEqual(ferias_service.calcular_anos_completos(date(2020, 1, 10), hoje=hoje), 6)
-        self.assertEqual(ferias_service.calcular_anos_completos(date(2020, 8, 10), hoje=hoje), 5)
-        self.assertEqual(ferias_service.calcular_anos_completos(None, hoje=hoje), 0)
-        self.assertEqual(ferias_service.calcular_anos_completos(date(2027, 1, 1), hoje=hoje), 0)
-
     def test_calcular_extrato_usa_movimentos_e_nao_tempo_de_admissao(self):
         user = SimpleNamespace(id=1, dias_totais=30, data_admissao=date(2020, 1, 1))
         marco = datetime(2026, 7, 1)
@@ -98,7 +91,7 @@ class FeriasServiceTests(unittest.TestCase):
         ferias_fake = [SimpleNamespace(dias_usados=7)]
 
         with (
-            patch("app.services.ferias_service.sincronizar_creditos_anuais"),
+            patch("app.services.ferias_service.sincronizar_creditos_anuais") as sincronizar,
             patch("app.services.ferias_service.ferias_repository.listar_movimentos_saldo", return_value=movimentos),
             patch("app.services.ferias_service.ferias_repository.listar_ferias_para_saldo_desde", return_value=ferias_fake),
         ):
@@ -108,6 +101,26 @@ class FeriasServiceTests(unittest.TestCase):
         self.assertEqual(extrato["dias_usados_total"], 7)
         self.assertEqual(extrato["saldo"], 13)
         self.assertEqual(extrato["vencidas"], [])
+        sincronizar.assert_not_called()
+
+    def test_verificar_sobreposicao_usuario_rejeita_periodo_conflitante(self):
+        existente = SimpleNamespace(
+            data_inicio=date(2027, 7, 5),
+            data_fim=date(2027, 7, 9),
+        )
+        with patch(
+            "app.services.ferias_service.ferias_repository.obter_ferias_usuario_sobreposta",
+            return_value=existente,
+        ):
+            with self.assertRaises(HTTPException) as exc:
+                ferias_service.verificar_sobreposicao_usuario(
+                    SimpleNamespace(),
+                    1,
+                    date(2027, 7, 8),
+                    date(2027, 7, 12),
+                )
+
+        self.assertEqual(exc.exception.status_code, 409)
 
     def test_proxima_concessao_usa_aniversario_de_admissao_futuro(self):
         self.assertEqual(
@@ -154,13 +167,6 @@ class FeriasServiceTests(unittest.TestCase):
         extrato_mock.assert_called_once_with(unittest.mock.ANY, user, 7)
         self.assertEqual(saldo, 42)
 
-    def test_buscar_ferias_retorna_404_quando_nao_existe(self):
-        with patch("app.services.ferias_service.ferias_repository.obter_ferias_por_id", return_value=None):
-            with self.assertRaises(HTTPException) as exc:
-                ferias_service.buscar_ferias(SimpleNamespace(), 1)
-
-        self.assertEqual(exc.exception.status_code, 404)
-
     def test_formatar_ferias_inclui_usuario_e_aprovador(self):
         ferias = SimpleNamespace(
             id=1,
@@ -197,8 +203,10 @@ class FeriasServiceTests(unittest.TestCase):
         )
 
         with (
+            patch("app.services.ferias_service.garantir_saldo_atualizado"),
             patch("app.services.ferias_service.verificar_regras_data"),
             patch("app.services.ferias_service.verificar_bloqueio_datas"),
+            patch("app.services.ferias_service.verificar_sobreposicao_usuario"),
             patch("app.services.ferias_service.verificar_sobreposicao_departamento", return_value=False),
             patch("app.services.ferias_service.calcular_saldo", return_value=30),
             patch("app.services.ferias_service.ferias_repository.salvar_ferias_com_log") as salvar,

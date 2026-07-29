@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import PermissoesUsuarios from './PermissoesUsuarios'
 
 export const blankCredencialForm = { descricao: '', email: '', senha: '' }

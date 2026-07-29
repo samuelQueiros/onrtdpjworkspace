@@ -1,8 +1,15 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.documento import Documento
 from app.models.log import Log
 from app.models.user import User
+
+TIPOS_DOCUMENTOS_HISTORICO = (
+    "atestado",
+    "contracheque",
+    "outro",
+    "termo_equipamentos",
+)
 
 
 def obter_usuario_por_id(db: Session, user_id: int) -> User | None:
@@ -22,35 +29,61 @@ def listar_documentos_por_usuario(db: Session, user_id: int) -> list[Documento]:
     )
 
 
-def listar_documentos_criados_por(db: Session, user_id: int, tipo: str | list[str]) -> list[Documento]:
-    filtro_tipo = Documento.tipo.in_(tipo) if isinstance(tipo, list) else Documento.tipo == tipo
-    return (
-        db.query(Documento)
-        .filter(Documento.criado_por_id == user_id, filtro_tipo)
-        .order_by(Documento.criado_em.desc())
-        .all()
-    )
-
-
-def listar_documentos_recebidos_pessoais(db: Session, user_id: int) -> list[Documento]:
-    return (
-        db.query(Documento)
-        .filter(
+def _consulta_historico(
+    db: Session,
+    caixa: str,
+    usuario_id: int,
+    filtro_usuario_id: int | None = None,
+):
+    consulta = db.query(Documento)
+    if caixa == "recebidos_pessoais":
+        consulta = consulta.filter(
             Documento.destino_tipo == "usuario",
-            Documento.destinatario_id == user_id,
+            Documento.destinatario_id == usuario_id,
         )
-        .order_by(Documento.criado_em.desc())
-        .all()
-    )
+    elif caixa == "recebidos_administracao":
+        consulta = consulta.filter(Documento.destino_tipo == "administracao")
+    elif caixa == "enviados":
+        consulta = consulta.filter(
+            Documento.criado_por_id == usuario_id,
+            Documento.tipo.in_(TIPOS_DOCUMENTOS_HISTORICO),
+        )
+    else:
+        raise ValueError("Caixa de documentos invalida")
+
+    if filtro_usuario_id is not None:
+        consulta = consulta.filter(Documento.user_id == filtro_usuario_id)
+    return consulta
 
 
-def listar_documentos_recebidos_administracao(db: Session) -> list[Documento]:
+def listar_historico_paginado(
+    db: Session,
+    caixa: str,
+    usuario_id: int,
+    filtro_usuario_id: int | None,
+    offset: int,
+    limit: int,
+) -> list[Documento]:
     return (
-        db.query(Documento)
-        .filter(Documento.destino_tipo == "administracao")
-        .order_by(Documento.criado_em.desc())
+        _consulta_historico(db, caixa, usuario_id, filtro_usuario_id)
+        .options(
+            joinedload(Documento.criado_por),
+            joinedload(Documento.destinatario),
+        )
+        .order_by(Documento.criado_em.desc(), Documento.id.desc())
+        .offset(offset)
+        .limit(limit)
         .all()
     )
+
+
+def contar_historico(
+    db: Session,
+    caixa: str,
+    usuario_id: int,
+    filtro_usuario_id: int | None,
+) -> int:
+    return _consulta_historico(db, caixa, usuario_id, filtro_usuario_id).count()
 
 
 def salvar_documento_com_log(db: Session, doc: Documento, log: Log) -> Documento:

@@ -1,7 +1,9 @@
 from datetime import date, timedelta
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.core.timezone import hoje_sao_paulo
 from app.models.alerta import Alerta
 from app.repositories import alertas_repository
 
@@ -40,9 +42,18 @@ def formatar_alerta(alerta: Alerta, db: Session | None = None) -> dict:
     }
 
 
-def gerar_alertas_contabilidade(db: Session, hoje: date | None = None) -> None:
-    alvo = (hoje or date.today()) + timedelta(days=6)
-    ferias_proximas = alertas_repository.listar_ferias_aprovadas_por_data_inicio(db, alvo)
+def gerar_alertas_contabilidade(
+    db: Session,
+    hoje: date | None = None,
+    commit: bool = True,
+) -> None:
+    referencia = hoje or hoje_sao_paulo()
+    limite = referencia + timedelta(days=6)
+    ferias_proximas = alertas_repository.listar_ferias_aprovadas_por_intervalo_data_inicio(
+        db,
+        referencia + timedelta(days=1),
+        limite,
+    )
 
     for ferias in ferias_proximas:
         if alertas_repository.existe_alerta_por_ferias_e_tipo(db, ferias.id, TIPO_CONTABILIDADE_4_DIAS):
@@ -54,17 +65,22 @@ def gerar_alertas_contabilidade(db: Session, hoje: date | None = None) -> None:
             tipo=TIPO_CONTABILIDADE_4_DIAS,
             mensagem=(
                 f"Encaminhar documentacao a contabilidade: {usuario_nome} "
-                f"entra em ferias em {alvo.strftime('%d/%m/%Y')} "
+                f"entra em ferias em {ferias.data_inicio.strftime('%d/%m/%Y')} "
                 f"({ferias.data_inicio.strftime('%d/%m/%Y')} a {ferias.data_fim.strftime('%d/%m/%Y')})."
             ),
         )
         alertas_repository.adicionar_alerta(db, alerta)
 
-    alertas_repository.salvar_alertas(db)
+    if commit:
+        alertas_repository.salvar_alertas(db)
 
 
-def gerar_alertas_ferias_5dias(db: Session, hoje: date | None = None) -> None:
-    alvo = (hoje or date.today()) + timedelta(days=7)
+def gerar_alertas_ferias_5dias(
+    db: Session,
+    hoje: date | None = None,
+    commit: bool = True,
+) -> None:
+    alvo = (hoje or hoje_sao_paulo()) + timedelta(days=7)
 
     ferias_proximas = alertas_repository.listar_ferias_aprovadas_por_data_inicio(db, alvo)
 
@@ -83,14 +99,23 @@ def gerar_alertas_ferias_5dias(db: Session, hoje: date | None = None) -> None:
         )
         alertas_repository.adicionar_alerta(db, alerta)
 
-    alertas_repository.salvar_alertas(db)
+    if commit:
+        alertas_repository.salvar_alertas(db)
 
 
-def gerar_alertas_ferias_4dias(db: Session, hoje: date | None = None) -> None:
-    """Lembrete urgente do dia anterior ao limite de 5 dias: reaparece a cada
-    login do admin (o frontend nao considera o campo `lido` para este tipo)."""
-    alvo = (hoje or date.today()) + timedelta(days=6)
-    ferias_proximas = alertas_repository.listar_ferias_aprovadas_por_data_inicio(db, alvo)
+def gerar_alertas_ferias_4dias(
+    db: Session,
+    hoje: date | None = None,
+    commit: bool = True,
+) -> None:
+    """Gera o lembrete urgente e recupera janelas perdidas antes das ferias."""
+    referencia = hoje or hoje_sao_paulo()
+    limite = referencia + timedelta(days=6)
+    ferias_proximas = alertas_repository.listar_ferias_aprovadas_por_intervalo_data_inicio(
+        db,
+        referencia + timedelta(days=1),
+        limite,
+    )
 
     for ferias in ferias_proximas:
         if alertas_repository.existe_alerta_por_ferias_e_tipo(db, ferias.id, TIPO_FERIAS_4_DIAS):
@@ -101,19 +126,28 @@ def gerar_alertas_ferias_4dias(db: Session, hoje: date | None = None) -> None:
             ferias_id=ferias.id,
             tipo=TIPO_FERIAS_4_DIAS,
             mensagem=(
-                f"Lembrete: {usuario_nome} entra em ferias em {alvo.strftime('%d/%m/%Y')} "
+                f"Lembrete: {usuario_nome} entra em ferias em {ferias.data_inicio.strftime('%d/%m/%Y')} "
                 f"({ferias.data_inicio.strftime('%d/%m/%Y')} a {ferias.data_fim.strftime('%d/%m/%Y')})."
             ),
         )
         alertas_repository.adicionar_alerta(db, alerta)
 
-    alertas_repository.salvar_alertas(db)
+    if commit:
+        alertas_repository.salvar_alertas(db)
+
+
+def sincronizar_alertas(db: Session, hoje: date | None = None) -> None:
+    """Comando idempotente chamado no login administrativo, nunca em consultas GET."""
+    dialect = getattr(getattr(db, "bind", None), "dialect", None)
+    if getattr(dialect, "name", None) == "postgresql":
+        db.execute(text("SELECT pg_advisory_xact_lock(:chave)"), {"chave": 3_000_001})
+    gerar_alertas_contabilidade(db, hoje, commit=False)
+    gerar_alertas_ferias_5dias(db, hoje, commit=False)
+    gerar_alertas_ferias_4dias(db, hoje, commit=False)
+    db.commit()
 
 
 def listar_alertas(db: Session) -> list[dict]:
-    gerar_alertas_contabilidade(db)
-    gerar_alertas_ferias_5dias(db)
-    gerar_alertas_ferias_4dias(db)
     return [formatar_alerta(alerta, db) for alerta in alertas_repository.listar_alertas(db)]
 
 

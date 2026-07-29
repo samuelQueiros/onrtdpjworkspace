@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useModalFocusTrap } from '../../utils/useModalFocusTrap'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -35,7 +35,7 @@ export default function PerfilPopover({ onClose }) {
   const [form, setForm] = useState(blankForm)
   const [mostrarBancarios, setMostrarBancarios] = useState(false)
 
-  const carregar = () => api.meuPerfil()
+  const carregar = useCallback(() => api.meuPerfil()
     .then(dados => {
       setPerfil(dados)
       setForm({
@@ -49,9 +49,9 @@ export default function PerfilPopover({ onClose }) {
       })
     })
     .catch(error => toast.error(error.message))
-    .finally(() => setLoading(false))
+    .finally(() => setLoading(false)), [toast])
 
-  useEffect(() => { carregar() }, [])
+  useEffect(() => { carregar() }, [carregar])
 
   const update = changes => setForm(prev => ({ ...prev, ...changes }))
 

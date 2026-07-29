@@ -7,16 +7,13 @@ import Topbar from '../components/estrutura/Topbar'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
+import { avisoFeriasDismissKey } from '../utils/alertasFerias'
 
 function isBirthdayToday(dataAniversario) {
   if (!dataAniversario) return false
   const today = new Date()
   const [, month, day] = dataAniversario.split('-').map(Number)
   return today.getMonth() + 1 === month && today.getDate() === day
-}
-
-function avisoFeriasDismissKey(alertaId) {
-  return `ferias-4dias-dismissed-${alertaId}-${new Date().toDateString()}`
 }
 
 const PENDENTES_POLL_MS = 60000

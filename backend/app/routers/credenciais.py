@@ -23,7 +23,7 @@ def minhas_credenciais(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return credenciais_service.minhas_credenciais(db, current_user.id)
+    return credenciais_service.minhas_credenciais(db, current_user.id, current_user)
 
 
 @router.get("", response_model=List[CredencialOut])
@@ -38,9 +38,9 @@ def listar_credenciais(
 def criar_credencial(
     payload: CredencialCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
 ):
-    return credenciais_service.criar_credencial(db, payload)
+    return credenciais_service.criar_credencial(db, payload, current_user)
 
 
 @router.put("/{credencial_id}", response_model=CredencialOut)
@@ -48,18 +48,18 @@ def editar_credencial(
     credencial_id: int,
     payload: CredencialUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
 ):
-    return credenciais_service.editar_credencial(db, credencial_id, payload)
+    return credenciais_service.editar_credencial(db, credencial_id, payload, current_user)
 
 
 @router.delete("/{credencial_id}", status_code=status.HTTP_200_OK)
 def excluir_credencial(
     credencial_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
 ):
-    credenciais_service.excluir_credencial(db, credencial_id)
+    credenciais_service.excluir_credencial(db, credencial_id, current_user)
     return {"detail": "Credencial excluida com sucesso"}
 
 
@@ -77,7 +77,12 @@ def salvar_permissoes(
     credencial_id: int,
     payload: PermissoesUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
 ):
-    credenciais_service.salvar_permissoes(db, credencial_id, payload.user_ids)
+    credenciais_service.salvar_permissoes(
+        db,
+        credencial_id,
+        payload.user_ids,
+        current_user,
+    )
     return {"detail": "Permissoes atualizadas com sucesso"}

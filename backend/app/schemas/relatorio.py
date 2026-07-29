@@ -63,7 +63,12 @@ class AlertaContabilidadeOut(BaseModel):
     nome_usuario: str
     data_inicio: date
     data_fim: date
+    dias_usados: Optional[int] = None
     dias_para_inicio: int
+    cargo_usuario: Optional[str] = None
+    ciclo_inicio: Optional[date] = None
+    ciclo_fim: Optional[date] = None
+    retorno_trabalho: Optional[date] = None
 
 
 class DashboardOut(BaseModel):

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import '../styles/pages/patrimonios.css'
 import AcaoPatrimonioModal from '../components/patrimonios/AcaoPatrimonioModal'
 import DetalhesPatrimonioModal from '../components/patrimonios/DetalhesPatrimonioModal'
@@ -36,7 +36,7 @@ export default function Patrimonios() {
   const [actionModal, setActionModal] = useState(null)
   const [saving, setSaving] = useState(false)
 
-  const load = async (page = 1, selectedFilters = appliedFilters, initial = false) => {
+  const load = useCallback(async (page = 1, selectedFilters = blankPatrimonioFilters, initial = false) => {
     if (initial) setLoading(true)
     else setRefreshing(true)
     try {
@@ -52,14 +52,14 @@ export default function Patrimonios() {
       setLoading(false)
       setRefreshing(false)
     }
-  }
+  }, [toast])
 
   useEffect(() => {
     load(1, blankPatrimonioFilters, true)
     usersService.listarUsuarios()
       .then(setUsers)
       .catch(error => toast.error(`Não foi possível carregar os colaboradores: ${error.message}`))
-  }, [])
+  }, [load, toast])
 
   const applyFilters = event => {
     event.preventDefault()

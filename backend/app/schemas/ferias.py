@@ -20,9 +20,6 @@ class FeriasUpdate(BaseModel):
     data_inicio: Optional[date] = None
     data_fim: Optional[date] = None
     ferias_acordo: Optional[bool] = None
-    status: Optional[str] = None          # apenas admin: "aprovada" | "rejeitada"
-    motivo_rejeicao: Optional[str] = None  # apenas admin
-
     @model_validator(mode="after")
     def validar_datas(self):
         if self.data_inicio and self.data_fim:

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { LoadingCard } from '../comum/PageHelpers'
 import { useConfirm } from '../../contexts/ConfirmContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -64,7 +64,7 @@ export default function AutorizacoesEquipamentosPainel() {
   const [downloading, setDownloading] = useState(false)
   const requestSequence = useRef(0)
 
-  const load = async (activeFilters = filters, page = 1) => {
+  const load = useCallback(async (activeFilters, page = 1) => {
     const sequence = ++requestSequence.current
     setLoading(true)
     setError('')
@@ -83,12 +83,12 @@ export default function AutorizacoesEquipamentosPainel() {
     } finally {
       if (sequence === requestSequence.current) setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     usersService.listarUsuarios().then(setUsers).catch(() => setUsers([]))
     load(INITIAL_FILTERS)
-  }, [])
+  }, [load])
 
   const applyFilters = event => {
     event.preventDefault()

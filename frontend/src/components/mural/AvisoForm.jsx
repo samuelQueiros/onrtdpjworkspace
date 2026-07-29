@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 export const blankAvisoForm = { titulo: '', conteudo: '', fixado: false, data_expiracao: '' }
 
 export default function AvisoForm({ editing, form, onCancel, onChange, onSubmit }) {

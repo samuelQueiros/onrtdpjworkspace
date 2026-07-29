@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -24,8 +24,9 @@ def _autenticar_limitado(request: Request, form_data: OAuth2PasswordRequestForm,
     verificar_limite_login(chave)
     try:
         resultado = autenticar_usuario(db, form_data.username, form_data.password)
-    except Exception:
-        registrar_falha_login(chave)
+    except HTTPException as exc:
+        if exc.status_code == 401:
+            registrar_falha_login(chave)
         raise
     limpar_falhas_login(chave)
     return resultado

@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 from jinja2 import Environment, StrictUndefined, select_autoescape
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.cpf import formatar_cpf, validar_cpf
@@ -17,7 +18,12 @@ from app.models.patrimonio import SolicitacaoEquipamento, TermoEquipamentoVersao
 from app.models.user import User
 from app.repositories import patrimonios_repository
 from app.storage.documentos_storage import caminho_documento
-from app.storage.termos_storage import montar_nome_arquivo_termo, salvar_termo_pdf
+from app.storage.termos_storage import (
+    confirmar_termo_pdf,
+    montar_nome_arquivo_termo,
+    reverter_termo_pdf,
+    salvar_termo_pdf,
+)
 
 
 TERMO_VERSAO_CODIGO = "v2"
@@ -385,6 +391,9 @@ def _documento_existente_valido(db: Session, solicitacao: SolicitacaoEquipamento
 def garantir_versao_termo(db: Session) -> TermoEquipamentoVersao:
     """Garante o registro imutável da versão atual sem encerrar a transação do chamador."""
     metadados = obter_metadados_versao()
+    dialect = getattr(getattr(db, "bind", None), "dialect", None)
+    if getattr(dialect, "name", None) == "postgresql":
+        db.execute(text("SELECT pg_advisory_xact_lock(:chave)"), {"chave": 4_000_001})
     versao = patrimonios_repository.obter_versao_termo_por_codigo(db, TERMO_VERSAO_CODIGO)
     if versao is None:
         versao = TermoEquipamentoVersao(
@@ -469,6 +478,8 @@ def gerar_termo_definitivo(
     if not solicitacao.entregue_em:
         raise HTTPException(status_code=400, detail="A entrega deve ser registrada antes da emissao do termo")
 
+    arquivo = None
+    commit_concluido = False
     try:
         if not (
             regenerar
@@ -545,12 +556,19 @@ def gerar_termo_definitivo(
             )
         )
         db.commit()
+        commit_concluido = True
+        confirmar_termo_pdf(arquivo)
         db.refresh(documento)
         return documento
     except HTTPException:
+        if arquivo is not None and not commit_concluido:
+            reverter_termo_pdf(arquivo)
         raise
     except Exception as exc:
-        _registrar_falha_geracao(db, solicitacao_id, current_user)
+        if arquivo is not None and not commit_concluido:
+            reverter_termo_pdf(arquivo)
+        if not commit_concluido:
+            _registrar_falha_geracao(db, solicitacao_id, current_user)
         if isinstance(exc, TermoEquipamentoError):
             raise
         raise TermoEquipamentoError("Nao foi possivel concluir a geracao do termo.") from exc

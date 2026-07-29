@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from io import BytesIO
 import unittest
 from types import SimpleNamespace
@@ -72,13 +72,19 @@ class RelatoriosServiceTests(unittest.TestCase):
         ferias = SimpleNamespace(
             id=1,
             user_id=2,
-            usuario=SimpleNamespace(nome="Gabriel", cor="#ffffff"),
+            usuario=SimpleNamespace(
+                nome="Gabriel",
+                cor="#ffffff",
+                data_admissao=date(2024, 2, 10),
+                cargo=SimpleNamespace(nome="Analista"),
+            ),
             data_inicio=hoje,
             data_fim=hoje,
             dias_usados=1,
         )
 
         with (
+            patch("app.services.relatorios_service.hoje_sao_paulo", return_value=hoje),
             patch("app.services.relatorios_service.relatorios_repository.contar_colaboradores", return_value=3),
             patch("app.services.relatorios_service.relatorios_repository.contar_ferias_por_status", side_effect=[4, 1, 2]),
             patch("app.services.relatorios_service.relatorios_repository.contar_autorizacoes_equipamentos_por_status", return_value=5),
@@ -94,6 +100,9 @@ class RelatoriosServiceTests(unittest.TestCase):
         self.assertEqual(response["total_autorizacoes_equipamentos_pendentes"], 5)
         self.assertEqual(response["pessoas_em_ferias"][0]["nome"], "Gabriel")
         self.assertEqual(response["alertas_contabilidade"][0]["ferias_id"], 1)
+        self.assertEqual(response["alertas_contabilidade"][0]["cargo_usuario"], "Analista")
+        self.assertEqual(response["alertas_contabilidade"][0]["dias_usados"], 1)
+        self.assertEqual(response["alertas_contabilidade"][0]["retorno_trabalho"], hoje + timedelta(days=1))
 
     def test_listar_logs_formata_usuario_sistema_quando_sem_usuario(self):
         log = SimpleNamespace(

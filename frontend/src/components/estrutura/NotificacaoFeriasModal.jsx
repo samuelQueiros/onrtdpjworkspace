@@ -1,18 +1,17 @@
 import { formatDate } from '../../utils/formatters'
-import { montarModeloEmailFerias } from '../../utils/emailTemplates'
+import { copiarModeloEmailFerias } from '../../utils/emailTemplates'
 
 const KICKER_POR_TIPO = {
   ferias_5dias: 'Aviso de férias em 5 dias',
-  ferias_4dias: 'Lembrete urgente — férias em 4 dias',
+  ferias_4dias: 'Lembrete urgente — férias próximas',
 }
 
 export default function NotificacaoFeriasModal({ alerta, total, onCopiar, onFechar }) {
   const kicker = KICKER_POR_TIPO[alerta.tipo] || 'Aviso de férias'
 
   const copiar = async () => {
-    const texto = montarModeloEmailFerias(alerta)
     try {
-      await navigator.clipboard.writeText(texto)
+      await copiarModeloEmailFerias(alerta)
       onCopiar(true)
     } catch {
       onCopiar(false)

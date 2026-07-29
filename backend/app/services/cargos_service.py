@@ -25,11 +25,6 @@ def listar_cargos(db: Session) -> list[dict]:
     return [_formatar(db, cargo) for cargo in cargos_repository.listar_cargos(db)]
 
 
-def validar_cargo(db: Session, nome: str | None) -> None:
-    if nome and not cargos_repository.obter_cargo_por_nome(db, nome):
-        raise HTTPException(status_code=400, detail="Cargo nao cadastrado")
-
-
 def obter_cargo_por_nome(db: Session, nome: str | None) -> Cargo | None:
     if not nome:
         return None

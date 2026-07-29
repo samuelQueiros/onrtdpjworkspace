@@ -36,31 +36,6 @@ def listar_ferias_aprovadas(db: Session) -> list[Ferias]:
     return db.query(Ferias).filter(Ferias.status == "aprovada").order_by(Ferias.data_inicio).all()
 
 
-def listar_ferias_para_saldo(db: Session, user_id: int, ciclo_inicio, ciclo_fim, excluir_ferias_id: int | None = None):
-    query = db.query(Ferias).filter(
-        Ferias.user_id == user_id,
-        Ferias.ferias_acordo == False,  # noqa: E712
-        Ferias.status.in_(["aprovada", "pendente"]),
-        Ferias.data_inicio >= ciclo_inicio,
-        Ferias.data_inicio <= ciclo_fim,
-    )
-    if excluir_ferias_id:
-        query = query.filter(Ferias.id != excluir_ferias_id)
-    return query.all()
-
-
-def listar_ferias_para_saldo_total(db: Session, user_id: int, excluir_ferias_id: int | None = None):
-    """Todas as ferias (de qualquer ciclo) que contam contra o saldo acumulado."""
-    query = db.query(Ferias).filter(
-        Ferias.user_id == user_id,
-        Ferias.ferias_acordo == False,  # noqa: E712
-        Ferias.status.in_(["aprovada", "pendente"]),
-    )
-    if excluir_ferias_id:
-        query = query.filter(Ferias.id != excluir_ferias_id)
-    return query.all()
-
-
 def listar_ferias_para_saldo_desde(
     db: Session,
     user_id: int,
@@ -113,6 +88,24 @@ def listar_ferias_conflitantes(
     return query
 
 
+def obter_ferias_usuario_sobreposta(
+    db: Session,
+    user_id: int,
+    data_inicio,
+    data_fim,
+    excluir_ferias_id: int | None = None,
+) -> Ferias | None:
+    query = db.query(Ferias).filter(
+        Ferias.user_id == user_id,
+        Ferias.data_inicio <= data_fim,
+        Ferias.data_fim >= data_inicio,
+        Ferias.status.in_(["pendente", "aprovada"]),
+    )
+    if excluir_ferias_id:
+        query = query.filter(Ferias.id != excluir_ferias_id)
+    return query.first()
+
+
 def obter_bloqueio_sobreposto(db: Session, data_inicio, data_fim) -> BloqueioData | None:
     return (
         db.query(BloqueioData)
@@ -126,10 +119,6 @@ def obter_bloqueio_sobreposto(db: Session, data_inicio, data_fim) -> BloqueioDat
 
 def listar_bloqueios(db: Session) -> list[BloqueioData]:
     return db.query(BloqueioData).order_by(BloqueioData.data_inicio).all()
-
-
-def obter_ferias_por_id(db: Session, ferias_id: int) -> Ferias | None:
-    return db.query(Ferias).filter(Ferias.id == ferias_id).first()
 
 
 def obter_ferias_por_id_para_atualizar(db: Session, ferias_id: int) -> Ferias | None:

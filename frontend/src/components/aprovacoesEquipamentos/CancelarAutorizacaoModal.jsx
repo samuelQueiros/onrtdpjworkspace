@@ -15,7 +15,7 @@ export default function CancelarAutorizacaoModal({ autorizacao, onClose, onSubmi
       className="autorizacao-action-modal"
       onClose={onClose}
       subtitle={`Solicitação #${autorizacao.id} · ${autorizacao.user_nome}`}
-      title="Cancelar autorização aprovada"
+      title="Cancelar autorização antes da entrega"
       titleId="cancelar-autorizacao-equipamento-title"
     >
       <form onSubmit={submit}>

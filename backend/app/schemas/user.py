@@ -86,6 +86,11 @@ class UserCreate(BaseModel):
     cargo: str = Field(min_length=1, max_length=100)
     cpf: str = Field(min_length=11, max_length=14)
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalizar_email(cls, valor):
+        return str(valor).strip().lower() if valor is not None else valor
+
     @field_validator("nome", "telefone", "telefone_emergencia", "telefone_emergencia_2", "cargo", "cor", mode="before")
     @classmethod
     def normalizar_textos(cls, valor):
@@ -135,6 +140,11 @@ class UserUpdate(BaseModel):
     motivo_ajuste_saldo: Optional[str] = Field(default=None, min_length=3, max_length=500)
     proxima_concessao_ferias: Optional[date] = None
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalizar_email(cls, valor):
+        return str(valor).strip().lower() if valor is not None else valor
+
     @field_validator("nome", "telefone", "telefone_emergencia", "telefone_emergencia_2", "cargo", mode="before")
     @classmethod
     def normalizar_textos(cls, valor):
@@ -171,6 +181,11 @@ class UserConfigUpdate(BaseModel):
     telefone_emergencia: Optional[str] = Field(default=None, max_length=30)
     telefone_emergencia_2: Optional[str] = Field(default=None, max_length=30)
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalizar_email(cls, valor):
+        return str(valor).strip().lower() if valor is not None else valor
+
     @field_validator("telefone", "telefone_emergencia", "telefone_emergencia_2", mode="before")
     @classmethod
     def normalizar_telefones(cls, valor):
@@ -178,30 +193,6 @@ class UserConfigUpdate(BaseModel):
             return None
         texto = " ".join(str(valor).split())
         return _validar_telefone(texto or None)
-
-
-class UserOut(BaseModel):
-    id: int
-    nome: str
-    email: str
-    role: str
-    dias_totais: int
-    criado_em: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class UserWithDias(BaseModel):
-    id: int
-    nome: str
-    email: str
-    role: str
-    dias_totais: int
-    dias_restantes: int
-
-    class Config:
-        from_attributes = True
 
 
 class UserDepartamentoOut(BaseModel):
@@ -226,6 +217,7 @@ class UserResponse(BaseModel):
     cpf_mascarado: Optional[str] = None
     cargo: Optional[str] = None
     ativo: bool = True
+    must_change_password: bool = False
     saldo_manual_dias: Optional[int] = None
     proxima_concessao_ferias: Optional[date] = None
     criado_em: datetime

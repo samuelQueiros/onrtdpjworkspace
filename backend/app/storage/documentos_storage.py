@@ -63,13 +63,23 @@ def obter_diretorio_recebido_administracao(remetente: User) -> Path:
 
 def validar_assinatura_arquivo(arquivo_bytes: bytes, mime: str) -> bool:
     if mime == "application/pdf":
-        return arquivo_bytes.startswith(b"%PDF-")
+        return (
+            arquivo_bytes.startswith(b"%PDF-")
+            and b"%%EOF" in arquivo_bytes[-2048:]
+        )
 
     if mime == "image/jpeg":
-        return arquivo_bytes.startswith(b"\xff\xd8\xff")
+        return (
+            arquivo_bytes.startswith(b"\xff\xd8\xff")
+            and arquivo_bytes.rstrip().endswith(b"\xff\xd9")
+        )
 
     if mime == "image/png":
-        return arquivo_bytes.startswith(b"\x89PNG\r\n\x1a\n")
+        return (
+            arquivo_bytes.startswith(b"\x89PNG\r\n\x1a\n")
+            and arquivo_bytes[12:16] == b"IHDR"
+            and arquivo_bytes.rstrip().endswith(b"IEND\xaeB`\x82")
+        )
 
     return False
 

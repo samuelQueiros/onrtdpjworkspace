@@ -107,11 +107,26 @@ def get_current_user(request: Request, token: str | None = Depends(oauth2_scheme
     except JWTError:
         raise credentials_exception
 
-    user = db.query(User).filter(User.id == int(user_id), User.ativo.is_(True)).first()
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        raise credentials_exception
+
+    user = db.query(User).filter(User.id == user_id_int, User.ativo.is_(True)).first()
     if user is None:
         raise credentials_exception
     if token_version != user.token_version:
         raise credentials_exception
+    if user.must_change_password and request.url.path not in {
+        "/auth/me",
+        "/auth/logout",
+        "/auth/logout-all",
+        "/me/configuracoes",
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="PASSWORD_CHANGE_REQUIRED",
+        )
     return user
 
 

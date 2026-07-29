@@ -2,10 +2,8 @@ from .user import (
     AniversarianteOut,
     UserCreate,
     UserDepartamentoOut,
-    UserOut,
     UserResponse,
     UserUpdate,
-    UserWithDias,
 )
 from .common import MensagemOut
 from .ferias import DisponibilidadeOut, FeriadoOut, FeriasCreate, FeriasOut, FeriasUpdate, MinhasFeriasOut

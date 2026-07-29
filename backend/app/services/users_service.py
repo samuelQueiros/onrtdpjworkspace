@@ -62,6 +62,7 @@ def formatar_usuario(
         "cpf_mascarado": mascarar_cpf(descriptografar_dado_sensivel(user.cpf_criptografado)),
         "cargo": user.cargo.nome if user.cargo else None,
         "ativo": user.ativo,
+        "must_change_password": getattr(user, "must_change_password", False),
         "saldo_manual_dias": user.saldo_manual_dias,
         "proxima_concessao_ferias": getattr(user, "proxima_concessao_ferias", None),
         "criado_em": user.criado_em,
@@ -292,7 +293,12 @@ def listar_usuarios(db: Session) -> list[dict]:
     return resultado
 
 
-def criar_usuario(db: Session, payload: UserCreate, current_user: User) -> dict:
+def criar_usuario(
+    db: Session,
+    payload: UserCreate,
+    current_user: User,
+    commit: bool = True,
+) -> dict:
     validar_email_disponivel(db, payload.email)
     validar_departamento(db, payload.departamento_id)
     cargo = cargos_service.obter_cargo_por_nome(db, payload.cargo)
@@ -317,6 +323,7 @@ def criar_usuario(db: Session, payload: UserCreate, current_user: User) -> dict:
         cargo_id=cargo.id if cargo else None,
         cpf_criptografado=cpf_criptografado,
         cpf_hash=cpf_hash,
+        must_change_password=True,
     )
 
     log = Log(
@@ -325,13 +332,22 @@ def criar_usuario(db: Session, payload: UserCreate, current_user: User) -> dict:
         detalhes=f"Usuario {novo_user.nome} ({novo_user.email}) criado por {current_user.nome}",
     )
     try:
-        users_repository.salvar_usuario_com_log(db, novo_user, log)
+        users_repository.salvar_usuario_com_log(db, novo_user, log, commit=False)
+        from app.services.ferias_service import registrar_saldo_inicial
+
+        registrar_saldo_inicial(
+            db,
+            novo_user,
+            payload.saldo_inicial_dias,
+            current_user.id,
+            commit=False,
+        )
+        if commit:
+            db.commit()
+            db.refresh(novo_user)
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status_code=409, detail="E-mail ou CPF ja cadastrado") from exc
-
-    from app.services.ferias_service import registrar_saldo_inicial
-    registrar_saldo_inicial(db, novo_user, payload.saldo_inicial_dias, current_user.id)
 
     return formatar_usuario(novo_user, db)
 
@@ -361,6 +377,7 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
     if payload.senha is not None and payload.senha.strip():
         user.senha_hash = hash_senha(payload.senha)
         user.token_version += 1
+        user.must_change_password = True
     if payload.cor is not None:
         user.cor = payload.cor if payload.cor.strip() else None
     if "telefone" in payload.model_fields_set:
@@ -388,18 +405,34 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
         user.cpf_criptografado, user.cpf_hash = preparar_cpf(db, payload.cpf, user.id)
 
     if payload.saldo_atual_dias is not None:
-        from app.services.ferias_service import ajustar_saldo, calcular_saldo
+        from app.services.ferias_service import (
+            ajustar_saldo,
+            calcular_saldo,
+            garantir_saldo_atualizado,
+        )
+        garantir_saldo_atualizado(db, user, current_user.id, commit=False)
         if payload.saldo_atual_dias != calcular_saldo(db, user):
             if not payload.motivo_ajuste_saldo:
                 raise HTTPException(status_code=400, detail="Informe o motivo do ajuste de saldo")
-            ajustar_saldo(db, user, payload.saldo_atual_dias, payload.motivo_ajuste_saldo, current_user)
+            ajustar_saldo(
+                db,
+                user,
+                payload.saldo_atual_dias,
+                payload.motivo_ajuste_saldo,
+                current_user,
+                commit=False,
+            )
 
     log = Log(
         user_id=current_user.id,
         acao="USUARIO_EDITADO",
         detalhes=f"Usuario {user.nome} ({user.email}) editado por {current_user.nome}",
     )
-    users_repository.atualizar_usuario_com_log(db, user, log)
+    try:
+        users_repository.atualizar_usuario_com_log(db, user, log)
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="E-mail ou CPF ja cadastrado") from exc
 
     return formatar_usuario(user, db)
 
@@ -463,6 +496,13 @@ def reativar_usuario(db: Session, user_id: int, current_user: User) -> dict:
 
 
 def atualizar_configuracoes(db: Session, payload: UserConfigUpdate, current_user: User) -> dict:
+    troca_obrigatoria = getattr(current_user, "must_change_password", False)
+    senha_alterada = bool(payload.nova_senha and payload.nova_senha.strip())
+    if troca_obrigatoria and not senha_alterada:
+        raise HTTPException(
+            status_code=400,
+            detail="A troca da senha temporaria e obrigatoria antes de continuar",
+        )
     if payload.nome is not None:
         current_user.nome = payload.nome
     if payload.email is not None:
@@ -483,15 +523,37 @@ def atualizar_configuracoes(db: Session, payload: UserConfigUpdate, current_user
             else None
         )
 
-    if payload.nova_senha is not None and payload.nova_senha.strip():
+    if senha_alterada:
         if not payload.senha_atual:
             raise HTTPException(status_code=400, detail="Informe a senha atual para altera-la")
         if not verificar_senha(payload.senha_atual, current_user.senha_hash):
             raise HTTPException(status_code=400, detail="Senha atual incorreta")
+        if verificar_senha(payload.nova_senha, current_user.senha_hash):
+            raise HTTPException(status_code=400, detail="A nova senha deve ser diferente da senha atual")
         current_user.senha_hash = hash_senha(payload.nova_senha)
         current_user.token_version += 1
+        current_user.must_change_password = False
 
-    users_repository.salvar_usuario(db, current_user)
+    if troca_obrigatoria:
+        acao = "SENHA_TEMPORARIA_SUBSTITUIDA"
+        detalhes = "Senha temporaria substituida no primeiro acesso"
+    elif senha_alterada:
+        acao = "SENHA_ALTERADA"
+        detalhes = "Senha da conta alterada"
+    else:
+        acao = "PERFIL_ATUALIZADO"
+        detalhes = "Dados do perfil atualizados"
+
+    db.add(Log(
+        user_id=current_user.id,
+        acao=acao,
+        detalhes=detalhes,
+    ))
+    try:
+        users_repository.salvar_usuario(db, current_user)
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="E-mail ja cadastrado") from exc
     return formatar_usuario(current_user, db)
 
 

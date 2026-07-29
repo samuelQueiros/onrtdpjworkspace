@@ -18,6 +18,7 @@ class AuthUserOut(BaseModel):
     departamento: Optional[AuthDepartamentoOut] = None
     data_admissao: Optional[str] = None
     data_aniversario: Optional[str] = None
+    must_change_password: bool = False
 
 
 class TokenOut(BaseModel):

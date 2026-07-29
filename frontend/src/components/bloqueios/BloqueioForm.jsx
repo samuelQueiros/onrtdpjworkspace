@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 export const blankBloqueioForm = { data_inicio: '', data_fim: '', motivo: '', tipo: 'bloqueio' }
 
 export default function BloqueioForm({ editing, form, onCancel, onChange, onSubmit }) {

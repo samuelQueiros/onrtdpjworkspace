@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile
@@ -24,6 +25,8 @@ from app.storage.documentos_storage import (
 
 TIPOS_DOCUMENTO = ("atestado", "contracheque", "outro")
 DESTINOS_DOCUMENTO = ("usuario", "administracao")
+CAIXAS_DOCUMENTOS = ("recebidos_pessoais", "recebidos_administracao", "enviados")
+MAX_OBSERVACAO_LENGTH = 2000
 
 
 def validar_permissao_upload(tipo: str, user_id: int, destino_tipo: str, current_user: User) -> None:
@@ -57,6 +60,18 @@ def validar_arquivo_upload(arquivo_bytes: bytes, mime: str) -> None:
         raise HTTPException(status_code=400, detail="Assinatura do arquivo invalida")
 
 
+def normalizar_observacao(observacao: str | None) -> str | None:
+    texto = observacao.strip() if observacao else ""
+    if not texto:
+        return None
+    if len(texto) > MAX_OBSERVACAO_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"A observacao deve ter no maximo {MAX_OBSERVACAO_LENGTH} caracteres",
+        )
+    return texto
+
+
 def buscar_usuario(db: Session, user_id: int) -> User:
     user = documentos_repository.obter_usuario_por_id(db, user_id)
     if not user:
@@ -75,20 +90,46 @@ def listar_documentos_usuario(db: Session, user_id: int) -> list[Documento]:
     return documentos_repository.listar_documentos_por_usuario(db, user_id)
 
 
-def listar_historico_documentos(db: Session, current_user: User) -> dict[str, list[Documento]]:
-    enviados = documentos_repository.listar_documentos_criados_por(
-        db, current_user.id, ["atestado", "contracheque", "outro", "termo_equipamentos"]
+def listar_historico_documentos_paginado(
+    db: Session,
+    current_user: User,
+    caixa: str,
+    page: int,
+    page_size: int,
+    user_id: int | None = None,
+) -> dict:
+    if caixa not in CAIXAS_DOCUMENTOS:
+        raise HTTPException(status_code=400, detail="Caixa de documentos invalida")
+    if caixa == "recebidos_administracao" and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    if user_id is not None and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    filtro_usuario_id = (
+        user_id
+        if current_user.role == "admin" and caixa != "recebidos_pessoais"
+        else None
     )
-    recebidos_pessoais = documentos_repository.listar_documentos_recebidos_pessoais(db, current_user.id)
-    recebidos_administracao = (
-        documentos_repository.listar_documentos_recebidos_administracao(db)
-        if current_user.role == "admin"
-        else []
+    total = documentos_repository.contar_historico(
+        db,
+        caixa,
+        current_user.id,
+        filtro_usuario_id,
+    )
+    items = documentos_repository.listar_historico_paginado(
+        db,
+        caixa,
+        current_user.id,
+        filtro_usuario_id,
+        (page - 1) * page_size,
+        page_size,
     )
     return {
-        "recebidos_pessoais": recebidos_pessoais,
-        "recebidos_administracao": recebidos_administracao,
-        "enviados": enviados,
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": max(1, math.ceil(total / page_size)),
     }
 
 
@@ -135,8 +176,10 @@ async def criar_documento_upload(
     user_id: int,
     destino_tipo: str,
     current_user: User,
+    observacao: str | None = None,
 ) -> Documento:
     validar_permissao_upload(tipo, user_id, destino_tipo, current_user)
+    observacao_normalizada = normalizar_observacao(observacao)
 
     target_user = buscar_usuario(db, user_id)
     arquivo_bytes = await file.read(MAX_SIZE + 1)
@@ -168,6 +211,7 @@ async def criar_documento_upload(
         criado_por_id=current_user.id,
         destino_tipo=destino_tipo,
         destinatario_id=user_id if destino_tipo == "usuario" else None,
+        observacao=observacao_normalizada,
     )
 
     try:
@@ -203,6 +247,21 @@ def caminhos_para_excluir(doc: Documento) -> list[Path]:
     return caminhos
 
 
+def registrar_acesso_documento(
+    db: Session,
+    doc: Documento,
+    current_user: User,
+    modo: str,
+) -> None:
+    acao = "DOCUMENTO_BAIXADO" if modo == "download" else "DOCUMENTO_VISUALIZADO"
+    db.add(Log(
+        user_id=current_user.id,
+        acao=acao,
+        detalhes=f"Documento #{doc.id} ('{doc.nome_arquivo}') acessado",
+    ))
+    db.commit()
+
+
 def excluir_documento_admin(db: Session, doc_id: int, current_user: User) -> None:
     doc = buscar_documento(db, doc_id)
     if doc.tipo == "termo_equipamentos":
@@ -217,7 +276,27 @@ def excluir_documento_admin(db: Session, doc_id: int, current_user: User) -> Non
         acao="DOCUMENTO_EXCLUIDO",
         detalhes=f"Documento '{doc.nome_arquivo}' excluido",
     )
-    documentos_repository.excluir_documento_com_log(db, doc, log)
+    quarentena: list[tuple[Path, Path]] = []
+    try:
+        for caminho in caminhos:
+            if not caminho.exists():
+                continue
+            temporario = caminho.with_name(f".deleting-{doc.id}-{caminho.name}")
+            caminho.replace(temporario)
+            quarentena.append((temporario, caminho))
 
-    for caminho in caminhos:
-        caminho.unlink(missing_ok=True)
+        documentos_repository.excluir_documento_com_log(db, doc, log)
+    except Exception:
+        db.rollback()
+        for temporario, original in reversed(quarentena):
+            if temporario.exists():
+                temporario.replace(original)
+        raise
+
+    for temporario, _ in quarentena:
+        try:
+            temporario.unlink(missing_ok=True)
+        except OSError:
+            # A exclusao logica ja foi confirmada; o residual em quarentena
+            # pode ser limpo posteriormente sem reexpor o documento.
+            pass

@@ -18,7 +18,6 @@ export default function SolicitarFerias() {
   const toast = useToast()
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
-  const [feriasAcordo, setFeriasAcordo] = useState(false)
   const [periodos, setPeriodos] = useState([])
   const [bloqueiosManuais, setBloqueiosManuais] = useState([])
   const [feriadosSet, setFeriadosSet] = useState(new Set())
@@ -51,11 +50,11 @@ export default function SolicitarFerias() {
   }, [])
 
   const dias = calcDays(dataInicio, dataFim)
-  const bloqueado = !feriasAcordo && dataInicio && dataFim && periodos.some(periodo => overlaps(dataInicio, dataFim, periodo))
+  const bloqueado = dataInicio && dataFim && periodos.some(periodo => overlaps(dataInicio, dataFim, periodo))
   const bloqueioManual = dataInicio && dataFim && bloqueiosManuais.find(bloqueio => overlaps(dataInicio, dataFim, bloqueio))
-  const saldoInsuficiente = !feriasAcordo && dias > (user?.dias_restantes || 0)
+  const saldoInsuficiente = dias > (user?.dias_restantes || 0)
   const erroDatas = dataInicio && dataFim ? validarDataInicio(dataInicio, dataFim, feriadosSet) : null
-  const podeSolicitar = !erroDatas && !bloqueioManual && (feriasAcordo || (!bloqueado && !saldoInsuficiente)) && !!dias
+  const podeSolicitar = !erroDatas && !bloqueioManual && !bloqueado && !saldoInsuficiente && !!dias
 
   const submit = async event => {
     event.preventDefault()
@@ -75,14 +74,13 @@ export default function SolicitarFerias() {
       const res = await api.registrarFerias({
         data_inicio: dataInicio,
         data_fim: dataFim,
-        ferias_acordo: feriasAcordo,
+        ferias_acordo: false,
       })
       // Limpa a seleção antes de atualizar o saldo. Caso contrário, o
       // formulário compara o novo saldo com o período que acabou de ser
       // enviado e exibe temporariamente um falso "saldo insuficiente".
       setDataInicio('')
       setDataFim('')
-      setFeriasAcordo(false)
       await refreshUser()
       toast.success(res.status === 'pendente'
         ? 'Solicitação enviada! Aguarde a aprovação do administrador.'
@@ -115,10 +113,8 @@ export default function SolicitarFerias() {
               dataInicio={dataInicio}
               dias={dias}
               erroDatas={erroDatas}
-              feriasAcordo={feriasAcordo}
               onDataFimChange={setDataFim}
               onDataInicioChange={setDataInicio}
-              onFeriasAcordoChange={setFeriasAcordo}
               onSubmit={submit}
               podeSolicitar={podeSolicitar}
               saldoInsuficiente={saldoInsuficiente}

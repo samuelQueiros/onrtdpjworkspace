@@ -23,16 +23,6 @@ class CargosServiceTests(unittest.TestCase):
 
         self.assertEqual(exc.exception.status_code, 400)
 
-    def test_validar_cargo_rejeita_cargo_nao_cadastrado(self):
-        with patch(
-            "app.services.cargos_service.cargos_repository.obter_cargo_por_nome",
-            return_value=None,
-        ):
-            with self.assertRaises(HTTPException) as exc:
-                cargos_service.validar_cargo(SimpleNamespace(), "Cargo inexistente")
-
-        self.assertEqual(exc.exception.status_code, 400)
-
     def test_editar_cargo_preserva_vinculos_pelo_nome(self):
         cargo = SimpleNamespace(id=3, nome="Analista", criado_em=None)
         with (

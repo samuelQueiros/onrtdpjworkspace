@@ -3,6 +3,8 @@ export default function UploadDocumentoForm({
   isAdmin,
   destinoTipo,
   onDestinoTipoChange,
+  observacao,
+  onObservacaoChange,
   onSubmit,
   onTargetUserChange,
   onTipoChange,
@@ -58,6 +60,22 @@ export default function UploadDocumentoForm({
         <div className="form-group">
           <label htmlFor="documento-arquivo">Arquivo (PDF, JPG, PNG - máx. 10 MB)</label>
           <input id="documento-arquivo" name="file" ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" required />
+        </div>
+
+        <div className="form-group">
+          <div className="document-observation-label">
+            <label htmlFor="documento-observacao">Observações (opcional)</label>
+            <span>{observacao.length}/2000</span>
+          </div>
+          <textarea
+            id="documento-observacao"
+            name="observacao"
+            value={observacao}
+            onChange={event => onObservacaoChange(event.target.value)}
+            rows="4"
+            maxLength="2000"
+            placeholder="Inclua informações úteis para quem receberá o documento."
+          />
         </div>
 
         <button className="btn btn-primary" type="submit" disabled={uploading}>

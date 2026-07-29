@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import '../styles/pages/aprovacoes.css'
 import '../styles/pages/aprovacoes-equipamentos.css'
 import FiltrosAprovacoes from '../components/aprovacoes/FiltrosAprovacoes'
@@ -19,24 +19,24 @@ export default function Aprovacoes() {
   const [filtro, setFiltro] = useState('pendente')
   const [equipamentosPendentes, setEquipamentosPendentes] = useState(0)
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true)
     return api.todasFerias()
       .then(setTodas)
       .catch(err => toast.error(err.message))
       .finally(() => setLoading(false))
-  }
+  }, [toast])
 
-  const loadPendingCounts = () => api.pendenciasAprovacoes()
+  const loadPendingCounts = useCallback(() => api.pendenciasAprovacoes()
     .then(data => setEquipamentosPendentes(data.equipamentos || 0))
-    .catch(error => console.error('Falha ao atualizar contadores de aprovações', error))
+    .catch(error => console.error('Falha ao atualizar contadores de aprovações', error)), [])
 
   useEffect(() => {
     load()
     loadPendingCounts()
     window.addEventListener('approvals:changed', loadPendingCounts)
     return () => window.removeEventListener('approvals:changed', loadPendingCounts)
-  }, [])
+  }, [load, loadPendingCounts])
 
   const aprovar = async id => {
     try {

@@ -34,8 +34,10 @@ class ImportacaoServiceTests(unittest.TestCase):
             patch("app.services.importacao_service.importacao_repository.obter_usuario_por_email", return_value=user),
             patch("app.services.importacao_service.importacao_repository.existe_ferias_periodo", return_value=False),
             patch("app.services.importacao_service.ferias_service.bloquear_regras_ferias"),
+            patch("app.services.importacao_service.ferias_service.garantir_saldo_atualizado"),
             patch("app.services.importacao_service.ferias_service.verificar_regras_data"),
             patch("app.services.importacao_service.ferias_service.verificar_bloqueio_datas"),
+            patch("app.services.importacao_service.ferias_service.verificar_sobreposicao_usuario"),
             patch("app.services.importacao_service.ferias_service.verificar_sobreposicao_departamento", return_value=False),
             patch("app.services.importacao_service.ferias_service.calcular_saldo", return_value=30),
             patch("app.services.importacao_service.importacao_repository.adicionar_ferias") as adicionar_ferias,
@@ -74,8 +76,9 @@ class ImportacaoServiceTests(unittest.TestCase):
             response = importacao_service.importar_logs(SimpleNamespace(), "logs.xlsx", b"conteudo", SimpleNamespace(id=1))
 
         self.assertEqual(response["inseridos"], 1)
-        log = adicionar_log.call_args.args[1]
+        log = adicionar_log.call_args_list[0].args[1]
         self.assertEqual(log.criado_em, datetime(2026, 7, 5, 10, 30))
+        self.assertEqual(adicionar_log.call_count, 2)
         commit.assert_called_once()
 
     def test_gerar_modelo_colaboradores_inclui_abas_e_campos(self):
@@ -97,7 +100,7 @@ class ImportacaoServiceTests(unittest.TestCase):
                 "Usuário", "Ativo", "10/01/2024", "20/05/1995", 30, 0,
                 "10/01/2027", "Rua A", "10", "Centro", "Brasília", "70000-000",
                 "Banco", "0001", "123-4", "529.982.247-25", "Pessoa A",
-                "pessoa@empresa.com", 30,
+                "pessoa@empresa.com", 30, "Temporaria@PessoaA",
             ),
         ]
         departamento = SimpleNamespace(id=4, nome="Tecnologia")
@@ -120,8 +123,9 @@ class ImportacaoServiceTests(unittest.TestCase):
 
         self.assertEqual(resultado["inseridos"], 1)
         payload = criar.call_args.args[1]
-        self.assertEqual(payload.senha, "Acesso@123456")
+        self.assertEqual(payload.senha, "Temporaria@PessoaA")
         self.assertIn(payload.cor, importacao_service.CORES_IMPORTACAO)
+        criar.assert_called_once_with(db, payload, current_user, commit=False)
 
     def test_importar_colaboradores_nao_insere_quando_uma_linha_tem_erro(self):
         rows = [

@@ -73,6 +73,8 @@ Os documentos são armazenados em pasta persistente configurada por `UPLOAD_DIR`
 ### Segurança e integridade
 
 - A sessão web usa cookie JWT `HttpOnly` e `SameSite=Lax`.
+- Contas criadas ou com senha redefinida por um administrador devem substituir
+  a senha temporária no primeiro acesso antes de usar os demais módulos.
 - Trocas de senha e logout global revogam tokens emitidos anteriormente.
 - Endereços novos/atualizados e dados bancários são criptografados em repouso com `CREDENTIALS_ENCRYPTION_KEY`; endereços legados continuam legíveis para migração gradual.
 - CPFs são validados, cifrados em repouso e possuem índice HMAC para impedir duplicidade sem expor o valor.
@@ -82,7 +84,7 @@ Os documentos são armazenados em pasta persistente configurada por `UPLOAD_DIR`
 - Login possui limitação de tentativas por origem.
 - Uploads possuem validação de assinatura e limites de tamanho.
 
-O frontend publicado pelo Docker acessa a API pelo proxy interno `/api`. Para instalações HTTP controladas, configure `COOKIE_SECURE=false`; em produção com HTTPS, use `COOKIE_SECURE=true`.
+O frontend publicado pelo Docker acessa a API pelo proxy interno `/api`. Para instalações HTTP controladas, configure `COOKIE_SECURE=false` junto de `ALLOW_INSECURE_PRODUCTION_COOKIE=true`; em produção com HTTPS, use `COOKIE_SECURE=true`.
 
 ---
 
@@ -112,11 +114,6 @@ feriasonr/
 |-- docker-compose.yml              # Orquestra db + backend + frontend
 |-- .env.docker.example             # Exemplo de variaveis para Docker
 |-- README.md
-|-- docs/
-|   |-- API.md
-|   |-- PATRIMONIOS-E-AUTORIZACOES.md
-|   |-- GUIA-USUARIO.md
-|   +-- DOCKER-SERVIDOR.md
 |
 |-- backend/
 |   |-- Dockerfile                  # Imagem Python/FastAPI com usuario nao-root
@@ -263,8 +260,6 @@ Frontend disponível em: `http://127.0.0.1:5173`
 
 Os testes automatizados do backend ficam em `backend/tests` e cobrem regras críticas de autenticação, usuários, férias, documentos, armazenamento físico de arquivos, credenciais criptografadas, relatórios, schemas/DTOs, repositórios e services.
 
-Na última validação do projeto foram executados 127 testes com sucesso via Docker.
-
 Para executar usando Docker:
 
 ```bash
@@ -291,7 +286,8 @@ Esta é a forma recomendada para ambientes de produção ou staging. O `docker-c
 - Docker Engine 24+
 - Docker Compose v2 (`docker compose` — sem hífen)
 - Pelo menos **1 GB de RAM** disponível
-- Portas **80** e **8000** liberadas no firewall
+- Porta **80** liberada no firewall; a porta **8000** do backend fica restrita
+  ao loopback do servidor
 
 ### Passo a passo
 
@@ -332,6 +328,8 @@ SECRET_KEY=cole-aqui-uma-chave-de-64-caracteres-ou-mais-gerada-aleatoriamente
 CREDENTIALS_ENCRYPTION_KEY=cole-aqui-outra-chave-longa-para-criptografar-credenciais
 ACCESS_TOKEN_EXPIRE_MINUTES=480
 COOKIE_SECURE=false
+ALLOW_INSECURE_PRODUCTION_COOKIE=true
+TRUSTED_PROXY_IPS=172.16.0.0/12
 BACKEND_PORT=8000
 UPLOAD_DIR=/app/uploads
 ADMIN_NAME=Administrador
@@ -382,7 +380,7 @@ docker compose ps
 # Saída esperada:
 # NAME              STATUS          PORTS
 # ferias-db         Up (healthy)    5432/tcp
-# ferias-backend    Up              0.0.0.0:8000->8000/tcp
+# ferias-backend    Up              127.0.0.1:8000->8000/tcp
 # ferias-frontend   Up              0.0.0.0:80->80/tcp
 ```
 
@@ -402,8 +400,8 @@ docker compose logs -f db
 | Serviço | URL |
 |---------|-----|
 | **Frontend** (sistema web) | `http://SEU_IP_OU_DOMINIO` |
-| **API** (Swagger docs) | `http://SEU_IP_OU_DOMINIO:8000/docs` |
-| **Health check** | `http://SEU_IP_OU_DOMINIO:8000/` |
+| **API interna** | `http://127.0.0.1:8000` no servidor |
+| **Health check** | `http://127.0.0.1:8000/health/ready` no servidor |
 
 #### 6. Manutenção
 
@@ -483,6 +481,8 @@ server {
 | `CREDENTIALS_ENCRYPTION_KEY` | Chave usada para criptografar senhas compartilhadas | — |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Duração da sessão em minutos | `480` (8h) |
 | `COOKIE_SECURE` | Exige HTTPS para o cookie de sessão | `true` em HTTPS; `false` em HTTP controlado |
+| `ALLOW_INSECURE_PRODUCTION_COOKIE` | Autoriza explicitamente cookie HTTP em rede controlada | `false` |
+| `TRUSTED_PROXY_IPS` | Redes dos proxies autorizados a informar o IP real | `172.16.0.0/12` no Compose |
 | `ADMIN_NAME` | Nome do administrador inicial criado no primeiro startup | `Administrador` |
 | `ADMIN_EMAIL` | E-mail do administrador inicial | — |
 | `ADMIN_PASSWORD` | Senha do administrador inicial | — |
@@ -533,6 +533,7 @@ O administrador inicial pode ser criado automaticamente se as variáveis ADMIN_E
 | Rota | Acesso | Descrição |
 |------|--------|-----------|
 | `/login` | Público | Tela de autenticação |
+| `/alterar-senha` | Primeiro acesso | Substituição obrigatória da senha temporária |
 | `/` | Autenticado | Dashboard (visão por perfil) |
 | `/minhas-ferias` | Autenticado | Histórico de férias do colaborador |
 | `/solicitar` | Autenticado | Solicitações de férias e autorização de equipamentos |
@@ -554,31 +555,35 @@ O administrador inicial pode ser criado automaticamente se as variáveis ADMIN_E
 
 ## Referência da API
 
-A documentação completa e interativa está disponível em:  
-**`http://SEU_SERVIDOR:8000/docs`** (Swagger UI)  
-**`http://SEU_SERVIDOR:8000/redoc`** (ReDoc)
+Em desenvolvimento, a documentação interativa fica em
+**`http://127.0.0.1:8000/docs`** (Swagger) e
+**`http://127.0.0.1:8000/redoc`** (ReDoc). Swagger, ReDoc e o schema OpenAPI
+são desativados quando `ENVIRONMENT=production`.
 
 ### Autenticação
 
-Todas as rotas protegidas exigem o header:
+Clientes OAuth2 podem autenticar as rotas protegidas com o header:
 
 ```http
 Authorization: Bearer <access_token>
 ```
 
-O token é obtido via `POST /auth/login` e expira após `ACCESS_TOKEN_EXPIRE_MINUTES` minutos.
+O token é obtido via `POST /auth/login` e expira após
+`ACCESS_TOKEN_EXPIRE_MINUTES` minutos. A aplicação web usa o cookie `HttpOnly`
+criado por `POST /auth/session`.
 
 ### Endpoints principais
 
 | Método | Rota | Auth | Descrição |
 |--------|------|------|-----------|
-| `POST` | `/auth/login` | — | Login (form: username + password) |
+| `POST` | `/auth/session` | — | Login web e criação do cookie de sessão |
+| `POST` | `/auth/login` | — | Login OAuth2 com token no corpo |
 | `GET` | `/auth/me` | ✓ | Dados do usuário logado |
 | `GET` | `/users` | Admin | Listar todos os colaboradores |
 | `POST` | `/users` | Admin | Criar colaborador |
 | `PUT` | `/users/{id}` | Admin | Editar colaborador |
 | `DELETE` | `/users/{id}` | Admin | Remover colaborador |
-| `GET` | `/ferias` | Admin | Listar todas as férias |
+| `GET` | `/ferias/todas` | Admin | Listar todas as férias |
 | `POST` | `/ferias` | ✓ | Solicitar férias |
 | `PUT` | `/ferias/{id}/aprovar` | Admin | Aprovar férias |
 | `PUT` | `/ferias/{id}/rejeitar` | Admin | Rejeitar férias |
@@ -615,7 +620,7 @@ O token é obtido via `POST /auth/login` e expira após `ACCESS_TOKEN_EXPIRE_MIN
 
 ## Modelos do Banco de Dados
 
-O módulo de patrimônios adiciona equipamentos, vínculos temporais, eventos, solicitações com múltiplos itens e snapshots, versões de termo e eventos de auditoria. A descrição completa dos relacionamentos, estados e restrições está em [Patrimônios e autorizações](docs/PATRIMONIOS-E-AUTORIZACOES.md).
+O módulo de patrimônios adiciona equipamentos, vínculos temporais, eventos, solicitações com múltiplos itens e snapshots, versões de termo e eventos de auditoria.
 
 ### `users`
 
@@ -625,6 +630,7 @@ O módulo de patrimônios adiciona equipamentos, vínculos temporais, eventos, s
 | `nome` | String | Nome completo |
 | `email` | String UNIQUE | E-mail de acesso |
 | `senha_hash` | String | Hash bcrypt da senha |
+| `must_change_password` | Boolean | Exige substituição da senha temporária no primeiro acesso |
 | `role` | String | `user` ou `admin` |
 | `dias_totais` | Integer | Dias creditados em cada concessão anual (padrão: 30) |
 | `departamento_id` | FK | Departamento do colaborador |
@@ -730,7 +736,9 @@ Admin cria        →  status: "aprovada"  (bypass direto)
 
 ### Alertas de contabilidade
 
-Gerados automaticamente ao acessar `/alertas`. Disparados para cada férias aprovada com início **exatamente em 4 dias**. Sem duplicidade: um alerta por período de férias.
+Gerados de forma idempotente no login administrativo. As consultas `GET` apenas
+leem os alertas persistidos e não alteram o banco. Há lembretes para os marcos
+operacionais configurados, sem duplicidade por período de férias e tipo.
 
 ---
 
@@ -785,15 +793,6 @@ logs-gestao-rh-AAAA-MM-DD.csv
 ```
 Formato: separador `;`, BOM UTF-8 (compatível com Excel em PT-BR).  
 Colunas: `Data | Ação | Usuário | Detalhes`
-
----
-
-## Documentação Complementar
-
-- [Referência completa da API](docs/API.md)
-- [Patrimônios e autorizações de equipamentos](docs/PATRIMONIOS-E-AUTORIZACOES.md)
-- [Guia do Usuário](docs/GUIA-USUARIO.md)
-- [Deploy detalhado em servidor](docs/DOCKER-SERVIDOR.md)
 
 ---
 

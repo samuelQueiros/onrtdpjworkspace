@@ -9,7 +9,7 @@ export function montarModeloEmailFerias(alerta) {
   const dias = alerta.ferias_dias_usados ?? '[Quantidade de dias]'
   const nome = alerta.ferias_usuario || '[Nome do Colaborador]'
 
-  return `Olá, equipe da [Nome da Contabilidade ou Nome do Responsável],
+  return `Prezados,
 
 Espero que estejam bem.
 
@@ -28,4 +28,8 @@ Solicito o processamento das férias do colaborador **${nome}**, conforme os dad
 Peço que preparem os recibos de férias e confirmem o envio da documentação para assinatura.
 
 Atenciosamente,`
+}
+
+export async function copiarModeloEmailFerias(alerta) {
+  await navigator.clipboard.writeText(montarModeloEmailFerias(alerta))
 }

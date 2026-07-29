@@ -69,13 +69,6 @@ class FeriasRepositoryTests(unittest.TestCase):
         self.assertTrue(db.last_query.filtered)
         self.assertTrue(db.last_query.ordered)
 
-    def test_obter_ferias_por_id_filtra(self):
-        ferias = SimpleNamespace(id=1)
-        db = FakeDb(query_result=ferias)
-
-        self.assertEqual(ferias_repository.obter_ferias_por_id(db, 1), ferias)
-        self.assertTrue(db.last_query.filtered)
-
     def test_obter_ferias_para_atualizar_bloqueia_linha(self):
         ferias = SimpleNamespace(id=1)
         db = FakeDb(query_result=ferias)

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import '../styles/pages/autorizacoes-equipamentos.css'
 import { Link } from 'react-router-dom'
 import { api } from '../services/api'
@@ -15,15 +15,17 @@ export default function MinhasAutorizacoes() {
   const [selected, setSelected] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const load = () => api.minhasAutorizacoesEquipamentos()
+  const load = useCallback(() => api.minhasAutorizacoesEquipamentos()
     .then(data => {
       setItems(data)
-      if (selected) setSelected(data.find(item => item.id === selected.id) || null)
+      setSelected(current => (
+        current ? data.find(item => item.id === current.id) || null : null
+      ))
     })
     .catch(error => toast.error(error.message))
-    .finally(() => setLoading(false))
+    .finally(() => setLoading(false)), [toast])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [load])
 
   const cancelar = async item => {
     const ok = await confirmar({

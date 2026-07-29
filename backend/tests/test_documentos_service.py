@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 from types import SimpleNamespace
-from unittest.mock import ANY, patch
+from unittest.mock import patch
 
 from fastapi import HTTPException
 
@@ -10,6 +10,8 @@ from app.services import documentos_service
 
 
 class DocumentosServiceTests(unittest.TestCase):
+    PDF_VALIDO = b"%PDF-1.7\n%%EOF"
+
     def setUp(self):
         self.upload_dir = tempfile.TemporaryDirectory()
         self.old_upload_dir = os.environ.get("UPLOAD_DIR")
@@ -27,7 +29,7 @@ class DocumentosServiceTests(unittest.TestCase):
         colaborador = SimpleNamespace(id=2, nome="Maria Silva", role="user")
 
         relativo, caminho_enviado_relativo, caminho, caminho_enviado = documentos_service.salvar_arquivo_upload(
-            b"%PDF-1.7", "contracheque.pdf", "application/pdf", colaborador, admin, "usuario"
+            self.PDF_VALIDO, "contracheque.pdf", "application/pdf", colaborador, admin, "usuario"
         )
 
         self.assertTrue(relativo.startswith("recebidos/maria-silva/"))
@@ -41,7 +43,7 @@ class DocumentosServiceTests(unittest.TestCase):
         colaborador = SimpleNamespace(id=2, nome="Maria Silva", role="user")
 
         relativo, caminho_enviado_relativo, caminho, caminho_enviado = documentos_service.salvar_arquivo_upload(
-            b"%PDF-1.7", "atestado.pdf", "application/pdf", colaborador, admin, "usuario"
+            self.PDF_VALIDO, "atestado.pdf", "application/pdf", colaborador, admin, "usuario"
         )
 
         self.assertTrue(relativo.startswith("recebidos/maria-silva/"))
@@ -53,7 +55,7 @@ class DocumentosServiceTests(unittest.TestCase):
         colaborador = SimpleNamespace(id=2, nome="Maria Silva", role="user")
 
         relativo, caminho_enviado_relativo, caminho, caminho_enviado = documentos_service.salvar_arquivo_upload(
-            b"%PDF-1.7", "atestado.pdf", "application/pdf", colaborador, colaborador, "administracao"
+            self.PDF_VALIDO, "atestado.pdf", "application/pdf", colaborador, colaborador, "administracao"
         )
 
         self.assertTrue(relativo.startswith("recebidos/administracao/maria-silva/"))
@@ -66,59 +68,90 @@ class DocumentosServiceTests(unittest.TestCase):
         admin = SimpleNamespace(id=1, nome="Catharina", role="admin")
 
         relativo, _, caminho, _ = documentos_service.salvar_arquivo_upload(
-            b"%PDF-1.7", "atestado.pdf", "application/pdf", admin, admin, "usuario"
+            self.PDF_VALIDO, "atestado.pdf", "application/pdf", admin, admin, "usuario"
         )
 
         self.assertTrue(relativo.startswith("recebidos/catharina/"))
         self.assertTrue(caminho.is_file())
 
-    @patch.object(documentos_service.documentos_repository, "listar_documentos_recebidos_administracao")
-    @patch.object(documentos_service.documentos_repository, "listar_documentos_recebidos_pessoais")
-    @patch.object(documentos_service.documentos_repository, "listar_documentos_criados_por")
-    def test_historico_admin_separa_caixas(
-        self, listar_criados, listar_pessoais, listar_administracao
-    ):
+    @patch.object(documentos_service.documentos_repository, "listar_historico_paginado")
+    @patch.object(documentos_service.documentos_repository, "contar_historico")
+    def test_historico_admin_pagina_e_filtra_caixa(self, contar, listar):
         admin = SimpleNamespace(id=1, role="admin")
-        listar_criados.return_value = ["contracheque"]
-        listar_pessoais.return_value = ["pessoal"]
-        listar_administracao.return_value = ["geral"]
+        contar.return_value = 21
+        listar.return_value = ["documento"]
 
-        historico = documentos_service.listar_historico_documentos(SimpleNamespace(), admin)
+        db = SimpleNamespace()
+        historico = documentos_service.listar_historico_documentos_paginado(
+            db,
+            admin,
+            caixa="recebidos_administracao",
+            page=2,
+            page_size=10,
+            user_id=4,
+        )
 
         self.assertEqual(
             historico,
             {
-                "recebidos_pessoais": ["pessoal"],
-                "recebidos_administracao": ["geral"],
-                "enviados": ["contracheque"],
+                "items": ["documento"],
+                "total": 21,
+                "page": 2,
+                "page_size": 10,
+                "pages": 3,
             },
         )
-        listar_criados.assert_called_once_with(
-            ANY, 1, ["atestado", "contracheque", "outro", "termo_equipamentos"]
-        )
-        listar_pessoais.assert_called_once_with(ANY, 1)
+        contar.assert_called_once_with(db, "recebidos_administracao", 1, 4)
+        listar.assert_called_once_with(db, "recebidos_administracao", 1, 4, 10, 10)
 
-    @patch.object(documentos_service.documentos_repository, "listar_documentos_recebidos_pessoais")
-    @patch.object(documentos_service.documentos_repository, "listar_documentos_criados_por")
-    def test_historico_colaborador_separa_envios_e_recebimentos(self, listar_criados, listar_pessoais):
+    @patch.object(documentos_service.documentos_repository, "listar_historico_paginado")
+    @patch.object(documentos_service.documentos_repository, "contar_historico")
+    def test_historico_colaborador_lista_caixa_pessoal(self, contar, listar):
         colaborador = SimpleNamespace(id=2, role="user")
-        listar_criados.return_value = ["enviado"]
-        listar_pessoais.return_value = ["recebido"]
+        contar.return_value = 0
+        listar.return_value = []
 
-        historico = documentos_service.listar_historico_documentos(SimpleNamespace(), colaborador)
+        db = SimpleNamespace()
+        historico = documentos_service.listar_historico_documentos_paginado(
+            db,
+            colaborador,
+            caixa="recebidos_pessoais",
+            page=1,
+            page_size=10,
+        )
 
-        self.assertEqual(
-            historico,
-            {
-                "recebidos_pessoais": ["recebido"],
-                "recebidos_administracao": [],
-                "enviados": ["enviado"],
-            },
-        )
-        listar_criados.assert_called_once_with(
-            ANY, 2, ["atestado", "contracheque", "outro", "termo_equipamentos"]
-        )
-        listar_pessoais.assert_called_once_with(ANY, 2)
+        self.assertEqual(historico["pages"], 1)
+        contar.assert_called_once_with(db, "recebidos_pessoais", 2, None)
+        listar.assert_called_once_with(db, "recebidos_pessoais", 2, None, 0, 10)
+
+    def test_historico_bloqueia_caixa_administrativa_para_colaborador(self):
+        colaborador = SimpleNamespace(id=2, role="user")
+
+        with self.assertRaises(HTTPException) as exc:
+            documentos_service.listar_historico_documentos_paginado(
+                SimpleNamespace(),
+                colaborador,
+                caixa="recebidos_administracao",
+                page=1,
+                page_size=10,
+            )
+
+        self.assertEqual(exc.exception.status_code, 403)
+
+    def test_historico_bloqueia_filtro_de_usuario_para_colaborador(self):
+        colaborador = SimpleNamespace(id=2, role="user")
+
+        with self.assertRaises(HTTPException) as exc:
+            documentos_service.listar_historico_documentos_paginado(
+                SimpleNamespace(),
+                colaborador,
+                caixa="enviados",
+                page=1,
+                page_size=10,
+                user_id=3,
+            )
+
+        self.assertEqual(exc.exception.status_code, 403)
 
     def test_admin_pode_enviar_contracheque_para_outro_usuario(self):
         admin = SimpleNamespace(id=1, role="admin")
@@ -177,7 +210,24 @@ class DocumentosServiceTests(unittest.TestCase):
         self.assertEqual(exc.exception.status_code, 400)
 
     def test_validar_arquivo_upload_aceita_pdf_valido(self):
-        documentos_service.validar_arquivo_upload(b"%PDF-1.7", "application/pdf")
+        documentos_service.validar_arquivo_upload(self.PDF_VALIDO, "application/pdf")
+
+    def test_normalizar_observacao_remove_espacos(self):
+        self.assertEqual(
+            documentos_service.normalizar_observacao("  Documento referente a julho.  "),
+            "Documento referente a julho.",
+        )
+
+    def test_normalizar_observacao_vazia_retorna_none(self):
+        self.assertIsNone(documentos_service.normalizar_observacao("   "))
+
+    def test_normalizar_observacao_rejeita_limite_excedido(self):
+        with self.assertRaises(HTTPException) as exc:
+            documentos_service.normalizar_observacao(
+                "x" * (documentos_service.MAX_OBSERVACAO_LENGTH + 1)
+            )
+
+        self.assertEqual(exc.exception.status_code, 400)
 
 
 if __name__ == "__main__":
