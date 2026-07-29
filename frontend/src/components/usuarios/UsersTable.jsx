@@ -2,7 +2,15 @@ import { StatusBadge } from '../comum/PageHelpers'
 import { formatDate } from '../../utils/formatters'
 import UserColorDot from './UserColorDot'
 
-export default function UsersTable({ users, currentUserId, onEdit, onDelete, onReactivate }) {
+export default function UsersTable({
+  users,
+  currentUserId,
+  detailsLoadingId,
+  onDetails,
+  onEdit,
+  onDelete,
+  onReactivate,
+}) {
   return (
     <section className="card users-table-card">
       <div className="card-header"><h2 className="card-title">Colaboradores ({users.length})</h2></div>
@@ -53,16 +61,41 @@ export default function UsersTable({ users, currentUserId, onEdit, onDelete, onR
                   </div>
                 </td>
                 <td className="actions-cell">
-                  <button className="btn btn-outline btn-sm" onClick={() => onEdit(user)}>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    type="button"
+                    onClick={() => onDetails(user)}
+                    disabled={detailsLoadingId !== null}
+                  >
+                    {detailsLoadingId === user.id ? 'Abrindo...' : 'Detalhes'}
+                  </button>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    type="button"
+                    onClick={() => onEdit(user)}
+                    disabled={detailsLoadingId !== null}
+                  >
                     Editar
                   </button>
                   {user.id !== currentUserId && user.ativo && (
-                    <button className="btn btn-danger btn-sm" onClick={() => onDelete(user.id)}>
+                    <button
+                      className="btn btn-danger btn-sm"
+                      type="button"
+                      onClick={() => onDelete(user.id)}
+                      disabled={detailsLoadingId !== null}
+                    >
                       Desativar
                     </button>
                   )}
                   {!user.ativo && (
-                    <button className="btn btn-primary btn-sm" onClick={() => onReactivate(user.id)}>Reativar</button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      type="button"
+                      onClick={() => onReactivate(user.id)}
+                      disabled={detailsLoadingId !== null}
+                    >
+                      Reativar
+                    </button>
                   )}
                 </td>
               </tr>

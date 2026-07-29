@@ -228,7 +228,7 @@ def parse_bool(value) -> bool:
     raise ValueError(f"valor booleano invalido: {value}")
 
 
-def carregar_linhas_planilha(conteudo: bytes) -> list[tuple]:
+def carregar_linhas_planilha(conteudo: bytes, nome_aba: str | None = None) -> list[tuple]:
     try:
         import openpyxl
     except ImportError as exc:
@@ -244,7 +244,12 @@ def carregar_linhas_planilha(conteudo: bytes) -> list[tuple]:
                     detail="Planilha excede o limite descompactado de 50 MB",
                 )
         wb = openpyxl.load_workbook(io.BytesIO(conteudo), read_only=True, data_only=True)
-        ws = wb["Colaboradores"] if "Colaboradores" in wb.sheetnames else wb.active
+        if nome_aba:
+            if nome_aba not in wb.sheetnames:
+                raise HTTPException(status_code=400, detail=f'Aba obrigatoria ausente: "{nome_aba}"')
+            ws = wb[nome_aba]
+        else:
+            ws = wb["Colaboradores"] if "Colaboradores" in wb.sheetnames else wb.active
         if ws.max_column > MAX_IMPORT_COLUMNS:
             raise HTTPException(status_code=400, detail="Planilha possui colunas demais")
         rows = []

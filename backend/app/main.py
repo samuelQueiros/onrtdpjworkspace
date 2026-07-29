@@ -20,6 +20,7 @@ from app.routers import (
     credenciais,
     departamentos,
     documentos,
+    fichas_admissionais,
     importacao,
     patrimonios,
 )
@@ -76,6 +77,7 @@ app.include_router(relatorios.router)
 app.include_router(departamentos.router)
 app.include_router(avisos.router)
 app.include_router(documentos.router)
+app.include_router(fichas_admissionais.router)
 app.include_router(importacao.router)
 app.include_router(bloqueios.router)
 app.include_router(alertas.router)

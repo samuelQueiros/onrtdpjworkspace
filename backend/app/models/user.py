@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, Date, ForeignKey, UniqueConstraint, true
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, Date, ForeignKey, Index, UniqueConstraint, text, true
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -8,6 +8,7 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         UniqueConstraint("cpf_hash", name="uq_users_cpf_hash"),
+        Index("uq_users_email_normalizado", text("lower(email)"), unique=True),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -39,6 +40,13 @@ class User(Base):
     logs = relationship("Log", back_populates="usuario")
     departamento = relationship("Departamento", back_populates="usuarios")
     cargo = relationship("Cargo", back_populates="usuarios")
+    ficha_admissional = relationship(
+        "FichaAdmissional",
+        back_populates="usuario",
+        uselist=False,
+        cascade="all, delete-orphan",
+        foreign_keys="FichaAdmissional.user_id",
+    )
     documentos = relationship(
         "Documento",
         back_populates="usuario",

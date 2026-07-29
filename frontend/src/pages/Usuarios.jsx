@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import '../styles/pages/usuarios.css'
+import DetalhesUsuarioModal from '../components/usuarios/DetalhesUsuarioModal'
 import UserForm, { blankUserForm } from '../components/usuarios/UserForm'
 import UsersTable from '../components/usuarios/UsersTable'
 import { useAuth } from '../contexts/AuthContext'
@@ -32,6 +33,10 @@ export default function Usuarios() {
   const [form, setForm] = useState(blankUserForm)
   const [editing, setEditing] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [details, setDetails] = useState(null)
+  const [detailsLoadingId, setDetailsLoadingId] = useState(null)
+  const [fichaImporting, setFichaImporting] = useState(false)
+  const [fichaDownloading, setFichaDownloading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -107,9 +112,9 @@ export default function Usuarios() {
     }
   }
 
-  const startEdit = async user => {
+  const startEdit = async (user, loadedSensitive = null) => {
     try {
-      const sensitive = await api.obterDadosSensiveisUsuario(user.id)
+      const sensitive = loadedSensitive || await api.obterDadosSensiveisUsuario(user.id)
       setEditing(user.id)
       setForm({
       nome: user.nome,
@@ -143,6 +148,66 @@ export default function Usuarios() {
       setModalOpen(true)
     } catch (error) {
       toast.error(error.message)
+    }
+  }
+
+  const showDetails = async user => {
+    setDetailsLoadingId(user.id)
+    try {
+      const [sensitive, ficha] = await Promise.all([
+        api.obterDadosSensiveisUsuario(user.id),
+        api.obterFichaAdmissional(user.id),
+      ])
+      setDetails({ user, sensitive, ficha })
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setDetailsLoadingId(null)
+    }
+  }
+
+  const editFromDetails = () => {
+    const selected = details
+    setDetails(null)
+    if (selected) startEdit(selected.user, selected.sensitive)
+  }
+
+  const downloadFichaModel = async () => {
+    if (!details) return
+    setFichaDownloading(true)
+    try {
+      const blob = await api.baixarModeloFichaAdmissional(details.user.id)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `ficha-admissional-${details.user.id}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setFichaDownloading(false)
+    }
+  }
+
+  const importFicha = async file => {
+    if (!details || !file) return
+    const userId = details.user.id
+    setFichaImporting(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const resultado = await api.importarFichaAdmissional(userId, formData)
+      setDetails(current => (
+        current?.user.id === userId ? { ...current, ficha: resultado.ficha } : current
+      ))
+      toast.success(resultado.mensagem)
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setFichaImporting(false)
     }
   }
 
@@ -278,10 +343,26 @@ export default function Usuarios() {
       <UsersTable
         users={users}
         currentUserId={currentUser?.id}
+        detailsLoadingId={detailsLoadingId}
+        onDetails={showDetails}
         onEdit={startEdit}
         onDelete={excluir}
         onReactivate={reativar}
       />
+
+      {details && (
+        <DetalhesUsuarioModal
+          user={details.user}
+          sensitive={details.sensitive}
+          ficha={details.ficha}
+          fichaImporting={fichaImporting}
+          fichaDownloading={fichaDownloading}
+          onClose={() => setDetails(null)}
+          onDownloadTemplate={downloadFichaModel}
+          onEdit={editFromDetails}
+          onImportFicha={importFicha}
+        />
+      )}
 
       {modalOpen && (
         <UserModal
