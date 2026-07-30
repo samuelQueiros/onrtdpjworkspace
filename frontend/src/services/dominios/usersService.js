@@ -14,4 +14,6 @@ export const usersService = {
   excluirUsuario: id => req('DELETE', `/users/${id}`),
   reativarUsuario: id => req('POST', `/users/${id}/reativar`),
   meuPerfil: () => req('GET', '/users/me/perfil'),
+  minhaFichaAdmissional: () => req('GET', '/users/me/ficha-admissional'),
+  atualizarMinhaFichaAdmissional: body => req('PUT', '/users/me/ficha-admissional', body),
 }

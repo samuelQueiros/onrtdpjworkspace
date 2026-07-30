@@ -4,18 +4,39 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.core.security import require_admin
+from app.core.security import get_current_user, require_admin
 from app.database import get_db
 from app.models.user import User
 from app.schemas.ficha_admissional import (
     FichaAdmissionalImportOut,
     FichaAdmissionalOut,
+    FichaAdmissionalSelfUpdate,
     FichaAdmissionalUpdate,
 )
 from app.services import fichas_admissionais_service, importacao_service
 
 
 router = APIRouter(tags=["Fichas admissionais"])
+
+
+# As rotas /users/me/ficha-admissional precisam ser declaradas ANTES das rotas
+# /users/{user_id}/ficha-admissional: a ordem de registro determina a ordem de
+# matching do FastAPI/Starlette.
+@router.get("/users/me/ficha-admissional", response_model=FichaAdmissionalOut | None)
+def minha_ficha(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return fichas_admissionais_service.minha_ficha(db, current_user)
+
+
+@router.put("/users/me/ficha-admissional", response_model=FichaAdmissionalOut)
+def atualizar_minha_ficha(
+    payload: FichaAdmissionalSelfUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return fichas_admissionais_service.atualizar_minha_ficha(db, current_user, payload)
 
 
 @router.get("/users/{user_id}/ficha-admissional", response_model=FichaAdmissionalOut | None)

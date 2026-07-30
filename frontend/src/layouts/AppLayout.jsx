@@ -114,6 +114,7 @@ export default function AppLayout({ children }) {
           dropOpen={dropOpen}
           dropRef={dropRef}
           onToggleDrop={() => setDropOpen(open => !open)}
+          onCloseDrop={() => setDropOpen(false)}
           onLogout={handleLogout}
         />
 

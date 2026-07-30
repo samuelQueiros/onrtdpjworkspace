@@ -522,6 +522,10 @@ def atualizar_configuracoes(db: Session, payload: UserConfigUpdate, current_user
             if payload.telefone_emergencia_2
             else None
         )
+    if "endereco" in payload.model_fields_set:
+        current_user.endereco = _serializar_endereco(payload.endereco)
+    if "dados_bancarios" in payload.model_fields_set:
+        current_user.dados_bancarios = _serializar_dados_bancarios(payload.dados_bancarios)
 
     if senha_alterada:
         if not payload.senha_atual:
@@ -574,5 +578,6 @@ def meu_perfil(db: Session, current_user: User) -> dict:
         "cpf": dados_sensiveis["cpf"],
         "telefone_emergencia": dados_sensiveis["telefone_emergencia"],
         "telefone_emergencia_2": dados_sensiveis["telefone_emergencia_2"],
+        "endereco": dados_sensiveis["endereco"],
         "dados_bancarios": dados_sensiveis["dados_bancarios"],
     }

@@ -180,6 +180,8 @@ class UserConfigUpdate(BaseModel):
     telefone: Optional[str] = Field(default=None, max_length=30)
     telefone_emergencia: Optional[str] = Field(default=None, max_length=30)
     telefone_emergencia_2: Optional[str] = Field(default=None, max_length=30)
+    endereco: Optional[Endereco] = None
+    dados_bancarios: Optional[DadosBancarios] = None
 
     @field_validator("email", mode="before")
     @classmethod
@@ -193,6 +195,14 @@ class UserConfigUpdate(BaseModel):
             return None
         texto = " ".join(str(valor).split())
         return _validar_telefone(texto or None)
+
+    @model_validator(mode="after")
+    def validar_campos_estruturados(self):
+        if self.endereco is not None:
+            _validar_campos_completos(self.endereco.model_dump(), "endereco")
+        if self.dados_bancarios is not None:
+            _validar_campos_completos(self.dados_bancarios.model_dump(), "dados bancarios")
+        return self
 
 
 class UserDepartamentoOut(BaseModel):
@@ -245,6 +255,7 @@ class MeuPerfilOut(BaseModel):
     telefone: Optional[str] = None
     telefone_emergencia: Optional[str] = None
     telefone_emergencia_2: Optional[str] = None
+    endereco: Optional[Endereco] = None
     dados_bancarios: Optional[DadosBancarios] = None
 
 

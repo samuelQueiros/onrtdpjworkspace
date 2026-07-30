@@ -1,47 +1,11 @@
 import { useState } from 'react'
 import { StatusBadge } from '../comum/PageHelpers'
+import { DetailField, EditableField, DetailSection, formatCurrency } from '../comum/DetailFields'
 import { formatDate } from '../../utils/formatters'
 import { maskCpf, maskPhone } from '../../utils/inputMasks'
 import { useModalFocusTrap } from '../../utils/useModalFocusTrap'
 import { SEXO_LABEL, ESTADO_CIVIL_LABEL, UF_OPTIONS } from '../../utils/fichaAdmissionalLabels'
 import { blankFichaAdmissionalForm, normalizeFicha, buildFichaPayload } from '../../utils/fichaAdmissionalForm'
-
-function formatCurrency(value) {
-  if (value === null || value === undefined || value === '') return null
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value))
-}
-
-function DetailField({ label, children, wide = false }) {
-  const vazio = children === null || children === undefined || children === ''
-
-  return (
-    <div className={`user-detail-field${wide ? ' user-detail-field-wide' : ''}`}>
-      <span>{label}</span>
-      <strong className={vazio ? 'muted' : undefined}>{vazio ? 'Não informado' : children}</strong>
-    </div>
-  )
-}
-
-function EditableField({ label, wide = false, editing, edit, children }) {
-  if (editing) {
-    return (
-      <div className={`user-detail-field${wide ? ' user-detail-field-wide' : ''}`}>
-        <span>{label}</span>
-        {edit}
-      </div>
-    )
-  }
-  return <DetailField label={label} wide={wide}>{children}</DetailField>
-}
-
-function DetailSection({ title, children }) {
-  return (
-    <section>
-      <h3 className="user-detail-section-title">{title}</h3>
-      <div className="user-details-grid">{children}</div>
-    </section>
-  )
-}
 
 export default function DetalhesUsuarioModal({
   user,

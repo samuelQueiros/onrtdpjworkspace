@@ -178,4 +178,45 @@ textarea   { resize: vertical; min-height: 80px; }
   background: var(--bg); padding: 4px 10px; border-radius: 999px; white-space: nowrap;
 }
 
+/* Grade de campos de detalhe (usada em Usuarios > Detalhes e Minha Conta) */
+.user-detail-section-title {
+  margin-bottom: 11px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+}
+.user-details-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.user-detail-field {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+}
+.user-detail-field-wide { grid-column: span 2; }
+.user-detail-field span,
+.user-detail-field strong { display: block; }
+.user-detail-field span {
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .35px;
+  text-transform: uppercase;
+}
+.user-detail-field strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .user-details-grid { grid-template-columns: 1fr; }
+  .user-detail-field-wide { grid-column: auto; }
+}
+
 

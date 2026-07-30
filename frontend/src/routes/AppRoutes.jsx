@@ -12,6 +12,7 @@ const Documentos = lazy(() => import('../pages/Documentos'))
 const Login = lazy(() => import('../pages/Login'))
 const Logs = lazy(() => import('../pages/Logs'))
 const MinhasFerias = lazy(() => import('../pages/MinhasFerias'))
+const MinhaConta = lazy(() => import('../pages/MinhaConta'))
 const Mural = lazy(() => import('../pages/Mural'))
 const Relatorios = lazy(() => import('../pages/Relatorios'))
 const SolicitarFerias = lazy(() => import('../pages/SolicitarFerias'))
@@ -40,6 +41,7 @@ export default function AppRoutes() {
       />
       <Route path="/" element={<Shell><Dashboard /></Shell>} />
       <Route path="/minhas-ferias" element={<Shell><MinhasFerias /></Shell>} />
+      <Route path="/minha-conta" element={<Shell><MinhaConta /></Shell>} />
       <Route path="/minhas-autorizacoes" element={<Shell><MinhasAutorizacoes /></Shell>} />
       <Route path="/solicitar" element={<Shell><SolicitarFerias /></Shell>} />
       <Route path="/disponibilidade" element={<Shell><Disponibilidade /></Shell>} />
