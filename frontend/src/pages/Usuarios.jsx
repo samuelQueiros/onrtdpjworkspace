@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import '../styles/pages/usuarios.css'
 import DetalhesUsuarioModal from '../components/usuarios/DetalhesUsuarioModal'
+import FichaAdmissionalForm from '../components/usuarios/FichaAdmissionalForm'
 import UserForm, { blankUserForm } from '../components/usuarios/UserForm'
 import UsersTable from '../components/usuarios/UsersTable'
 import { useAuth } from '../contexts/AuthContext'
@@ -23,6 +24,18 @@ function UserModal({ onClose, ...formProps }) {
   )
 }
 
+function FichaFormModal({ onClose, ...formProps }) {
+  const modalRef = useModalFocusTrap(onClose)
+
+  return (
+    <div className="modal-overlay user-modal-overlay" role="presentation" onMouseDown={event => event.target === event.currentTarget && onClose()}>
+      <div ref={modalRef} className="modal user-modal" role="dialog" aria-modal="true" aria-labelledby="ficha-form-title">
+        <FichaAdmissionalForm {...formProps} onCancel={onClose} />
+      </div>
+    </div>
+  )
+}
+
 export default function Usuarios() {
   const { user: currentUser } = useAuth()
   const confirmar = useConfirm()
@@ -37,6 +50,8 @@ export default function Usuarios() {
   const [detailsLoadingId, setDetailsLoadingId] = useState(null)
   const [fichaImporting, setFichaImporting] = useState(false)
   const [fichaDownloading, setFichaDownloading] = useState(false)
+  const [fichaFormOpen, setFichaFormOpen] = useState(false)
+  const [fichaSaving, setFichaSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -211,6 +226,24 @@ export default function Usuarios() {
     }
   }
 
+  const saveFicha = async payload => {
+    if (!details) return
+    const userId = details.user.id
+    setFichaSaving(true)
+    try {
+      const ficha = await api.editarFichaAdmissional(userId, payload)
+      setDetails(current => (
+        current?.user.id === userId ? { ...current, ficha } : current
+      ))
+      setFichaFormOpen(false)
+      toast.success('Ficha admissional atualizada com sucesso.')
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setFichaSaving(false)
+    }
+  }
+
   const excluir = async id => {
     const confirmado = await confirmar({
       title: 'Desativar colaborador?',
@@ -357,10 +390,20 @@ export default function Usuarios() {
           ficha={details.ficha}
           fichaImporting={fichaImporting}
           fichaDownloading={fichaDownloading}
-          onClose={() => setDetails(null)}
+          onClose={() => { setDetails(null); setFichaFormOpen(false) }}
           onDownloadTemplate={downloadFichaModel}
           onEdit={editFromDetails}
+          onEditFicha={() => setFichaFormOpen(true)}
           onImportFicha={importFicha}
+        />
+      )}
+
+      {details && fichaFormOpen && (
+        <FichaFormModal
+          ficha={details.ficha}
+          saving={fichaSaving}
+          onClose={() => setFichaFormOpen(false)}
+          onSubmit={saveFicha}
         />
       )}
 

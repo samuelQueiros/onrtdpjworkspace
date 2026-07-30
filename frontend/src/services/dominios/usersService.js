@@ -8,6 +8,7 @@ export const usersService = {
   editarUsuario: (id, body) => req('PUT', `/users/${id}`, body),
   obterDadosSensiveisUsuario: id => req('GET', `/users/${id}/dados-sensiveis`),
   obterFichaAdmissional: id => req('GET', `/users/${id}/ficha-admissional`),
+  editarFichaAdmissional: (id, body) => req('PUT', `/users/${id}/ficha-admissional`, body),
   baixarModeloFichaAdmissional: id => download(`/users/${id}/ficha-admissional/modelo`),
   importarFichaAdmissional: (id, formData) => upload(`/users/${id}/ficha-admissional/importar`, formData),
   excluirUsuario: id => req('DELETE', `/users/${id}`),

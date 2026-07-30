@@ -2,23 +2,7 @@ import { StatusBadge } from '../comum/PageHelpers'
 import { formatDate } from '../../utils/formatters'
 import { maskCpf, maskPhone } from '../../utils/inputMasks'
 import { useModalFocusTrap } from '../../utils/useModalFocusTrap'
-
-const SEXO_LABEL = {
-  feminino: 'Feminino',
-  masculino: 'Masculino',
-  outro: 'Outro',
-  nao_informado: 'Não informado',
-}
-
-const ESTADO_CIVIL_LABEL = {
-  solteiro: 'Solteiro',
-  casado: 'Casado',
-  divorciado: 'Divorciado',
-  viuvo: 'Viúvo',
-  separado: 'Separado',
-  uniao_estavel: 'União estável',
-  outro: 'Outro',
-}
+import { SEXO_LABEL, ESTADO_CIVIL_LABEL } from '../../utils/fichaAdmissionalLabels'
 
 function formatCurrency(value) {
   if (value === null || value === undefined || value === '') return null
@@ -54,6 +38,7 @@ export default function DetalhesUsuarioModal({
   onClose,
   onDownloadTemplate,
   onEdit,
+  onEditFicha,
   onImportFicha,
 }) {
   const modalRef = useModalFocusTrap(onClose)
@@ -220,6 +205,7 @@ export default function DetalhesUsuarioModal({
         </div>
 
         <div className="modal-footer user-details-footer">
+          <button className="btn btn-outline" type="button" onClick={onEditFicha}>Editar ficha admissional</button>
           <button className="btn btn-outline" type="button" onClick={onEdit}>Editar cadastro</button>
           <button className="btn btn-navy" type="button" onClick={onClose}>Fechar</button>
         </div>
