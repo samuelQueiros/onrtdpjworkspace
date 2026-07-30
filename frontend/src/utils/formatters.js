@@ -27,6 +27,27 @@ export function calcDays(start, end) {
   return Math.floor((b - a) / 86400000) + 1
 }
 
+export function calcularTempoDeEmpresa(dataAdmissao) {
+  if (!dataAdmissao) return '-'
+  const inicio = new Date(`${String(dataAdmissao).slice(0, 10)}T12:00:00`)
+  if (Number.isNaN(inicio.getTime())) return '-'
+
+  const hoje = new Date()
+  let anos = hoje.getFullYear() - inicio.getFullYear()
+  let meses = hoje.getMonth() - inicio.getMonth()
+  if (hoje.getDate() < inicio.getDate()) meses -= 1
+  if (meses < 0) {
+    anos -= 1
+    meses += 12
+  }
+  if (anos < 0) return '-'
+
+  const partes = []
+  if (anos > 0) partes.push(`${anos} ano${anos > 1 ? 's' : ''}`)
+  if (meses > 0) partes.push(`${meses} ${meses > 1 ? 'meses' : 'mês'}`)
+  return partes.length ? partes.join(' e ') : 'Menos de 1 mês'
+}
+
 export function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`

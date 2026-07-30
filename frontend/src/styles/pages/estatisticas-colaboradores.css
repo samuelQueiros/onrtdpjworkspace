@@ -1,0 +1,17 @@
+.estatisticas-select-card {
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+.estatisticas-select-group {
+  max-width: 420px;
+  margin-bottom: 0;
+}
+.estatisticas-colaboradores-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (max-width: 860px) {
+  .estatisticas-colaboradores-body .grid-2 { grid-template-columns: 1fr; }
+}

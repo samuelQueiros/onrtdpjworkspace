@@ -24,6 +24,7 @@ const PAGES = {
   '/minhas-credenciais': 'Minhas Credenciais',
   '/configuracoes': 'Configurações',
   '/minha-conta': 'Minha Conta',
+  '/estatisticas-colaboradores': 'Estatísticas dos Colaboradores',
 }
 
 export default function Topbar({ user, pathname, dropOpen, dropRef, onToggleDrop, onLogout }) {

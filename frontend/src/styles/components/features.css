@@ -219,4 +219,115 @@ textarea   { resize: vertical; min-height: 80px; }
   .user-detail-field-wide { grid-column: auto; }
 }
 
+/* Charts (Recharts wrappers) — usados em Estatísticas dos Colaboradores e futuros dashboards */
+.chart-wrap { width: 100%; }
+.chart-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  text-align: center;
+}
+.chart-end-label { fill: var(--text); font-size: 12px; font-weight: 700; }
+
+.chart-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  font-size: 12px;
+}
+.chart-tooltip strong { font-size: 13px; color: var(--text); }
+.chart-tooltip span { color: var(--muted); }
+
+.chart-wrap-donut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.chart-donut-total-label {
+  fill: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+.chart-donut-total-value { fill: var(--text); font-size: 18px; font-weight: 800; }
+
+.chart-legend {
+  list-style: none;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.chart-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.chart-legend-label { color: var(--text); flex: 1; }
+.chart-legend-value { color: var(--text); font-weight: 700; }
+
+/* Timeline */
+.timeline {
+  list-style: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-left: 4px;
+}
+.timeline-item {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding-left: 24px;
+}
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 18px;
+  bottom: -20px;
+  width: 2px;
+  background: var(--border);
+}
+.timeline-item:last-child::before { display: none; }
+.timeline-dot {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--card);
+  box-shadow: 0 0 0 1px var(--border);
+  background: var(--navy);
+}
+.timeline-dot-admissao { background: var(--green); }
+.timeline-dot-promocao { background: var(--purple); }
+.timeline-dot-mudanca_cargo,
+.timeline-dot-mudanca_departamento { background: var(--teal); }
+.timeline-dot-reajuste_salarial { background: var(--amber); }
+.timeline-content { flex: 1; min-width: 0; }
+.timeline-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+.timeline-descricao { margin-top: 2px; font-size: 12.5px; }
 

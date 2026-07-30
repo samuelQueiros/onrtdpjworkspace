@@ -1,19 +1,6 @@
 import { Link } from 'react-router-dom'
 import { DashboardIcon as Icon } from './DashboardIcons'
-
-function StatCard({ icon, label, value, sub, children }) {
-  return (
-    <div className="stat-card">
-      <div className="stat-icon-row">
-        <div className="stat-label">{label}</div>
-        {icon}
-      </div>
-      <div className="stat-value">{value}</div>
-      <div className="stat-sub">{sub}</div>
-      {children}
-    </div>
-  )
-}
+import StatCard from '../comum/StatCard'
 
 export default function AdminStats({ dash, pendentes = {} }) {
   return (
