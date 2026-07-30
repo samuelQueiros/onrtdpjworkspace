@@ -98,6 +98,13 @@ def startup():
         resultado = bootstrap_service.garantir_admin_inicial(db)
         if resultado == "admin_criado":
             print(f"Admin inicial criado: {settings.admin_email}")
+        elif resultado == "admin_senha_sincronizada":
+            print(f"Senha do admin sincronizada a partir de ADMIN_PASSWORD: {settings.admin_email}")
+        elif resultado == "admin_email_pertence_a_usuario_nao_admin":
+            print(
+                f"ADMIN_EMAIL ({settings.admin_email}) pertence a um usuario que nao e administrador. "
+                "Nenhuma alteracao foi feita."
+            )
         elif resultado == "admin_nao_configurado":
             print("Nenhum administrador encontrado. Configure ADMIN_EMAIL e ADMIN_PASSWORD.")
     finally:

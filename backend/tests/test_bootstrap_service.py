@@ -25,33 +25,22 @@ class BootstrapServiceTests(unittest.TestCase):
         else:
             os.environ[key] = value
 
-    def test_garantir_admin_inicial_ignora_quando_ja_existe(self):
-        with (
-            patch("app.services.bootstrap_service.bootstrap_repository.obter_admin", return_value=SimpleNamespace(id=1)),
-            patch("app.services.bootstrap_service.bootstrap_repository.salvar_admin_com_log") as salvar,
-        ):
-            response = bootstrap_service.garantir_admin_inicial(MagicMock())
-
-        self.assertEqual(response, "admin_existente")
-        salvar.assert_not_called()
-
     def test_garantir_admin_inicial_retorna_nao_configurado_sem_env(self):
         os.environ.pop("ADMIN_EMAIL", None)
         os.environ.pop("ADMIN_PASSWORD", None)
 
-        with patch("app.services.bootstrap_service.bootstrap_repository.obter_admin", return_value=None):
-            response = bootstrap_service.garantir_admin_inicial(MagicMock())
+        response = bootstrap_service.garantir_admin_inicial(MagicMock())
 
         self.assertEqual(response, "admin_nao_configurado")
 
-    def test_garantir_admin_inicial_cria_admin_com_log(self):
+    def test_garantir_admin_inicial_cria_admin_quando_nao_existe(self):
         os.environ["ENVIRONMENT"] = "development"
         os.environ["ADMIN_EMAIL"] = "admin@sistema.com"
         os.environ["ADMIN_PASSWORD"] = "senha-segura"
         os.environ["ADMIN_NAME"] = "Administrador"
 
         with (
-            patch("app.services.bootstrap_service.bootstrap_repository.obter_admin", return_value=None),
+            patch("app.services.bootstrap_service.users_repository.obter_usuario_por_email", return_value=None),
             patch("app.services.bootstrap_service.hash_senha", return_value="hash"),
             patch("app.services.bootstrap_service.bootstrap_repository.salvar_admin_com_log") as salvar,
             patch("app.services.ferias_service.registrar_saldo_inicial"),
@@ -65,13 +54,84 @@ class BootstrapServiceTests(unittest.TestCase):
         self.assertEqual(admin.senha_hash, "hash")
         self.assertEqual(log.acao, "USUARIO_CRIADO")
 
+    def test_garantir_admin_inicial_nao_altera_quando_senha_ja_bate(self):
+        os.environ["ENVIRONMENT"] = "development"
+        os.environ["ADMIN_EMAIL"] = "admin@sistema.com"
+        os.environ["ADMIN_PASSWORD"] = "senha-atual"
+
+        admin_existente = SimpleNamespace(
+            id=1, role="admin", senha_hash="hash-atual", token_version=0,
+            ativo=True, must_change_password=False,
+        )
+
+        with (
+            patch(
+                "app.services.bootstrap_service.users_repository.obter_usuario_por_email",
+                return_value=admin_existente,
+            ),
+            patch("app.services.bootstrap_service.verificar_senha", return_value=True),
+            patch("app.services.bootstrap_service.bootstrap_repository.salvar_admin_com_log") as salvar,
+        ):
+            response = bootstrap_service.garantir_admin_inicial(MagicMock())
+
+        self.assertEqual(response, "admin_existente")
+        salvar.assert_not_called()
+        self.assertEqual(admin_existente.token_version, 0)
+
+    def test_garantir_admin_inicial_sincroniza_senha_quando_diferente(self):
+        os.environ["ENVIRONMENT"] = "development"
+        os.environ["ADMIN_EMAIL"] = "admin@sistema.com"
+        os.environ["ADMIN_PASSWORD"] = "senha-nova-do-env"
+
+        admin_existente = SimpleNamespace(
+            id=1, role="admin", senha_hash="hash-antigo", token_version=3,
+            ativo=True, must_change_password=True,
+        )
+
+        with (
+            patch(
+                "app.services.bootstrap_service.users_repository.obter_usuario_por_email",
+                return_value=admin_existente,
+            ),
+            patch("app.services.bootstrap_service.verificar_senha", return_value=False),
+            patch("app.services.bootstrap_service.hash_senha", return_value="hash-novo"),
+            patch("app.services.bootstrap_service.bootstrap_repository.salvar_admin_com_log") as salvar,
+        ):
+            response = bootstrap_service.garantir_admin_inicial(MagicMock())
+
+        self.assertEqual(response, "admin_senha_sincronizada")
+        self.assertEqual(admin_existente.senha_hash, "hash-novo")
+        self.assertEqual(admin_existente.token_version, 4)
+        self.assertFalse(admin_existente.must_change_password)
+        log = salvar.call_args.args[2]
+        self.assertEqual(log.acao, "ADMIN_SENHA_SINCRONIZADA_VIA_ENV")
+
+    def test_garantir_admin_inicial_nao_promove_usuario_nao_admin(self):
+        os.environ["ENVIRONMENT"] = "development"
+        os.environ["ADMIN_EMAIL"] = "colaborador@sistema.com"
+        os.environ["ADMIN_PASSWORD"] = "senha-do-env"
+
+        usuario_comum = SimpleNamespace(id=9, role="user")
+
+        with (
+            patch(
+                "app.services.bootstrap_service.users_repository.obter_usuario_por_email",
+                return_value=usuario_comum,
+            ),
+            patch("app.services.bootstrap_service.bootstrap_repository.salvar_admin_com_log") as salvar,
+        ):
+            response = bootstrap_service.garantir_admin_inicial(MagicMock())
+
+        self.assertEqual(response, "admin_email_pertence_a_usuario_nao_admin")
+        salvar.assert_not_called()
+
     def test_producao_rejeita_senha_admin_fraca(self):
         os.environ["ENVIRONMENT"] = "production"
         os.environ["ADMIN_EMAIL"] = "admin@sistema.com"
         os.environ["ADMIN_PASSWORD"] = "admin123"
-        with patch("app.services.bootstrap_service.bootstrap_repository.obter_admin", return_value=None):
-            with self.assertRaises(RuntimeError):
-                bootstrap_service.garantir_admin_inicial(SimpleNamespace())
+
+        with self.assertRaises(RuntimeError):
+            bootstrap_service.garantir_admin_inicial(SimpleNamespace())
 
 
 if __name__ == "__main__":
