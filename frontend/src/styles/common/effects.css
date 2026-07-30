@@ -175,3 +175,10 @@ tbody tr:hover td {
 /* Scrollbar brand green tint */
 ::-webkit-scrollbar-thumb { background: #94a3b8; }
 ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* Equivalente padrao (Firefox) do estilo fino acima — sem isso, o Firefox
+   ignora ::-webkit-scrollbar e cai na barra de rolagem padrao do sistema. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 transparent;
+}

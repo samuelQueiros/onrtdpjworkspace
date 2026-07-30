@@ -5,7 +5,7 @@ import { StatIcon } from './StatIcons'
 
 export default function ResumoCards({ user, ficha }) {
   return (
-    <section className="stat-grid">
+    <section className="stat-grid stat-grid-compact">
       <StatCard
         icon={<div className="stat-icon-box navy">{StatIcon.user}</div>}
         label="Nome completo"

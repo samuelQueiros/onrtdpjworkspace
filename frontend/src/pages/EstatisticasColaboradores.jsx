@@ -15,6 +15,7 @@ export default function EstatisticasColaboradores() {
   const [colaboradores, setColaboradores] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [ficha, setFicha] = useState(null)
+  const [historicoSalarial, setHistoricoSalarial] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingFicha, setLoadingFicha] = useState(false)
 
@@ -32,16 +33,23 @@ export default function EstatisticasColaboradores() {
 
   const carregarFicha = useCallback(id => {
     setLoadingFicha(true)
-    api.obterFichaAdmissional(id)
-      .then(setFicha)
+    Promise.all([api.obterFichaAdmissional(id), api.historicoSalarial(id)])
+      .then(([dadosFicha, dadosHistorico]) => {
+        setFicha(dadosFicha)
+        setHistoricoSalarial(dadosHistorico)
+      })
       .catch(error => toast.error(error.message))
       .finally(() => setLoadingFicha(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
-    if (selectedId) carregarFicha(selectedId)
-    else setFicha(null)
+    if (selectedId) {
+      carregarFicha(selectedId)
+    } else {
+      setFicha(null)
+      setHistoricoSalarial([])
+    }
   }, [selectedId, carregarFicha])
 
   if (loading) return <LoadingCard />
@@ -83,7 +91,7 @@ export default function EstatisticasColaboradores() {
           </div>
 
           <div className="grid-2">
-            <EvolucaoSalarialSection ficha={ficha} />
+            <EvolucaoSalarialSection ficha={ficha} historico={historicoSalarial} />
             <ComposicaoRemuneracaoSection ficha={ficha} />
           </div>
 

@@ -15,4 +15,5 @@ export const usersService = {
   reativarUsuario: id => req('POST', `/users/${id}/reativar`),
   meuPerfil: () => req('GET', '/users/me/perfil'),
   minhaFichaAdmissional: () => req('GET', '/users/me/ficha-admissional'),
+  historicoSalarial: id => req('GET', `/users/${id}/historico-salarial`),
 }

@@ -48,6 +48,9 @@ class FichaAdmissionalUpdate(BaseModel):
     contrato_experiencia_dias: int | None = Field(default=None, ge=0, le=365)
     status: Literal["rascunho", "completa"] = "rascunho"
 
+    motivo_alteracao_salario: str | None = Field(default=None, max_length=300)
+    tipo_alteracao_salario: Literal["reajuste", "correcao"] | None = None
+
     @field_validator(
         "local_nascimento",
         "nacionalidade",
@@ -64,6 +67,7 @@ class FichaAdmissionalUpdate(BaseModel):
         "horario_trabalho",
         "dias_semana",
         "beneficios",
+        "motivo_alteracao_salario",
         mode="before",
     )
     @classmethod

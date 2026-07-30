@@ -12,6 +12,19 @@
   gap: 20px;
 }
 
+/* Cards do resumo do colaborador: valores são texto (nome, cargo, "Não
+   informado"...), não números curtos como no dashboard — reduz o tamanho
+   herdado de .stat-value para caber com folga no card. */
+.stat-grid-compact .stat-value {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.stat-grid-compact .stat-sub {
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 860px) {
   .estatisticas-colaboradores-body .grid-2 { grid-template-columns: 1fr; }
 }

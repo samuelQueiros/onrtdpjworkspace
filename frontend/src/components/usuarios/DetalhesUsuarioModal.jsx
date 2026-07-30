@@ -27,7 +27,14 @@ export default function DetalhesUsuarioModal({
   const [fichaForm, setFichaForm] = useState(blankFichaAdmissionalForm)
 
   const startEditFicha = () => {
-    setFichaForm({ ...blankFichaAdmissionalForm, ...normalizeFicha(ficha) })
+    // motivo/tipo de alteração salarial são write-only (não vêm na ficha) e
+    // nunca devem carregar de uma sessão de edição anterior.
+    setFichaForm({
+      ...blankFichaAdmissionalForm,
+      ...normalizeFicha(ficha),
+      motivo_alteracao_salario: '',
+      tipo_alteracao_salario: 'reajuste',
+    })
     setEditingFicha(true)
   }
   const cancelEditFicha = () => setEditingFicha(false)
@@ -394,6 +401,30 @@ export default function DetalhesUsuarioModal({
             >
               {formatCurrency(ficha?.salario)}
             </EditableField>
+            {editingFicha && (
+              <div className="user-detail-field">
+                <span>Tipo de alteração salarial</span>
+                <select
+                  value={fichaForm.tipo_alteracao_salario}
+                  onChange={event => updateFicha({ tipo_alteracao_salario: event.target.value })}
+                >
+                  <option value="reajuste">Reajuste (conta como aumento real)</option>
+                  <option value="correcao">Correção de erro de cadastro</option>
+                </select>
+              </div>
+            )}
+            {editingFicha && (
+              <div className="user-detail-field user-detail-field-wide">
+                <span>Motivo da alteração salarial</span>
+                <input
+                  type="text"
+                  maxLength="300"
+                  placeholder="Obrigatório ao alterar um salário já cadastrado"
+                  value={fichaForm.motivo_alteracao_salario}
+                  onChange={event => updateFicha({ motivo_alteracao_salario: event.target.value })}
+                />
+              </div>
+            )}
             <EditableField
               label="Horário de trabalho"
               editing={editingFicha}

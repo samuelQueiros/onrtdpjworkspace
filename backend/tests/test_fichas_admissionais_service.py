@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from openpyxl import load_workbook
 
 from app.models.ficha_admissional import FichaAdmissional
+from app.models.historico_salarial import HistoricoSalarial
 from app.schemas.ficha_admissional import FichaAdmissionalUpdate
 from app.services import fichas_admissionais_service
 
@@ -80,6 +81,250 @@ class FichasAdmissionaisServiceTests(unittest.TestCase):
         self.assertEqual(ficha.uf_nascimento, "DF")
         self.assertEqual(resultado["salario"], Decimal("7500.50"))
         self.assertEqual(db.added[0].acao, "FICHA_ADMISSIONAL_ATUALIZADA")
+        self.assertEqual(db.commits, 1)
+
+    def test_atualizar_ficha_grava_historico_no_cadastro_inicial_de_salario(self):
+        db = FakeDb()
+        ficha = ficha_vazia()  # sem salario_criptografado definido
+        payload = FichaAdmissionalUpdate(salario=Decimal("5000.00"))
+
+        with (
+            patch("app.services.fichas_admissionais_service.users_service.buscar_usuario"),
+            patch(
+                "app.services.fichas_admissionais_service.fichas_admissionais_repository.obter_por_usuario",
+                return_value=ficha,
+            ),
+            patch("app.services.fichas_admissionais_service.fichas_admissionais_repository.salvar"),
+            patch(
+                "app.services.fichas_admissionais_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+            patch(
+                "app.services.fichas_admissionais_service.descriptografar_dado_sensivel",
+                side_effect=lambda valor: valor.removeprefix("enc:") if valor else None,
+            ),
+        ):
+            fichas_admissionais_service.atualizar_ficha(db, 7, payload, SimpleNamespace(id=1))
+
+        historicos = [item for item in db.added if isinstance(item, HistoricoSalarial)]
+        self.assertEqual(len(historicos), 1)
+        self.assertEqual(historicos[0].motivo, "Cadastro inicial")
+        self.assertEqual(historicos[0].salario_criptografado, "enc:5000.00")
+
+    def test_atualizar_ficha_exige_motivo_ao_alterar_salario_existente(self):
+        db = FakeDb()
+        ficha = ficha_vazia()
+        ficha.salario_criptografado = "enc:5000.00"
+        payload = FichaAdmissionalUpdate(salario=Decimal("6000.00"))
+
+        with (
+            patch("app.services.fichas_admissionais_service.users_service.buscar_usuario"),
+            patch(
+                "app.services.fichas_admissionais_service.fichas_admissionais_repository.obter_por_usuario",
+                return_value=ficha,
+            ),
+            patch("app.services.fichas_admissionais_service.fichas_admissionais_repository.salvar"),
+            patch(
+                "app.services.fichas_admissionais_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+            patch(
+                "app.services.fichas_admissionais_service.descriptografar_dado_sensivel",
+                side_effect=lambda valor: valor.removeprefix("enc:") if valor else None,
+            ),
+        ):
+            with self.assertRaises(HTTPException) as exc:
+                fichas_admissionais_service.atualizar_ficha(db, 7, payload, SimpleNamespace(id=1))
+
+        self.assertEqual(exc.exception.status_code, 400)
+        self.assertEqual(db.commits, 0)
+
+    def test_atualizar_ficha_grava_historico_com_motivo_de_reajuste(self):
+        db = FakeDb()
+        ficha = ficha_vazia()
+        ficha.salario_criptografado = "enc:5000.00"
+        payload = FichaAdmissionalUpdate(
+            salario=Decimal("6000.00"),
+            motivo_alteracao_salario="Promoção",
+            tipo_alteracao_salario="reajuste",
+        )
+
+        with (
+            patch("app.services.fichas_admissionais_service.users_service.buscar_usuario"),
+            patch(
+                "app.services.fichas_admissionais_service.fichas_admissionais_repository.obter_por_usuario",
+                return_value=ficha,
+            ),
+            patch("app.services.fichas_admissionais_service.fichas_admissionais_repository.salvar"),
+            patch(
+                "app.services.fichas_admissionais_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+            patch(
+                "app.services.fichas_admissionais_service.descriptografar_dado_sensivel",
+                side_effect=lambda valor: valor.removeprefix("enc:") if valor else None,
+            ),
+        ):
+            fichas_admissionais_service.atualizar_ficha(db, 7, payload, SimpleNamespace(id=1))
+
+        historicos = [item for item in db.added if isinstance(item, HistoricoSalarial)]
+        self.assertEqual(len(historicos), 1)
+        self.assertEqual(historicos[0].tipo, "reajuste")
+        self.assertEqual(historicos[0].motivo, "Promoção")
+        self.assertEqual(historicos[0].salario_criptografado, "enc:6000.00")
+
+    def test_atualizar_ficha_grava_historico_como_correcao_quando_informado(self):
+        db = FakeDb()
+        ficha = ficha_vazia()
+        ficha.salario_criptografado = "enc:5000.00"
+        payload = FichaAdmissionalUpdate(
+            salario=Decimal("4500.00"),
+            motivo_alteracao_salario="Erro de digitação no cadastro anterior",
+            tipo_alteracao_salario="correcao",
+        )
+
+        with (
+            patch("app.services.fichas_admissionais_service.users_service.buscar_usuario"),
+            patch(
+                "app.services.fichas_admissionais_service.fichas_admissionais_repository.obter_por_usuario",
+                return_value=ficha,
+            ),
+            patch("app.services.fichas_admissionais_service.fichas_admissionais_repository.salvar"),
+            patch(
+                "app.services.fichas_admissionais_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+            patch(
+                "app.services.fichas_admissionais_service.descriptografar_dado_sensivel",
+                side_effect=lambda valor: valor.removeprefix("enc:") if valor else None,
+            ),
+        ):
+            fichas_admissionais_service.atualizar_ficha(db, 7, payload, SimpleNamespace(id=1))
+
+        historicos = [item for item in db.added if isinstance(item, HistoricoSalarial)]
+        self.assertEqual(len(historicos), 1)
+        self.assertEqual(historicos[0].tipo, "correcao")
+
+    def test_atualizar_ficha_exige_tipo_alem_do_motivo(self):
+        db = FakeDb()
+        ficha = ficha_vazia()
+        ficha.salario_criptografado = "enc:5000.00"
+        payload = FichaAdmissionalUpdate(salario=Decimal("6000.00"), motivo_alteracao_salario="Promoção")
+
+        with (
+            patch("app.services.fichas_admissionais_service.users_service.buscar_usuario"),
+            patch(
+                "app.services.fichas_admissionais_service.fichas_admissionais_repository.obter_por_usuario",
+                return_value=ficha,
+            ),
+            patch("app.services.fichas_admissionais_service.fichas_admissionais_repository.salvar"),
+            patch(
+                "app.services.fichas_admissionais_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+            patch(
+                "app.services.fichas_admissionais_service.descriptografar_dado_sensivel",
+                side_effect=lambda valor: valor.removeprefix("enc:") if valor else None,
+            ),
+        ):
+            with self.assertRaises(HTTPException) as exc:
+                fichas_admissionais_service.atualizar_ficha(db, 7, payload, SimpleNamespace(id=1))
+
+        self.assertEqual(exc.exception.status_code, 400)
+
+    def test_atualizar_ficha_importacao_nao_exige_motivo(self):
+        db = FakeDb()
+        ficha = ficha_vazia()
+        ficha.salario_criptografado = "enc:5000.00"
+        payload = FichaAdmissionalUpdate(salario=Decimal("6000.00"))
+
+        with (
+            patch("app.services.fichas_admissionais_service.users_service.buscar_usuario"),
+            patch(
+                "app.services.fichas_admissionais_service.fichas_admissionais_repository.obter_por_usuario",
+                return_value=ficha,
+            ),
+            patch("app.services.fichas_admissionais_service.fichas_admissionais_repository.salvar"),
+            patch(
+                "app.services.fichas_admissionais_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+            patch(
+                "app.services.fichas_admissionais_service.descriptografar_dado_sensivel",
+                side_effect=lambda valor: valor.removeprefix("enc:") if valor else None,
+            ),
+        ):
+            fichas_admissionais_service.atualizar_ficha(
+                db, 7, payload, SimpleNamespace(id=1), origem_importacao=True,
+            )
+
+        historicos = [item for item in db.added if isinstance(item, HistoricoSalarial)]
+        self.assertEqual(len(historicos), 1)
+        self.assertEqual(historicos[0].motivo, "Importação de planilha")
+
+    def test_atualizar_ficha_nao_grava_historico_quando_salario_nao_muda(self):
+        db = FakeDb()
+        ficha = ficha_vazia()
+        ficha.salario_criptografado = "enc:5000.00"
+        payload = FichaAdmissionalUpdate(salario=Decimal("5000.00"))
+
+        with (
+            patch("app.services.fichas_admissionais_service.users_service.buscar_usuario"),
+            patch(
+                "app.services.fichas_admissionais_service.fichas_admissionais_repository.obter_por_usuario",
+                return_value=ficha,
+            ),
+            patch("app.services.fichas_admissionais_service.fichas_admissionais_repository.salvar"),
+            patch(
+                "app.services.fichas_admissionais_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+            patch(
+                "app.services.fichas_admissionais_service.descriptografar_dado_sensivel",
+                side_effect=lambda valor: valor.removeprefix("enc:") if valor else None,
+            ),
+        ):
+            fichas_admissionais_service.atualizar_ficha(db, 7, payload, SimpleNamespace(id=1))
+
+        historicos = [item for item in db.added if isinstance(item, HistoricoSalarial)]
+        self.assertEqual(len(historicos), 0)
+
+    def test_historico_salarial_descriptografa_e_audita(self):
+        db = FakeDb()
+        movimentos = [
+            SimpleNamespace(
+                data_vigencia=date(2026, 1, 1),
+                salario_criptografado="enc:5000.00",
+                tipo="reajuste",
+                motivo="Cadastro inicial",
+                criado_em=datetime(2026, 1, 1, tzinfo=UTC),
+            ),
+            SimpleNamespace(
+                data_vigencia=date(2026, 6, 1),
+                salario_criptografado="enc:6000.00",
+                tipo="reajuste",
+                motivo="Promoção",
+                criado_em=datetime(2026, 6, 1, tzinfo=UTC),
+            ),
+        ]
+
+        with (
+            patch("app.services.fichas_admissionais_service.users_service.buscar_usuario"),
+            patch(
+                "app.services.fichas_admissionais_service.historico_salarial_repository.listar_por_usuario",
+                return_value=movimentos,
+            ),
+            patch(
+                "app.services.fichas_admissionais_service.descriptografar_dado_sensivel",
+                side_effect=lambda valor: valor.removeprefix("enc:") if valor else None,
+            ),
+        ):
+            resultado = fichas_admissionais_service.historico_salarial(db, 7, SimpleNamespace(id=1))
+
+        self.assertEqual(len(resultado), 2)
+        self.assertEqual(resultado[0]["salario"], Decimal("5000.00"))
+        self.assertEqual(resultado[1]["motivo"], "Promoção")
+        self.assertEqual(db.added[0].acao, "HISTORICO_SALARIAL_CONSULTADO")
         self.assertEqual(db.commits, 1)
 
     def test_consultar_ficha_inexistente_retorna_none_e_audita(self):

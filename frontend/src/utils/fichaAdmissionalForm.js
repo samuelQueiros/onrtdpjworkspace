@@ -29,6 +29,8 @@ export const blankFichaAdmissionalForm = {
   valor_beneficios: '',
   contrato_experiencia_dias: '',
   status: 'rascunho',
+  motivo_alteracao_salario: '',
+  tipo_alteracao_salario: 'reajuste',
 }
 
 export function normalizeFicha(ficha) {

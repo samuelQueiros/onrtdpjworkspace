@@ -11,9 +11,10 @@ from sqlalchemy.orm import Session
 
 from app.core.crypto import criptografar_dado_sensivel, descriptografar_dado_sensivel
 from app.models.ficha_admissional import FichaAdmissional
+from app.models.historico_salarial import HistoricoSalarial
 from app.models.log import Log
 from app.models.user import User
-from app.repositories import fichas_admissionais_repository
+from app.repositories import fichas_admissionais_repository, historico_salarial_repository
 from app.schemas.ficha_admissional import FichaAdmissionalUpdate
 from app.services import importacao_service, users_service
 
@@ -140,9 +141,13 @@ def atualizar_ficha(
     payload: FichaAdmissionalUpdate,
     current_user: User,
     acao: str = "FICHA_ADMISSIONAL_ATUALIZADA",
+    origem_importacao: bool = False,
 ) -> dict:
     users_service.buscar_usuario(db, user_id)
     ficha = fichas_admissionais_repository.obter_por_usuario(db, user_id)
+    salario_anterior = (
+        _valor_decimal(descriptografar_dado_sensivel(ficha.salario_criptografado)) if ficha else None
+    )
     if ficha is None:
         ficha = FichaAdmissional(
             user_id=user_id,
@@ -164,6 +169,29 @@ def atualizar_ficha(
         acao=acao,
         detalhes=f"Ficha admissional do usuario #{user_id} atualizada por administrador",
     ))
+
+    if "salario" in payload.model_fields_set and payload.salario is not None and payload.salario != salario_anterior:
+        eh_edicao_de_salario_existente = salario_anterior is not None and not origem_importacao
+        if eh_edicao_de_salario_existente and not (payload.motivo_alteracao_salario and payload.tipo_alteracao_salario):
+            raise HTTPException(
+                status_code=400,
+                detail="Informe o motivo e o tipo (reajuste ou correção) da alteração salarial.",
+            )
+        if origem_importacao:
+            tipo, motivo = "reajuste", "Importação de planilha"
+        elif salario_anterior is None:
+            tipo, motivo = "reajuste", "Cadastro inicial"
+        else:
+            tipo, motivo = payload.tipo_alteracao_salario, payload.motivo_alteracao_salario
+        db.add(HistoricoSalarial(
+            user_id=user_id,
+            salario_criptografado=criptografar_dado_sensivel(str(payload.salario)),
+            data_vigencia=date.today(),
+            tipo=tipo,
+            motivo=motivo,
+            criado_por_id=current_user.id,
+        ))
+
     db.commit()
     db.refresh(ficha)
     return formatar_ficha(ficha)
@@ -373,5 +401,27 @@ def importar_xlsx(
         payload,
         current_user,
         acao="FICHA_ADMISSIONAL_IMPORTADA",
+        origem_importacao=True,
     )
     return {"mensagem": "Ficha admissional importada com sucesso.", "ficha": ficha}
+
+
+def historico_salarial(db: Session, user_id: int, current_user: User) -> list[dict]:
+    users_service.buscar_usuario(db, user_id)
+    movimentos = historico_salarial_repository.listar_por_usuario(db, user_id)
+    db.add(Log(
+        user_id=current_user.id,
+        acao="HISTORICO_SALARIAL_CONSULTADO",
+        detalhes=f"Historico salarial do usuario #{user_id} consultado por administrador",
+    ))
+    db.commit()
+    return [
+        {
+            "data_vigencia": movimento.data_vigencia,
+            "salario": _valor_decimal(descriptografar_dado_sensivel(movimento.salario_criptografado)),
+            "tipo": movimento.tipo,
+            "motivo": movimento.motivo,
+            "criado_em": movimento.criado_em,
+        }
+        for movimento in movimentos
+    ]
