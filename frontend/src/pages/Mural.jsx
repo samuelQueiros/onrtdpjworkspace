@@ -8,6 +8,7 @@ import { useConfirm } from '../contexts/ConfirmContext'
 import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { EmptyState, LoadingCard, PageHeader } from '../components/comum/PageHelpers'
+import { marcarAvisosComoVistos } from '../utils/avisosVistos'
 
 export default function Mural() {
   const { user } = useAuth()
@@ -28,9 +29,10 @@ export default function Mural() {
       .then(([avisosData, aniversariantesData]) => {
         setAvisos(avisosData)
         setAniversariantes(aniversariantesData)
+        marcarAvisosComoVistos(user?.id, avisosData.map(aviso => aviso.id))
       })
       .finally(() => setLoading(false))
-  }, [isAdmin])
+  }, [isAdmin, user])
 
   useEffect(() => { load() }, [load])
 

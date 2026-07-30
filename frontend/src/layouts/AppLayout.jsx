@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
 import { avisoFeriasDismissKey } from '../utils/alertasFerias'
+import { contarAvisosNaoVistos } from '../utils/avisosVistos'
 
 function isBirthdayToday(dataAniversario) {
   if (!dataAniversario) return false
@@ -25,6 +26,7 @@ export default function AppLayout({ children }) {
   const location = useLocation()
   const [dropOpen, setDropOpen] = useState(false)
   const [pendentes, setPendentes] = useState(0)
+  const [avisosNaoVistos, setAvisosNaoVistos] = useState(0)
   const [showBirthday, setShowBirthday] = useState(false)
   const [avisosFerias, setAvisosFerias] = useState([])
   const dropRef = useRef(null)
@@ -49,6 +51,20 @@ export default function AppLayout({ children }) {
         window.removeEventListener('approvals:changed', carregarPendentes)
         window.clearInterval(intervalId)
       }
+    }
+  }, [user, location.pathname])
+
+  useEffect(() => {
+    if (!user) return
+    const carregarAvisosNaoVistos = () => api.listarAvisos()
+      .then(lista => setAvisosNaoVistos(contarAvisosNaoVistos(user.id, lista)))
+      .catch(error => console.error('Falha ao carregar avisos do mural', error))
+    carregarAvisosNaoVistos()
+    window.addEventListener('avisos:changed', carregarAvisosNaoVistos)
+    const intervalId = window.setInterval(carregarAvisosNaoVistos, PENDENTES_POLL_MS)
+    return () => {
+      window.removeEventListener('avisos:changed', carregarAvisosNaoVistos)
+      window.clearInterval(intervalId)
     }
   }, [user, location.pathname])
 
@@ -105,7 +121,7 @@ export default function AppLayout({ children }) {
 
   return (
     <div className="layout">
-      <Sidebar user={user} pendingApprovals={pendentes} />
+      <Sidebar user={user} pendingApprovals={pendentes} avisosNaoVistos={avisosNaoVistos} />
 
       <div className="main-area">
         <Topbar
