@@ -50,6 +50,8 @@ class FichaAdmissionalUpdate(BaseModel):
 
     motivo_alteracao_salario: str | None = Field(default=None, max_length=300)
     tipo_alteracao_salario: Literal["reajuste", "correcao"] | None = None
+    motivo_alteracao_beneficios: str | None = Field(default=None, max_length=300)
+    tipo_alteracao_beneficios: Literal["real", "correcao"] | None = None
 
     @field_validator(
         "local_nascimento",
@@ -68,6 +70,7 @@ class FichaAdmissionalUpdate(BaseModel):
         "dias_semana",
         "beneficios",
         "motivo_alteracao_salario",
+        "motivo_alteracao_beneficios",
         mode="before",
     )
     @classmethod

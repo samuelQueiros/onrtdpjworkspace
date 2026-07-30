@@ -321,6 +321,7 @@ textarea   { resize: vertical; min-height: 80px; }
 .timeline-dot-mudanca_cargo,
 .timeline-dot-mudanca_departamento { background: var(--teal); }
 .timeline-dot-reajuste_salarial { background: var(--amber); }
+.timeline-dot-beneficio { background: var(--blue); }
 .timeline-content { flex: 1; min-width: 0; }
 .timeline-header {
   display: flex;

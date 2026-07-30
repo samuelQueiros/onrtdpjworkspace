@@ -145,13 +145,19 @@ class UserUpdate(BaseModel):
     saldo_atual_dias: Optional[int] = Field(default=None, ge=0, le=3650)
     motivo_ajuste_saldo: Optional[str] = Field(default=None, min_length=3, max_length=500)
     proxima_concessao_ferias: Optional[date] = None
+    motivo_alteracao_funcional: Optional[str] = Field(default=None, max_length=300)
+    tipo_alteracao_funcional: Optional[Literal["real", "correcao"]] = None
 
     @field_validator("email", mode="before")
     @classmethod
     def normalizar_email(cls, valor):
         return str(valor).strip().lower() if valor is not None else valor
 
-    @field_validator("nome", "telefone", "telefone_emergencia", "telefone_emergencia_2", "cargo", mode="before")
+    @field_validator(
+        "nome", "telefone", "telefone_emergencia", "telefone_emergencia_2", "cargo",
+        "motivo_alteracao_funcional",
+        mode="before",
+    )
     @classmethod
     def normalizar_textos(cls, valor):
         if valor is None:

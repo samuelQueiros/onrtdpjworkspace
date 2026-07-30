@@ -28,6 +28,8 @@ export const blankUserForm = {
   saldo_atual_dias: '',
   motivo_ajuste_saldo: '',
   proxima_concessao_ferias: '',
+  motivo_alteracao_funcional: '',
+  tipo_alteracao_funcional: 'real',
 }
 
 export default function UserForm({
@@ -433,6 +435,30 @@ export default function UserForm({
                 placeholder="Obrigatório somente quando o saldo for alterado"
               />
               <small className="form-hint">Todo ajuste gera uma movimentação e um registro de auditoria.</small>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="user-tipo-alteracao-funcional">Tipo de alteração (cargo/departamento)</label>
+                <select
+                  id="user-tipo-alteracao-funcional"
+                  value={form.tipo_alteracao_funcional}
+                  onChange={event => updateForm({ tipo_alteracao_funcional: event.target.value })}
+                >
+                  <option value="real">Mudança real</option>
+                  <option value="correcao">Correção de cadastro</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="user-motivo-alteracao-funcional">Motivo da alteração de cargo/departamento</label>
+                <input
+                  id="user-motivo-alteracao-funcional"
+                  type="text"
+                  maxLength="300"
+                  value={form.motivo_alteracao_funcional}
+                  onChange={event => updateForm({ motivo_alteracao_funcional: event.target.value })}
+                  placeholder="Obrigatório só se cargo ou departamento forem alterados"
+                />
+              </div>
             </div>
           </>
         )}

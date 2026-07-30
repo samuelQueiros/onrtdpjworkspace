@@ -19,7 +19,7 @@ from app.models.log import Log
 from app.models.user import User
 from app.repositories import users_repository
 from app.schemas.user import DadosBancarios, Endereco, UserConfigUpdate, UserCreate, UserUpdate
-from app.services import cargos_service
+from app.services import cargos_service, historico_colaborador_service
 
 
 def calcular_dias_restantes(user: User, db: Session) -> int:
@@ -333,6 +333,18 @@ def criar_usuario(
     )
     try:
         users_repository.salvar_usuario_com_log(db, novo_user, log, commit=False)
+
+        if cargo:
+            historico_colaborador_service.processar_alteracao_se_necessario(
+                db, novo_user.id, "cargo", None, cargo.nome, None, None, current_user,
+            )
+        if novo_user.departamento_id:
+            departamento = users_repository.obter_departamento_por_id(db, novo_user.departamento_id)
+            if departamento:
+                historico_colaborador_service.processar_alteracao_se_necessario(
+                    db, novo_user.id, "departamento", None, departamento.nome, None, None, current_user,
+                )
+
         from app.services.ferias_service import registrar_saldo_inicial
 
         registrar_saldo_inicial(
@@ -354,6 +366,9 @@ def criar_usuario(
 
 def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user: User) -> dict:
     user = buscar_usuario(db, user_id)
+    cargo_anterior_nome = user.cargo.nome if user.cargo else None
+    departamento_anterior_nome = user.departamento.nome if user.departamento else None
+    departamento_novo_nome = departamento_anterior_nome
 
     if payload.nome is not None:
         user.nome = payload.nome
@@ -367,9 +382,12 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
     if payload.departamento_id is not None:
         if payload.departamento_id == 0:
             user.departamento_id = None
+            departamento_novo_nome = None
         else:
             validar_departamento(db, payload.departamento_id)
             user.departamento_id = payload.departamento_id
+            novo_departamento = users_repository.obter_departamento_por_id(db, payload.departamento_id)
+            departamento_novo_nome = novo_departamento.nome if novo_departamento else None
     if payload.data_admissao is not None:
         user.data_admissao = payload.data_admissao
     if payload.data_aniversario is not None:
@@ -398,11 +416,22 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
         user.endereco = _serializar_endereco(payload.endereco)
     if "dados_bancarios" in payload.model_fields_set:
         user.dados_bancarios = _serializar_dados_bancarios(payload.dados_bancarios)
+    cargo_novo_nome = cargo_anterior_nome
     if "cargo" in payload.model_fields_set:
         cargo = cargos_service.obter_cargo_por_nome(db, payload.cargo)
         user.cargo_id = cargo.id if cargo else None
+        cargo_novo_nome = cargo.nome if cargo else None
     if "cpf" in payload.model_fields_set and payload.cpf:
         user.cpf_criptografado, user.cpf_hash = preparar_cpf(db, payload.cpf, user.id)
+
+    historico_colaborador_service.processar_alteracao_se_necessario(
+        db, user.id, "cargo", cargo_anterior_nome, cargo_novo_nome,
+        payload.motivo_alteracao_funcional, payload.tipo_alteracao_funcional, current_user,
+    )
+    historico_colaborador_service.processar_alteracao_se_necessario(
+        db, user.id, "departamento", departamento_anterior_nome, departamento_novo_nome,
+        payload.motivo_alteracao_funcional, payload.tipo_alteracao_funcional, current_user,
+    )
 
     if payload.saldo_atual_dias is not None:
         from app.services.ferias_service import (

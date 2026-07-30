@@ -16,4 +16,5 @@ export const usersService = {
   meuPerfil: () => req('GET', '/users/me/perfil'),
   minhaFichaAdmissional: () => req('GET', '/users/me/ficha-admissional'),
   historicoSalarial: id => req('GET', `/users/${id}/historico-salarial`),
+  historicoFuncional: id => req('GET', `/users/${id}/historico-funcional`),
 }

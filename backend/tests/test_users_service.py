@@ -7,8 +7,27 @@ from unittest.mock import MagicMock, patch
 from fastapi import HTTPException
 from openpyxl import load_workbook
 
-from app.schemas.user import DadosBancarios, UserConfigUpdate
+from app.models.historico_colaborador import HistoricoColaborador
+from app.schemas.user import DadosBancarios, UserConfigUpdate, UserCreate, UserUpdate
 from app.services import users_service
+
+
+class FakeDb:
+    def __init__(self):
+        self.added = []
+        self.committed = False
+
+    def add(self, value):
+        self.added.append(value)
+
+    def commit(self):
+        self.committed = True
+
+    def refresh(self, _value):
+        pass
+
+    def flush(self):
+        pass
 
 
 class UsersServiceTests(unittest.TestCase):
@@ -465,6 +484,155 @@ class UsersServiceTests(unittest.TestCase):
         self.assertEqual(resultado["telefone"], "(61) 99999-9999")
         self.assertEqual(resultado["telefone_emergencia"], "(61) 98888-8888")
         self.assertNotIn("cpf_mascarado", resultado)
+
+    def test_editar_usuario_grava_historico_no_cadastro_inicial_de_cargo(self):
+        db = FakeDb()
+        cargo_obj = SimpleNamespace(id=5, nome="Analista")
+        user = SimpleNamespace(id=7, nome="Gabriel", email="gabriel@sistema.com", cargo=None, departamento=None)
+        payload = UserUpdate(cargo="Analista")
+
+        with (
+            patch("app.services.users_service.buscar_usuario", return_value=user),
+            patch("app.services.users_service.cargos_service.obter_cargo_por_nome", return_value=cargo_obj),
+            patch("app.services.users_service.users_repository.atualizar_usuario_com_log"),
+            patch("app.services.users_service.formatar_usuario", return_value={"id": 7}),
+            patch(
+                "app.services.historico_colaborador_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+        ):
+            users_service.editar_usuario(db, 7, payload, SimpleNamespace(id=1, nome="Admin"))
+
+        historicos = [item for item in db.added if isinstance(item, HistoricoColaborador)]
+        self.assertEqual(len(historicos), 1)
+        self.assertEqual(historicos[0].campo, "cargo")
+        self.assertEqual(historicos[0].tipo_alteracao, "real")
+        self.assertEqual(historicos[0].motivo, "Cadastro inicial")
+
+    def test_editar_usuario_exige_motivo_e_tipo_ao_trocar_cargo_existente(self):
+        db = FakeDb()
+        cargo_novo = SimpleNamespace(id=6, nome="Coordenador")
+        user = SimpleNamespace(
+            id=7, email="gabriel@sistema.com",
+            cargo=SimpleNamespace(nome="Analista"), departamento=None,
+        )
+        payload = UserUpdate(cargo="Coordenador")
+
+        with (
+            patch("app.services.users_service.buscar_usuario", return_value=user),
+            patch("app.services.users_service.cargos_service.obter_cargo_por_nome", return_value=cargo_novo),
+        ):
+            with self.assertRaises(HTTPException) as exc:
+                users_service.editar_usuario(db, 7, payload, SimpleNamespace(id=1, nome="Admin"))
+
+        self.assertEqual(exc.exception.status_code, 400)
+        self.assertFalse(db.committed)
+
+    def test_editar_usuario_grava_historico_de_departamento_com_motivo_e_tipo(self):
+        db = FakeDb()
+        departamento_novo = SimpleNamespace(id=3, nome="Financeiro")
+        user = SimpleNamespace(
+            id=7, nome="Gabriel", email="gabriel@sistema.com", cargo=None,
+            departamento=SimpleNamespace(nome="Comercial"),
+        )
+        payload = UserUpdate(
+            departamento_id=3,
+            motivo_alteracao_funcional="Transferência de área",
+            tipo_alteracao_funcional="real",
+        )
+
+        with (
+            patch("app.services.users_service.buscar_usuario", return_value=user),
+            patch("app.services.users_service.validar_departamento"),
+            patch(
+                "app.services.users_service.users_repository.obter_departamento_por_id",
+                return_value=departamento_novo,
+            ),
+            patch("app.services.users_service.users_repository.atualizar_usuario_com_log"),
+            patch("app.services.users_service.formatar_usuario", return_value={"id": 7}),
+            patch(
+                "app.services.historico_colaborador_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+        ):
+            users_service.editar_usuario(db, 7, payload, SimpleNamespace(id=1, nome="Admin"))
+
+        historicos = [item for item in db.added if isinstance(item, HistoricoColaborador)]
+        self.assertEqual(len(historicos), 1)
+        self.assertEqual(historicos[0].campo, "departamento")
+        self.assertEqual(historicos[0].motivo, "Transferência de área")
+
+    def test_editar_usuario_nao_grava_historico_quando_cargo_nao_muda(self):
+        db = FakeDb()
+        cargo_atual = SimpleNamespace(id=5, nome="Analista")
+        user = SimpleNamespace(id=7, nome="Gabriel", email="gabriel@sistema.com", cargo=cargo_atual, departamento=None)
+        payload = UserUpdate(cargo="Analista")
+
+        with (
+            patch("app.services.users_service.buscar_usuario", return_value=user),
+            patch("app.services.users_service.cargos_service.obter_cargo_por_nome", return_value=cargo_atual),
+            patch("app.services.users_service.users_repository.atualizar_usuario_com_log"),
+            patch("app.services.users_service.formatar_usuario", return_value={"id": 7}),
+        ):
+            users_service.editar_usuario(db, 7, payload, SimpleNamespace(id=1, nome="Admin"))
+
+        historicos = [item for item in db.added if isinstance(item, HistoricoColaborador)]
+        self.assertEqual(len(historicos), 0)
+
+    def test_criar_usuario_registra_historico_inicial_de_cargo_e_departamento(self):
+        db = FakeDb()
+        cargo_obj = SimpleNamespace(id=5, nome="Analista")
+        departamento_obj = SimpleNamespace(id=3, nome="Financeiro")
+        payload = UserCreate(
+            nome="Gabriel",
+            email="gabriel@sistema.com",
+            senha="Segura123!",
+            role="user",
+            dias_totais=30,
+            saldo_inicial_dias=15,
+            departamento_id=3,
+            data_admissao=date(2026, 1, 10),
+            data_aniversario=date(1990, 5, 20),
+            cor="#3b82f6",
+            telefone="(11) 99999-9999",
+            telefone_emergencia="(11) 98888-8888",
+            telefone_emergencia_2="(11) 97777-7777",
+            endereco={
+                "logradouro": "Rua Exemplo", "numero": "10", "bairro": "Centro",
+                "cidade": "São Paulo", "cep": "01000-000",
+            },
+            dados_bancarios={
+                "banco": "Banco Exemplo", "agencia": "1234", "conta": "56789-0",
+                "cpf_titular": "529.982.247-25", "nome_titular": "Gabriel",
+                "chave_pix": "gabriel@sistema.com",
+            },
+            cargo="Analista",
+            cpf="529.982.247-25",
+        )
+
+        with (
+            patch("app.services.users_service.validar_email_disponivel"),
+            patch("app.services.users_service.validar_departamento"),
+            patch("app.services.users_service.cargos_service.obter_cargo_por_nome", return_value=cargo_obj),
+            patch("app.services.users_service.preparar_cpf", return_value=("cpf-enc", "cpf-hash")),
+            patch("app.services.users_service.users_repository.salvar_usuario_com_log"),
+            patch(
+                "app.services.users_service.users_repository.obter_departamento_por_id",
+                return_value=departamento_obj,
+            ),
+            patch("app.services.ferias_service.registrar_saldo_inicial"),
+            patch("app.services.users_service.formatar_usuario", return_value={"id": 7}),
+            patch(
+                "app.services.historico_colaborador_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+        ):
+            users_service.criar_usuario(db, payload, SimpleNamespace(id=1, nome="Admin"), commit=False)
+
+        historicos = [item for item in db.added if isinstance(item, HistoricoColaborador)]
+        campos = sorted(item.campo for item in historicos)
+        self.assertEqual(campos, ["cargo", "departamento"])
+        self.assertTrue(all(item.motivo == "Cadastro inicial" for item in historicos))
 
 
 if __name__ == "__main__":

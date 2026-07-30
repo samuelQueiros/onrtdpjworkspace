@@ -12,6 +12,7 @@ from app.schemas.ficha_admissional import (
     FichaAdmissionalOut,
     FichaAdmissionalUpdate,
 )
+from app.schemas.historico_colaborador import HistoricoColaboradorOut
 from app.schemas.historico_salarial import HistoricoSalarialOut
 from app.services import fichas_admissionais_service, importacao_service
 
@@ -57,6 +58,15 @@ def historico_salarial(
     current_user: User = Depends(require_admin),
 ):
     return fichas_admissionais_service.historico_salarial(db, user_id, current_user)
+
+
+@router.get("/users/{user_id}/historico-funcional", response_model=list[HistoricoColaboradorOut])
+def historico_funcional(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    return fichas_admissionais_service.historico_funcional(db, user_id, current_user)
 
 
 @router.get("/users/{user_id}/ficha-admissional/modelo")

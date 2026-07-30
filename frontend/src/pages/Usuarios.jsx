@@ -97,6 +97,10 @@ export default function Usuarios() {
         if (form.senha) payload.senha = form.senha
         payload.saldo_atual_dias = Number(form.saldo_atual_dias)
         if (form.motivo_ajuste_saldo.trim()) payload.motivo_ajuste_saldo = form.motivo_ajuste_saldo.trim()
+        if (form.motivo_alteracao_funcional.trim()) {
+          payload.motivo_alteracao_funcional = form.motivo_alteracao_funcional.trim()
+          payload.tipo_alteracao_funcional = form.tipo_alteracao_funcional
+        }
         await api.editarUsuario(editing, payload)
         toast.success('Usuário atualizado com sucesso.')
       } else {
@@ -145,6 +149,8 @@ export default function Usuarios() {
       saldo_atual_dias: user.dias_restantes,
       motivo_ajuste_saldo: '',
       proxima_concessao_ferias: user.proxima_concessao_ferias || '',
+      motivo_alteracao_funcional: '',
+      tipo_alteracao_funcional: 'real',
       })
       setModalOpen(true)
     } catch (error) {

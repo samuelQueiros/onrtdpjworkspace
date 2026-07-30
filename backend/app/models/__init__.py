@@ -12,6 +12,7 @@ from .cargo import Cargo
 from .ficha_admissional import FichaAdmissional
 from .saldo_ferias import SaldoFeriasMovimento
 from .historico_salarial import HistoricoSalarial
+from .historico_colaborador import HistoricoColaborador
 from .patrimonio import (
     Equipamento,
     EquipamentoEvento,

@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from openpyxl import load_workbook
 
 from app.models.ficha_admissional import FichaAdmissional
+from app.models.historico_colaborador import HistoricoColaborador
 from app.models.historico_salarial import HistoricoSalarial
 from app.schemas.ficha_admissional import FichaAdmissionalUpdate
 from app.services import fichas_admissionais_service
@@ -288,6 +289,136 @@ class FichasAdmissionaisServiceTests(unittest.TestCase):
 
         historicos = [item for item in db.added if isinstance(item, HistoricoSalarial)]
         self.assertEqual(len(historicos), 0)
+
+    def test_atualizar_ficha_grava_historico_de_beneficios_no_cadastro_inicial(self):
+        db = FakeDb()
+        ficha = ficha_vazia()  # sem valor_beneficios_criptografado
+        payload = FichaAdmissionalUpdate(valor_beneficios=Decimal("300.00"))
+
+        with (
+            patch("app.services.fichas_admissionais_service.users_service.buscar_usuario"),
+            patch(
+                "app.services.fichas_admissionais_service.fichas_admissionais_repository.obter_por_usuario",
+                return_value=ficha,
+            ),
+            patch("app.services.fichas_admissionais_service.fichas_admissionais_repository.salvar"),
+            patch(
+                "app.services.fichas_admissionais_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+            patch(
+                "app.services.fichas_admissionais_service.descriptografar_dado_sensivel",
+                side_effect=lambda valor: valor.removeprefix("enc:") if valor else None,
+            ),
+            patch(
+                "app.services.historico_colaborador_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+        ):
+            fichas_admissionais_service.atualizar_ficha(db, 7, payload, SimpleNamespace(id=1))
+
+        historicos = [item for item in db.added if isinstance(item, HistoricoColaborador)]
+        self.assertEqual(len(historicos), 1)
+        self.assertEqual(historicos[0].campo, "valor_beneficios")
+        self.assertEqual(historicos[0].tipo_alteracao, "real")
+        self.assertEqual(historicos[0].motivo, "Cadastro inicial")
+
+    def test_atualizar_ficha_exige_motivo_e_tipo_ao_alterar_beneficios_existente(self):
+        db = FakeDb()
+        ficha = ficha_vazia()
+        ficha.valor_beneficios_criptografado = "enc:300.00"
+        payload = FichaAdmissionalUpdate(valor_beneficios=Decimal("400.00"))
+
+        with (
+            patch("app.services.fichas_admissionais_service.users_service.buscar_usuario"),
+            patch(
+                "app.services.fichas_admissionais_service.fichas_admissionais_repository.obter_por_usuario",
+                return_value=ficha,
+            ),
+            patch("app.services.fichas_admissionais_service.fichas_admissionais_repository.salvar"),
+            patch(
+                "app.services.fichas_admissionais_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+            patch(
+                "app.services.fichas_admissionais_service.descriptografar_dado_sensivel",
+                side_effect=lambda valor: valor.removeprefix("enc:") if valor else None,
+            ),
+        ):
+            with self.assertRaises(HTTPException) as exc:
+                fichas_admissionais_service.atualizar_ficha(db, 7, payload, SimpleNamespace(id=1))
+
+        self.assertEqual(exc.exception.status_code, 400)
+
+    def test_atualizar_ficha_grava_beneficios_como_correcao_quando_informado(self):
+        db = FakeDb()
+        ficha = ficha_vazia()
+        ficha.valor_beneficios_criptografado = "enc:300.00"
+        payload = FichaAdmissionalUpdate(
+            valor_beneficios=Decimal("250.00"),
+            motivo_alteracao_beneficios="Erro de digitação no cadastro anterior",
+            tipo_alteracao_beneficios="correcao",
+        )
+
+        with (
+            patch("app.services.fichas_admissionais_service.users_service.buscar_usuario"),
+            patch(
+                "app.services.fichas_admissionais_service.fichas_admissionais_repository.obter_por_usuario",
+                return_value=ficha,
+            ),
+            patch("app.services.fichas_admissionais_service.fichas_admissionais_repository.salvar"),
+            patch(
+                "app.services.fichas_admissionais_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+            patch(
+                "app.services.fichas_admissionais_service.descriptografar_dado_sensivel",
+                side_effect=lambda valor: valor.removeprefix("enc:") if valor else None,
+            ),
+            patch(
+                "app.services.historico_colaborador_service.criptografar_dado_sensivel",
+                side_effect=lambda valor: f"enc:{valor}",
+            ),
+        ):
+            fichas_admissionais_service.atualizar_ficha(db, 7, payload, SimpleNamespace(id=1))
+
+        historicos = [item for item in db.added if isinstance(item, HistoricoColaborador)]
+        self.assertEqual(len(historicos), 1)
+        self.assertEqual(historicos[0].tipo_alteracao, "correcao")
+
+    def test_historico_funcional_descriptografa_e_audita(self):
+        db = FakeDb()
+        movimentos = [
+            SimpleNamespace(
+                campo="cargo",
+                valor_anterior_criptografado=None,
+                valor_novo_criptografado="enc:Analista",
+                tipo_alteracao="real",
+                motivo="Cadastro inicial",
+                data_vigencia=date(2026, 1, 1),
+                criado_em=datetime(2026, 1, 1, tzinfo=UTC),
+            ),
+        ]
+
+        with (
+            patch("app.services.fichas_admissionais_service.users_service.buscar_usuario"),
+            patch(
+                "app.services.historico_colaborador_service.historico_colaborador_repository.listar_por_usuario",
+                return_value=movimentos,
+            ),
+            patch(
+                "app.services.historico_colaborador_service.descriptografar_dado_sensivel",
+                side_effect=lambda valor: valor.removeprefix("enc:") if valor else None,
+            ),
+        ):
+            resultado = fichas_admissionais_service.historico_funcional(db, 7, SimpleNamespace(id=1))
+
+        self.assertEqual(len(resultado), 1)
+        self.assertEqual(resultado[0]["campo"], "cargo")
+        self.assertEqual(resultado[0]["valor_novo"], "Analista")
+        self.assertIsNone(resultado[0]["valor_anterior"])
+        self.assertEqual(db.added[0].acao, "HISTORICO_FUNCIONAL_CONSULTADO")
+        self.assertEqual(db.commits, 1)
 
     def test_historico_salarial_descriptografa_e_audita(self):
         db = FakeDb()

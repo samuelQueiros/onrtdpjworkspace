@@ -16,7 +16,7 @@ from app.models.log import Log
 from app.models.user import User
 from app.repositories import fichas_admissionais_repository, historico_salarial_repository
 from app.schemas.ficha_admissional import FichaAdmissionalUpdate
-from app.services import importacao_service, users_service
+from app.services import historico_colaborador_service, importacao_service, users_service
 
 
 CAMPOS_CRIPTOGRAFADOS = {
@@ -148,6 +148,9 @@ def atualizar_ficha(
     salario_anterior = (
         _valor_decimal(descriptografar_dado_sensivel(ficha.salario_criptografado)) if ficha else None
     )
+    valor_beneficios_anterior = (
+        _valor_decimal(descriptografar_dado_sensivel(ficha.valor_beneficios_criptografado)) if ficha else None
+    )
     if ficha is None:
         ficha = FichaAdmissional(
             user_id=user_id,
@@ -191,6 +194,19 @@ def atualizar_ficha(
             motivo=motivo,
             criado_por_id=current_user.id,
         ))
+
+    if "valor_beneficios" in payload.model_fields_set:
+        historico_colaborador_service.processar_alteracao_se_necessario(
+            db,
+            user_id,
+            "valor_beneficios",
+            str(valor_beneficios_anterior) if valor_beneficios_anterior is not None else None,
+            str(payload.valor_beneficios) if payload.valor_beneficios is not None else None,
+            payload.motivo_alteracao_beneficios,
+            payload.tipo_alteracao_beneficios,
+            current_user,
+            eh_importacao=origem_importacao,
+        )
 
     db.commit()
     db.refresh(ficha)
@@ -425,3 +441,15 @@ def historico_salarial(db: Session, user_id: int, current_user: User) -> list[di
         }
         for movimento in movimentos
     ]
+
+
+def historico_funcional(db: Session, user_id: int, current_user: User) -> list[dict]:
+    users_service.buscar_usuario(db, user_id)
+    resultado = historico_colaborador_service.listar_historico(db, user_id)
+    db.add(Log(
+        user_id=current_user.id,
+        acao="HISTORICO_FUNCIONAL_CONSULTADO",
+        detalhes=f"Historico funcional (cargo/departamento/beneficios) do usuario #{user_id} consultado por administrador",
+    ))
+    db.commit()
+    return resultado
