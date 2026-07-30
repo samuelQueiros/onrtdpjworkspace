@@ -14,7 +14,7 @@ from app.models.ficha_admissional import FichaAdmissional
 from app.models.log import Log
 from app.models.user import User
 from app.repositories import fichas_admissionais_repository
-from app.schemas.ficha_admissional import FichaAdmissionalSelfUpdate, FichaAdmissionalUpdate
+from app.schemas.ficha_admissional import FichaAdmissionalUpdate
 from app.services import importacao_service, users_service
 
 
@@ -132,38 +132,6 @@ def consultar_ficha(db: Session, user_id: int, current_user: User) -> dict | Non
 def minha_ficha(db: Session, current_user: User) -> dict | None:
     ficha = fichas_admissionais_repository.obter_por_usuario(db, current_user.id)
     return formatar_ficha(ficha) if ficha else None
-
-
-def atualizar_minha_ficha(
-    db: Session,
-    current_user: User,
-    payload: FichaAdmissionalSelfUpdate,
-) -> dict:
-    ficha = fichas_admissionais_repository.obter_por_usuario(db, current_user.id)
-    if ficha is None:
-        ficha = FichaAdmissional(
-            user_id=current_user.id,
-            criado_por_id=current_user.id,
-            atualizado_por_id=current_user.id,
-        )
-
-    for campo, atributo in CAMPOS_CRIPTOGRAFADOS.items():
-        if campo in payload.model_fields_set:
-            setattr(ficha, atributo, _valor_criptografado(getattr(payload, campo)))
-    for campo in CAMPOS_DIRETOS:
-        if campo in payload.model_fields_set:
-            setattr(ficha, campo, getattr(payload, campo))
-    ficha.atualizado_por_id = current_user.id
-
-    fichas_admissionais_repository.salvar(db, ficha, commit=False)
-    db.add(Log(
-        user_id=current_user.id,
-        acao="FICHA_ADMISSIONAL_AUTOATUALIZADA",
-        detalhes="Ficha admissional atualizada pelo proprio colaborador",
-    ))
-    db.commit()
-    db.refresh(ficha)
-    return formatar_ficha(ficha)
 
 
 def atualizar_ficha(

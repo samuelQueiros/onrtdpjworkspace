@@ -522,10 +522,6 @@ def atualizar_configuracoes(db: Session, payload: UserConfigUpdate, current_user
             if payload.telefone_emergencia_2
             else None
         )
-    if "endereco" in payload.model_fields_set:
-        current_user.endereco = _serializar_endereco(payload.endereco)
-    if "dados_bancarios" in payload.model_fields_set:
-        current_user.dados_bancarios = _serializar_dados_bancarios(payload.dados_bancarios)
 
     if senha_alterada:
         if not payload.senha_atual:

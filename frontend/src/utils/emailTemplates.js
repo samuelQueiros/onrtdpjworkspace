@@ -30,6 +30,34 @@ Peço que preparem os recibos de férias e confirmem o envio da documentação p
 Atenciosamente,`
 }
 
+async function copiarTexto(texto) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(texto)
+      return
+    } catch {
+      // Clipboard API indisponível/negada: cai para o fallback abaixo.
+    }
+  }
+
+  // Fallback para contextos sem HTTPS (ex.: acesso via IP na rede interna),
+  // onde navigator.clipboard nem sequer existe.
+  const textarea = document.createElement('textarea')
+  textarea.value = texto
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.focus()
+  textarea.select()
+  try {
+    if (!document.execCommand('copy')) {
+      throw new Error('Não foi possível copiar automaticamente.')
+    }
+  } finally {
+    document.body.removeChild(textarea)
+  }
+}
+
 export async function copiarModeloEmailFerias(alerta) {
-  await navigator.clipboard.writeText(montarModeloEmailFerias(alerta))
+  await copiarTexto(montarModeloEmailFerias(alerta))
 }

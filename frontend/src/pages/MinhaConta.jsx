@@ -11,7 +11,6 @@ export default function MinhaConta() {
   const [ficha, setFicha] = useState(null)
   const [ferias, setFerias] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
 
   const load = useCallback(() =>
     Promise.all([api.meuPerfil(), api.minhaFichaAdmissional(), api.minhasFerias()])
@@ -25,23 +24,6 @@ export default function MinhaConta() {
 
   useEffect(() => { load() }, [load])
 
-  const salvar = async ({ ficha: fichaPayload, endereco, dados_bancarios }) => {
-    setSaving(true)
-    try {
-      await Promise.all([
-        api.atualizarMinhaFichaAdmissional(fichaPayload),
-        api.updateConfig({ endereco, dados_bancarios }),
-      ])
-      toast.success('Dados atualizados com sucesso.')
-      await load()
-    } catch (error) {
-      toast.error(error.message)
-      throw error
-    } finally {
-      setSaving(false)
-    }
-  }
-
   if (loading) return <LoadingCard />
 
   return (
@@ -52,7 +34,7 @@ export default function MinhaConta() {
       />
       {perfil && (
         <div className="card minha-conta-card">
-          <MinhaContaDetalhes perfil={perfil} ficha={ficha} ferias={ferias} saving={saving} onSave={salvar} />
+          <MinhaContaDetalhes perfil={perfil} ficha={ficha} ferias={ferias} />
         </div>
       )}
     </>

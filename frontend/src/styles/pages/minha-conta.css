@@ -4,17 +4,7 @@
   flex-direction: column;
   gap: 22px;
 }
-.minha-conta-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
 .minha-conta-hint {
-  grid-column: 1 / -1;
-  margin: 2px 0 0;
-  font-size: 12px;
-}
-
-@media (max-width: 720px) {
-  .minha-conta-actions .btn { width: 100%; justify-content: center; }
+  margin: 0;
+  font-size: 12.5px;
 }

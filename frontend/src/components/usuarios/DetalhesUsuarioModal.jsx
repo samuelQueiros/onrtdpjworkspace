@@ -111,7 +111,7 @@ export default function DetalhesUsuarioModal({
                     onClick={onDownloadTemplate}
                     disabled={fichaDownloading || fichaImporting}
                   >
-                    {fichaDownloading ? 'Baixando...' : 'Baixar modelo Excel'}
+                    {fichaDownloading ? 'Exportando...' : 'Exportar'}
                   </button>
                   <label className={`btn btn-primary btn-sm clickable-label${fichaImporting ? ' disabled' : ''}`}>
                     {fichaImporting ? 'Importando...' : 'Importar Excel'}

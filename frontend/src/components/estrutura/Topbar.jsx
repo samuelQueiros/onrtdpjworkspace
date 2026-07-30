@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import PerfilPopover from './PerfilPopover'
 
 const Icon = {
@@ -27,8 +26,7 @@ const PAGES = {
   '/minha-conta': 'Minha Conta',
 }
 
-export default function Topbar({ user, pathname, dropOpen, dropRef, onToggleDrop, onCloseDrop, onLogout }) {
-  const navigate = useNavigate()
+export default function Topbar({ user, pathname, dropOpen, dropRef, onToggleDrop, onLogout }) {
   const [perfilOpen, setPerfilOpen] = useState(false)
   const perfilRef = useRef(null)
 
@@ -87,14 +85,6 @@ export default function Topbar({ user, pathname, dropOpen, dropRef, onToggleDrop
           <div id="user-account-menu" className="dropdown" role="menu">
             <button className="dropdown-item" type="button" role="menuitem" onClick={togglePerfil}>
               Meu perfil
-            </button>
-            <button
-              className="dropdown-item"
-              type="button"
-              role="menuitem"
-              onClick={() => { onCloseDrop(); navigate('/minha-conta') }}
-            >
-              Minha conta
             </button>
             <button className="dropdown-item danger" type="button" role="menuitem" onClick={onLogout}>
               {Icon.logout}
