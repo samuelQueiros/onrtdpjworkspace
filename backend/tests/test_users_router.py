@@ -12,7 +12,7 @@ class UsersRouterTests(unittest.TestCase):
     def test_troca_de_senha_renova_cookie_da_sessao_atual(self):
         payload = UserConfigUpdate(
             senha_atual="senha-antiga",
-            nova_senha="senha-nova",
+            nova_senha="SenhaNova1!",
         )
         response = Response()
         current_user = SimpleNamespace(

@@ -23,7 +23,7 @@ class SchemasDtoTests(unittest.TestCase):
         user = UserCreate(
             nome="Gabriel",
             email="gabriel@sistema.com",
-            senha="segura123",
+            senha="Segura123!",
             role="user",
             dias_totais=30,
             saldo_inicial_dias=15,

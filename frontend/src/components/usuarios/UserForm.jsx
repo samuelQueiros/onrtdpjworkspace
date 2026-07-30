@@ -3,6 +3,7 @@ import { useState } from 'react'
 import ColorPicker from './ColorPicker'
 import UserColorDot from './UserColorDot'
 import { maskCpf, maskPhone } from '../../utils/inputMasks'
+import { validarForcaSenha } from '../../utils/passwordValidation'
 
 export const blankUserForm = {
   nome: '',
@@ -91,6 +92,14 @@ export default function UserForm({
       setTimeout(() => document.getElementById(fieldId)?.focus(), 0)
       return
     }
+    if (form.senha) {
+      const erroSenha = validarForcaSenha(form.senha)
+      if (erroSenha) {
+        setValidationError(erroSenha)
+        setTimeout(() => document.getElementById('user-senha')?.focus(), 0)
+        return
+      }
+    }
     onSubmit(event)
   }
 
@@ -152,6 +161,9 @@ export default function UserForm({
             onChange={event => updateForm({ senha: event.target.value })}
             required={!editing}
           />
+          <small className="form-hint">
+            Mínimo de 8 caracteres, com letras, números e um caractere especial.
+          </small>
         </div>
         {!editing && (
           <div className="form-group">

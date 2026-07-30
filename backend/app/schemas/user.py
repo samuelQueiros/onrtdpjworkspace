@@ -4,6 +4,7 @@ from datetime import datetime, date
 import re
 
 from app.core.cpf import formatar_cpf, validar_cpf
+from app.core.security import validar_forca_senha
 
 
 def _validar_telefone(valor: str | None) -> str | None:
@@ -109,6 +110,11 @@ class UserCreate(BaseModel):
     def validar_cpf_colaborador(cls, valor: str) -> str:
         return formatar_cpf(validar_cpf(valor))
 
+    @field_validator("senha")
+    @classmethod
+    def validar_forca_senha_colaborador(cls, valor: str) -> str:
+        return validar_forca_senha(valor)
+
     @model_validator(mode="after")
     def validar_campos_estruturados(self):
         endereco = self.endereco.model_dump()
@@ -163,6 +169,11 @@ class UserUpdate(BaseModel):
     def validar_cpf_colaborador(cls, valor: str | None) -> str | None:
         return formatar_cpf(validar_cpf(valor)) if valor else None
 
+    @field_validator("senha")
+    @classmethod
+    def validar_forca_senha_colaborador(cls, valor: str | None) -> str | None:
+        return validar_forca_senha(valor) if valor else None
+
     @model_validator(mode="after")
     def validar_campos_estruturados(self):
         if self.endereco is not None:
@@ -193,6 +204,11 @@ class UserConfigUpdate(BaseModel):
             return None
         texto = " ".join(str(valor).split())
         return _validar_telefone(texto or None)
+
+    @field_validator("nova_senha")
+    @classmethod
+    def validar_forca_nova_senha(cls, valor: str | None) -> str | None:
+        return validar_forca_senha(valor) if valor else None
 
 
 class UserDepartamentoOut(BaseModel):

@@ -339,7 +339,7 @@ class UsersServiceTests(unittest.TestCase):
 
     def test_atualizar_configuracoes_exige_senha_atual_para_trocar_senha(self):
         current_user = SimpleNamespace(id=1, senha_hash="hash")
-        payload = UserConfigUpdate(nova_senha="nova-senha")
+        payload = UserConfigUpdate(nova_senha="NovaSenha1!")
 
         with self.assertRaises(HTTPException) as exc:
             users_service.atualizar_configuracoes(MagicMock(), payload, current_user)
@@ -362,7 +362,7 @@ class UsersServiceTests(unittest.TestCase):
 
     def test_atualizar_configuracoes_rejeita_senha_atual_incorreta(self):
         current_user = SimpleNamespace(id=1, senha_hash="hash")
-        payload = UserConfigUpdate(senha_atual="errada", nova_senha="nova-senha")
+        payload = UserConfigUpdate(senha_atual="errada", nova_senha="NovaSenha1!")
 
         with patch("app.services.users_service.verificar_senha", return_value=False):
             with self.assertRaises(HTTPException) as exc:
@@ -379,7 +379,7 @@ class UsersServiceTests(unittest.TestCase):
         )
         payload = UserConfigUpdate(
             senha_atual="senha-antiga",
-            nova_senha="senha-nova",
+            nova_senha="SenhaNova1!",
         )
 
         with (

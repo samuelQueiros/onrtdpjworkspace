@@ -100,7 +100,7 @@ class ImportacaoServiceTests(unittest.TestCase):
                 "Usuário", "Ativo", "10/01/2024", "20/05/1995", 30, 0,
                 "10/01/2027", "Rua A", "10", "Centro", "Brasília", "70000-000",
                 "Banco", "0001", "123-4", "529.982.247-25", "Pessoa A",
-                "pessoa@empresa.com", 30, "Temporaria@PessoaA",
+                "pessoa@empresa.com", 30, "Temporaria@Pessoa1",
             ),
         ]
         departamento = SimpleNamespace(id=4, nome="Tecnologia")
@@ -123,7 +123,7 @@ class ImportacaoServiceTests(unittest.TestCase):
 
         self.assertEqual(resultado["inseridos"], 1)
         payload = criar.call_args.args[1]
-        self.assertEqual(payload.senha, "Temporaria@PessoaA")
+        self.assertEqual(payload.senha, "Temporaria@Pessoa1")
         self.assertIn(payload.cor, importacao_service.CORES_IMPORTACAO)
         criar.assert_called_once_with(db, payload, current_user, commit=False)
 

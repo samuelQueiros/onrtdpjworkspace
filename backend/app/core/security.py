@@ -1,5 +1,6 @@
 import bcrypt
 import ipaddress
+import re
 import threading
 import time
 from collections import defaultdict, deque
@@ -44,6 +45,18 @@ def obter_ip_cliente(request: Request) -> str:
         if candidato:
             return candidato
     return request.headers.get("x-real-ip", "").strip() or peer_ip
+
+
+def validar_forca_senha(senha: str) -> str:
+    if len(senha) < 8:
+        raise ValueError("A senha deve ter pelo menos 8 caracteres.")
+    if not re.search(r"[A-Za-z]", senha):
+        raise ValueError("A senha deve conter pelo menos uma letra.")
+    if not re.search(r"\d", senha):
+        raise ValueError("A senha deve conter pelo menos um número.")
+    if not re.search(r"[^A-Za-z0-9]", senha):
+        raise ValueError("A senha deve conter pelo menos um caractere especial.")
+    return senha
 
 
 def hash_senha(senha: str) -> str:

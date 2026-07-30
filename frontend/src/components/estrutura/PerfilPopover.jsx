@@ -5,6 +5,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { api } from '../../services/api'
 import { formatDate } from '../../utils/formatters'
 import { maskPhone } from '../../utils/inputMasks'
+import { validarForcaSenha } from '../../utils/passwordValidation'
 
 const BANCARIOS_LABELS = {
   banco: 'Banco',
@@ -57,13 +58,16 @@ export default function PerfilPopover({ onClose }) {
 
   const submit = async event => {
     event.preventDefault()
-    if (form.nova_senha && form.nova_senha !== form.confirmar_senha) {
-      toast.error('A confirmação de senha não corresponde à nova senha.')
-      return
-    }
-    if (form.nova_senha && form.nova_senha.length < 8) {
-      toast.error('A nova senha deve ter pelo menos 8 caracteres.')
-      return
+    if (form.nova_senha) {
+      const erroSenha = validarForcaSenha(form.nova_senha)
+      if (erroSenha) {
+        toast.error(erroSenha)
+        return
+      }
+      if (form.nova_senha !== form.confirmar_senha) {
+        toast.error('A confirmação de senha não corresponde à nova senha.')
+        return
+      }
     }
 
     const payload = {
@@ -271,7 +275,10 @@ export default function PerfilPopover({ onClose }) {
                   onChange={event => update({ confirmar_senha: event.target.value })}
                 />
               </div>
-              <small className="form-hint">Deixe os campos de senha em branco para mantê-la inalterada.</small>
+              <small className="form-hint">
+                Deixe os campos de senha em branco para mantê-la inalterada. Para trocá-la, use pelo menos 8
+                caracteres, com letras, números e um caractere especial.
+              </small>
 
               <div className="button-row">
                 <button className="btn btn-primary" type="submit" disabled={saving}>

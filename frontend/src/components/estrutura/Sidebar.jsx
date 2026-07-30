@@ -50,6 +50,7 @@ export default function Sidebar({ user, pendingApprovals, avisosNaoVistos }) {
         <div className="nav-group">
           <span className="nav-label">Menu</span>
           <LinkItem to="/" end icon={Icon.home}>Dashboard</LinkItem>
+          <LinkItem to="/minha-conta" icon={Icon.account}>Minha Conta</LinkItem>
           <LinkItem to="/minhas-ferias" icon={Icon.calendar}>Minhas Férias</LinkItem>
           <LinkItem to="/minhas-autorizacoes" icon={Icon.patrimony}>Minhas Autorizações</LinkItem>
           <LinkItem to="/solicitar" icon={Icon.plus}>Solicitações</LinkItem>
@@ -57,7 +58,6 @@ export default function Sidebar({ user, pendingApprovals, avisosNaoVistos }) {
           <LinkItem to="/mural" icon={Icon.bell} badge={avisosNaoVistos} badgeLabel="não lido(s)">Mural de Avisos</LinkItem>
           <LinkItem to="/documentos" icon={Icon.file}>Documentos</LinkItem>
           <LinkItem to="/minhas-credenciais" icon={Icon.key}>Minhas Credenciais</LinkItem>
-          <LinkItem to="/minha-conta" icon={Icon.account}>Minha Conta</LinkItem>
         </div>
 
         {user?.role === 'admin' && (

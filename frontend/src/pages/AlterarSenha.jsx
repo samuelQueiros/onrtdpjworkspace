@@ -4,6 +4,7 @@ import '../styles/pages/login.css'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { api } from '../services/api'
+import { validarForcaSenha } from '../utils/passwordValidation'
 
 export default function AlterarSenha() {
   const { refreshUser } = useAuth()
@@ -16,8 +17,9 @@ export default function AlterarSenha() {
 
   const submit = async event => {
     event.preventDefault()
-    if (novaSenha.length < 8) {
-      toast.error('A nova senha deve ter pelo menos 8 caracteres.')
+    const erroSenha = validarForcaSenha(novaSenha)
+    if (erroSenha) {
+      toast.error(erroSenha)
       return
     }
     if (novaSenha !== confirmacao) {
@@ -77,6 +79,9 @@ export default function AlterarSenha() {
               onChange={event => setNovaSenha(event.target.value)}
               required
             />
+            <small className="form-hint">
+              Mínimo de 8 caracteres, com letras, números e ao menos um caractere especial.
+            </small>
           </div>
           <div className="form-group">
             <label htmlFor="confirmar-nova-senha">Confirmar nova senha</label>
