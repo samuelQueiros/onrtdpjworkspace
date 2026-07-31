@@ -1,9 +1,8 @@
-from datetime import date
-
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.crypto import criptografar_dado_sensivel, descriptografar_dado_sensivel
+from app.core.timezone import hoje_sao_paulo
 from app.models.historico_colaborador import HistoricoColaborador
 from app.models.user import User
 from app.repositories import historico_colaborador_repository
@@ -28,7 +27,7 @@ def registrar_alteracao(
         valor_novo_criptografado=criptografar_dado_sensivel(valor_novo),
         tipo_alteracao=tipo_alteracao,
         motivo=motivo,
-        data_vigencia=date.today(),
+        data_vigencia=hoje_sao_paulo(),
         criado_por_id=current_user.id,
     ))
 

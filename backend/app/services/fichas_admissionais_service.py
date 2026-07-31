@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.core.crypto import criptografar_dado_sensivel, descriptografar_dado_sensivel
+from app.core.timezone import hoje_sao_paulo
 from app.models.ficha_admissional import FichaAdmissional
 from app.models.historico_salarial import HistoricoSalarial
 from app.models.log import Log
@@ -221,7 +222,7 @@ def atualizar_ficha(
         db.add(HistoricoSalarial(
             user_id=user_id,
             salario_criptografado=criptografar_dado_sensivel(str(payload.salario)),
-            data_vigencia=date.today(),
+            data_vigencia=hoje_sao_paulo(),
             tipo=tipo,
             motivo=motivo,
             criado_por_id=current_user.id,

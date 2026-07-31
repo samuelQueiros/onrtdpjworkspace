@@ -2,7 +2,7 @@ import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import { formatCurrency } from '../DetailFields'
-import { formatDate } from '../../../utils/formatters'
+import { formatDateFromTimestamp } from '../../../utils/formatters'
 import { EmptyState } from '../PageHelpers'
 
 const LINE_COLOR = 'var(--green)'
@@ -21,7 +21,7 @@ function TooltipContent({ active, payload, label }) {
   return (
     <div className="chart-tooltip">
       <strong>{formatCurrency(payload[0].value)}</strong>
-      <span>{formatDate(label)}</span>
+      <span>{formatDateFromTimestamp(label)}</span>
     </div>
   )
 }
@@ -38,7 +38,7 @@ export default function SalaryLineChart({ data }) {
           <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="0" />
           <XAxis
             dataKey="data"
-            tickFormatter={formatDate}
+            tickFormatter={formatDateFromTimestamp}
             tick={{ fill: 'var(--muted)', fontSize: 11 }}
             axisLine={{ stroke: 'var(--border)' }}
             tickLine={false}

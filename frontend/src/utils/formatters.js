@@ -5,6 +5,25 @@ export function formatDate(value) {
   return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`
 }
 
+// Para campos `date` puros (sem hora, ex: data_vigencia), formatDate() é
+// seguro — só recorta a string, sem conversão de fuso. Mas para um
+// `datetime` completo em UTC (ex: criado_em) isso está errado: os 10
+// primeiros caracteres são a data em UTC, não em Brasília, então um evento
+// criado à noite (>= ~21h de Brasília) já virou o dia seguinte em UTC e
+// apareceria com a data adiantada. Esta função converte de fato pro fuso
+// de Brasília antes de extrair a data.
+export function formatDateFromTimestamp(value) {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date)
+}
+
 export function formatDateTime(value) {
   if (!value) return '-'
   const date = new Date(value)

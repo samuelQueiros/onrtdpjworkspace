@@ -1,4 +1,3 @@
-from datetime import date
 from io import BytesIO
 import json
 
@@ -9,6 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.core.security import hash_senha, verificar_senha
+from app.core.timezone import hoje_sao_paulo
 from app.core.cpf import formatar_cpf, mascarar_cpf, validar_cpf
 from app.core.crypto import (
     criptografar_dado_sensivel,
@@ -525,7 +525,7 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
 
 
 def listar_aniversariantes(db: Session) -> list[dict]:
-    hoje = date.today()
+    hoje = hoje_sao_paulo()
     return [
         {
             "nome": user.nome,

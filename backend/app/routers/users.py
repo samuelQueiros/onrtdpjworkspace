@@ -1,4 +1,3 @@
-from datetime import date
 from io import BytesIO
 
 from fastapi import APIRouter, Depends, Response, status
@@ -7,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.security import criar_token, get_current_user, require_admin
+from app.core.timezone import hoje_sao_paulo
 from app.database import get_db
 from app.models.user import User
 from app.schemas.common import MensagemOut
@@ -35,7 +35,7 @@ def exportar_usuarios(
     current_user: User = Depends(require_admin),
 ):
     conteudo = users_service.exportar_usuarios_xlsx(db, current_user)
-    nome_arquivo = f"colaboradores-{date.today().isoformat()}.xlsx"
+    nome_arquivo = f"colaboradores-{hoje_sao_paulo().isoformat()}.xlsx"
     return StreamingResponse(
         BytesIO(conteudo),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

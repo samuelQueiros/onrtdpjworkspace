@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
+from app.core.timezone import hoje_sao_paulo
 from app.models.ferias import Ferias
 from app.models.log import Log
 from app.models.saldo_ferias import SaldoFeriasMovimento
@@ -47,7 +48,7 @@ def feriado_bloqueante(data_inicio: date, feriados: set) -> tuple[date, int] | N
 
 
 def verificar_regras_data(data_inicio: date, data_fim: date) -> None:
-    hoje = date.today()
+    hoje = hoje_sao_paulo()
 
     if data_fim < data_inicio:
         raise HTTPException(status_code=400, detail="A data de fim nao pode ser anterior a data de inicio.")
@@ -87,7 +88,7 @@ def calcular_dias(data_inicio: date, data_fim: date) -> int:
 
 
 def get_ciclo_atual(data_admissao) -> tuple:
-    today = date.today()
+    today = hoje_sao_paulo()
 
     if not data_admissao:
         return date(today.year, 1, 1), date(today.year, 12, 31)
@@ -157,7 +158,7 @@ def _somar_anos(data: date, anos: int) -> date:
 def proxima_concessao_apos(data_admissao: date | None, referencia: date | None = None) -> date | None:
     if not data_admissao:
         return None
-    referencia = referencia or date.today()
+    referencia = referencia or hoje_sao_paulo()
     candidata = _somar_anos(data_admissao, max(referencia.year - data_admissao.year, 0))
     if candidata <= referencia:
         candidata = _somar_anos(candidata, 1)
@@ -178,7 +179,7 @@ def registrar_saldo_inicial(
         user_id=user.id,
         tipo="saldo_inicial",
         quantidade_dias=saldo_dias,
-        data_referencia=date.today(),
+        data_referencia=hoje_sao_paulo(),
         motivo="Saldo informado na implantacao/cadastro do colaborador.",
         criado_por_id=criado_por_id,
         chave_idempotencia=chave,
@@ -195,7 +196,7 @@ def sincronizar_creditos_anuais(
     hoje: date | None = None,
     commit: bool = True,
 ) -> int:
-    hoje = hoje or date.today()
+    hoje = hoje or hoje_sao_paulo()
     if getattr(user, "proxima_concessao_ferias", None) is None:
         user.proxima_concessao_ferias = proxima_concessao_apos(user.data_admissao, hoje)
         if user.proxima_concessao_ferias is not None and commit:
@@ -269,7 +270,7 @@ def ajustar_saldo(
         user_id=user.id,
         tipo="ajuste_manual",
         quantidade_dias=diferenca,
-        data_referencia=date.today(),
+        data_referencia=hoje_sao_paulo(),
         motivo=motivo,
         criado_por_id=current_user.id,
         chave_idempotencia=f"ajuste:{user.id}:{datetime.utcnow().isoformat()}",

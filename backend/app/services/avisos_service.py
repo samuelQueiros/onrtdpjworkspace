@@ -1,8 +1,7 @@
-from datetime import date
-
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.timezone import hoje_sao_paulo
 from app.models.aviso import Aviso
 from app.models.log import Log
 from app.models.user import User
@@ -30,7 +29,7 @@ def buscar_aviso(db: Session, aviso_id: int) -> Aviso:
 
 
 def listar_avisos(db: Session) -> list[dict]:
-    return [formatar_aviso(aviso) for aviso in avisos_repository.listar_avisos_ativos(db, date.today())]
+    return [formatar_aviso(aviso) for aviso in avisos_repository.listar_avisos_ativos(db, hoje_sao_paulo())]
 
 
 def listar_todos_avisos(db: Session) -> list[dict]:

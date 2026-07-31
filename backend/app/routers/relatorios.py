@@ -1,4 +1,3 @@
-from datetime import date
 from io import BytesIO
 
 from fastapi import APIRouter, Depends, Query
@@ -6,6 +5,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.security import require_admin
+from app.core.timezone import hoje_sao_paulo
 from app.database import get_db
 from app.schemas.relatorio import DashboardOut, LogsPageOut, RelatorioColaboradoresOut
 from app.services import relatorios_service
@@ -21,7 +21,7 @@ def relatorio_colaboradores(db: Session = Depends(get_db), _=Depends(require_adm
 @router.get("/relatorios/exportar")
 def exportar_relatorio_colaboradores(db: Session = Depends(get_db), _=Depends(require_admin)):
     conteudo = relatorios_service.exportar_relatorio_colaboradores_xlsx(db)
-    nome_arquivo = f"relatorio-ferias-{date.today().isoformat()}.xlsx"
+    nome_arquivo = f"relatorio-ferias-{hoje_sao_paulo().isoformat()}.xlsx"
     return StreamingResponse(
         BytesIO(conteudo),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -47,7 +47,7 @@ def listar_logs(
 @router.get("/logs/exportar")
 def exportar_logs(db: Session = Depends(get_db), _=Depends(require_admin)):
     conteudo = relatorios_service.exportar_logs_xlsx(db)
-    nome_arquivo = f"logs-sistema-{date.today().isoformat()}.xlsx"
+    nome_arquivo = f"logs-sistema-{hoje_sao_paulo().isoformat()}.xlsx"
     return StreamingResponse(
         BytesIO(conteudo),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
