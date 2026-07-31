@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { formatCurrency } from '../../utils/formatters'
+import { maskCurrency, numberToCurrencyMask, parseCurrencyToNumber } from '../../utils/inputMasks'
 
 export default function EditarDadosColaboradorForm({ user, ficha, cargos, departamentos, saving, onSave, onCancel }) {
   const [form, setForm] = useState({
@@ -7,10 +8,10 @@ export default function EditarDadosColaboradorForm({ user, ficha, cargos, depart
     departamento_id: user.departamento_id || '',
     motivo_alteracao_funcional: '',
     tipo_alteracao_funcional: 'real',
-    salario: ficha?.salario ?? '',
+    salario: numberToCurrencyMask(ficha?.salario),
     motivo_alteracao_salario: '',
     tipo_alteracao_salario: 'reajuste',
-    valor_beneficios: ficha?.valor_beneficios ?? '',
+    valor_beneficios: numberToCurrencyMask(ficha?.valor_beneficios),
     motivo_alteracao_beneficios: '',
     tipo_alteracao_beneficios: 'real',
   })
@@ -30,8 +31,8 @@ export default function EditarDadosColaboradorForm({ user, ficha, cargos, depart
     }
 
     const fichaPayload = {
-      salario: form.salario === '' ? null : form.salario,
-      valor_beneficios: form.valor_beneficios === '' ? null : form.valor_beneficios,
+      salario: parseCurrencyToNumber(form.salario),
+      valor_beneficios: parseCurrencyToNumber(form.valor_beneficios),
     }
     if (form.motivo_alteracao_salario.trim()) {
       fichaPayload.motivo_alteracao_salario = form.motivo_alteracao_salario.trim()
@@ -117,9 +118,9 @@ export default function EditarDadosColaboradorForm({ user, ficha, cargos, depart
                 id="edc-salario"
                 type="text"
                 inputMode="decimal"
-                placeholder="0.00"
+                placeholder="0,00"
                 value={form.salario}
-                onChange={event => update({ salario: event.target.value })}
+                onChange={event => update({ salario: maskCurrency(event.target.value) })}
               />
               {ficha?.salario && <small className="form-hint">Atual: {formatCurrency(ficha.salario)}</small>}
             </div>
@@ -161,9 +162,9 @@ export default function EditarDadosColaboradorForm({ user, ficha, cargos, depart
                 id="edc-beneficios"
                 type="text"
                 inputMode="decimal"
-                placeholder="0.00"
+                placeholder="0,00"
                 value={form.valor_beneficios}
-                onChange={event => update({ valor_beneficios: event.target.value })}
+                onChange={event => update({ valor_beneficios: maskCurrency(event.target.value) })}
               />
               {ficha?.valor_beneficios && <small className="form-hint">Atual: {formatCurrency(ficha.valor_beneficios)}</small>}
             </div>

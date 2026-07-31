@@ -225,14 +225,14 @@ def parse_bool(value) -> bool:
         return True
     if texto in {"0", "nao", "não", "n", "false", "falso", ""}:
         return False
-    raise ValueError(f"valor booleano invalido: {value}")
+    raise ValueError(f"valor booleano inválido: {value}")
 
 
 def carregar_linhas_planilha(conteudo: bytes, nome_aba: str | None = None) -> list[tuple]:
     try:
         import openpyxl
     except ImportError as exc:
-        raise HTTPException(status_code=500, detail="Biblioteca openpyxl nao instalada no servidor") from exc
+        raise HTTPException(status_code=500, detail="Biblioteca openpyxl não instalada no servidor") from exc
 
     wb = None
     try:
@@ -246,7 +246,7 @@ def carregar_linhas_planilha(conteudo: bytes, nome_aba: str | None = None) -> li
         wb = openpyxl.load_workbook(io.BytesIO(conteudo), read_only=True, data_only=True)
         if nome_aba:
             if nome_aba not in wb.sheetnames:
-                raise HTTPException(status_code=400, detail=f'Aba obrigatoria ausente: "{nome_aba}"')
+                raise HTTPException(status_code=400, detail=f'Aba obrigatória ausente: "{nome_aba}"')
             ws = wb[nome_aba]
         else:
             ws = wb["Colaboradores"] if "Colaboradores" in wb.sheetnames else wb.active
@@ -263,7 +263,7 @@ def carregar_linhas_planilha(conteudo: bytes, nome_aba: str | None = None) -> li
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(status_code=400, detail="Planilha XLSX invalida ou corrompida") from None
+        raise HTTPException(status_code=400, detail="Planilha XLSX inválida ou corrompida") from None
     finally:
         if wb is not None:
             wb.close()
@@ -486,13 +486,13 @@ def importar_ferias(db: Session, filename: str | None, conteudo: bytes, current_
 
         user = importacao_repository.obter_usuario_por_email(db, str(email_val).strip())
         if not user:
-            erros.append(f"Linha {i}: usuario '{email_val}' nao encontrado")
+            erros.append(f"Linha {i}: usuário '{email_val}' não encontrado")
             continue
 
         data_inicio = parse_date(inicio_val)
         data_fim = parse_date(fim_val)
         if not data_inicio or not data_fim:
-            erros.append(f"Linha {i}: datas invalidas ({inicio_val} / {fim_val})")
+            erros.append(f"Linha {i}: datas inválidas ({inicio_val} / {fim_val})")
             continue
 
         if data_fim < data_inicio:
@@ -500,7 +500,7 @@ def importar_ferias(db: Session, filename: str | None, conteudo: bytes, current_
             continue
 
         if importacao_repository.existe_ferias_periodo(db, user.id, data_inicio, data_fim):
-            erros.append(f"Linha {i}: periodo {data_inicio}-{data_fim} ja existe para {email_val}")
+            erros.append(f"Linha {i}: período {data_inicio}-{data_fim} já existe para {email_val}")
             continue
 
         try:
@@ -522,7 +522,7 @@ def importar_ferias(db: Session, filename: str | None, conteudo: bytes, current_
             dias = ferias_service.calcular_dias(data_inicio, data_fim)
             if not ferias_acordo:
                 if ferias_service.verificar_sobreposicao_departamento(db, user, data_inicio, data_fim):
-                    raise HTTPException(status_code=400, detail="limite simultaneo do departamento atingido")
+                    raise HTTPException(status_code=400, detail="limite simultâneo do departamento atingido")
                 saldo = ferias_service.calcular_saldo(db, user)
                 if saldo < dias:
                     raise HTTPException(status_code=400, detail=f"saldo insuficiente ({saldo} dias)")
@@ -546,7 +546,7 @@ def importar_ferias(db: Session, filename: str | None, conteudo: bytes, current_
             Log(
                 user_id=current_user.id,
                 acao="FERIAS_IMPORTADA",
-                detalhes=f"Periodo de {data_inicio} a {data_fim} importado para usuario #{user.id}",
+                detalhes=f"Período de {data_inicio} a {data_fim} importado para usuário #{user.id}",
             ),
         )
         # Cada linha usa sua propria transacao para liberar advisory locks e
@@ -584,13 +584,13 @@ def importar_logs(db: Session, filename: str | None, conteudo: bytes, current_us
         if email_val:
             user = importacao_repository.obter_usuario_por_email(db, str(email_val).strip())
             if not user:
-                erros.append(f"Linha {i}: usuario '{email_val}' nao encontrado")
+                erros.append(f"Linha {i}: usuário '{email_val}' não encontrado")
                 continue
             user_id = user.id
 
         criado_em = parse_datetime(data_val)
         if criado_em is None:
-            erros.append(f"Linha {i}: data invalida ({data_val})")
+            erros.append(f"Linha {i}: data inválida ({data_val})")
             continue
 
         acao_original = str(acao_val).strip() if acao_val else "SEM_ACAO"
@@ -617,7 +617,7 @@ def importar_logs(db: Session, filename: str | None, conteudo: bytes, current_us
                 user_id=current_user.id,
                 acao="LOTE_LOGS_IMPORTADO",
                 detalhes=(
-                    f"Lote com {inseridos} log(s) historico(s) importado. "
+                    f"Lote com {inseridos} log(s) histórico(s) importado. "
                     f"{len(erros)} linha(s) rejeitada(s)."
                 ),
                 criado_em=datetime.now(UTC).replace(tzinfo=None),

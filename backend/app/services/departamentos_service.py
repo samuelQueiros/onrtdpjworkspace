@@ -25,7 +25,7 @@ def formatar_departamento(db: Session, departamento: Departamento, incluir_total
 def buscar_departamento(db: Session, departamento_id: int) -> Departamento:
     departamento = departamentos_repository.obter_departamento_por_id(db, departamento_id)
     if not departamento:
-        raise HTTPException(status_code=404, detail="Departamento nao encontrado")
+        raise HTTPException(status_code=404, detail="Departamento não encontrado")
     return departamento
 
 
@@ -36,7 +36,7 @@ def validar_nome_disponivel(db: Session, nome: str, departamento_id: int | None 
         existente = departamentos_repository.obter_departamento_por_nome_exceto_id(db, nome, departamento_id)
 
     if existente:
-        raise HTTPException(status_code=400, detail="Ja existe um departamento com esse nome")
+        raise HTTPException(status_code=400, detail="Já existe um departamento com esse nome")
 
 
 def listar_departamentos(db: Session) -> list[dict]:

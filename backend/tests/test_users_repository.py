@@ -8,10 +8,12 @@ class FakeQuery:
     def __init__(self, result):
         self.result = result
         self.filtered = False
+        self.filter_args = []
         self.ordered = False
 
-    def filter(self, *_args):
+    def filter(self, *args):
         self.filtered = True
+        self.filter_args.extend(args)
         return self
 
     def order_by(self, *_args):
@@ -25,6 +27,9 @@ class FakeQuery:
         return self.result
 
     def all(self):
+        return self.result
+
+    def count(self):
         return self.result
 
 
@@ -72,6 +77,30 @@ class UsersRepositoryTests(unittest.TestCase):
 
         self.assertEqual(users_repository.listar_usuarios(db), users)
         self.assertTrue(db.last_query.ordered)
+
+    def test_listar_usuarios_exclui_admin_de_sistema(self):
+        users = [SimpleNamespace(id=1)]
+        db = FakeDb(query_result=users)
+
+        users_repository.listar_usuarios(db)
+
+        self.assertTrue(any("is_sistema" in str(arg) for arg in db.last_query.filter_args))
+
+    def test_listar_usuarios_com_aniversario_exclui_admin_de_sistema(self):
+        users = [SimpleNamespace(id=1)]
+        db = FakeDb(query_result=users)
+
+        users_repository.listar_usuarios_com_aniversario(db)
+
+        self.assertTrue(any("is_sistema" in str(arg) for arg in db.last_query.filter_args))
+
+    def test_contar_administradores_ativos_nao_exclui_admin_de_sistema(self):
+        db = FakeDb(query_result=3)
+
+        total = users_repository.contar_administradores_ativos(db)
+
+        self.assertEqual(total, 3)
+        self.assertFalse(any("is_sistema" in str(arg) for arg in db.last_query.filter_args))
 
     def test_salvar_usuario_com_log_atribui_id_ao_log_quando_ausente(self):
         user = SimpleNamespace(id=10)

@@ -51,19 +51,19 @@ def verificar_regras_data(data_inicio: date, data_fim: date) -> None:
     hoje = hoje_sao_paulo()
 
     if data_fim < data_inicio:
-        raise HTTPException(status_code=400, detail="A data de fim nao pode ser anterior a data de inicio.")
+        raise HTTPException(status_code=400, detail="A data de fim não pode ser anterior à data de início.")
 
     if data_inicio < hoje:
-        raise HTTPException(status_code=400, detail="A data de inicio nao pode ser anterior a hoje.")
+        raise HTTPException(status_code=400, detail="A data de início não pode ser anterior a hoje.")
 
     dia = data_inicio.weekday()
     permitidos = [NOMES_DIA[d] for d in DIAS_INICIO_PERMITIDOS]
 
     if dia not in DIAS_INICIO_PERMITIDOS:
-        motivo = "dia de descanso semanal remunerado (DSR)" if dia >= 5 else "as ferias somente podem iniciar as segunda, terca ou quarta-feira"
+        motivo = "dia de descanso semanal remunerado (DSR)" if dia >= 5 else "as férias somente podem iniciar às segunda, terça ou quarta-feira"
         raise HTTPException(
             status_code=400,
-            detail=f"Ferias nao podem iniciar em {NOMES_DIA[dia]}: {motivo}. Dias permitidos: {', '.join(permitidos)}.",
+            detail=f"Férias não podem iniciar em {NOMES_DIA[dia]}: {motivo}. Dias permitidos: {', '.join(permitidos)}.",
         )
 
     feriados = feriados_br({data_inicio.year, data_inicio.year + 1})
@@ -73,13 +73,13 @@ def verificar_regras_data(data_inicio: date, data_fim: date) -> None:
         feriado_data, offset = resultado
         feriado_str = feriado_data.strftime("%d/%m/%Y")
         motivo = (
-            f"e um feriado ({feriado_str})"
+            f"é um feriado ({feriado_str})"
             if offset == 0
-            else f"esta nos dois dias imediatamente anteriores ao feriado de {feriado_str}"
+            else f"está nos dois dias imediatamente anteriores ao feriado de {feriado_str}"
         )
         raise HTTPException(
             status_code=400,
-            detail=f"Ferias nao podem iniciar em {NOMES_DIA[dia]}: {motivo}. Dias permitidos: {', '.join(permitidos)}.",
+            detail=f"Férias não podem iniciar em {NOMES_DIA[dia]}: {motivo}. Dias permitidos: {', '.join(permitidos)}.",
         )
 
 
@@ -180,7 +180,7 @@ def registrar_saldo_inicial(
         tipo="saldo_inicial",
         quantidade_dias=saldo_dias,
         data_referencia=hoje_sao_paulo(),
-        motivo="Saldo informado na implantacao/cadastro do colaborador.",
+        motivo="Saldo informado na implantação/cadastro do colaborador.",
         criado_por_id=criado_por_id,
         chave_idempotencia=chave,
     ))
@@ -214,14 +214,14 @@ def sincronizar_creditos_anuais(
                 tipo="credito_anual",
                 quantidade_dias=user.dias_totais,
                 data_referencia=referencia,
-                motivo=f"Credito anual de ferias referente a {referencia.strftime('%d/%m/%Y')}.",
+                motivo=f"Crédito anual de férias referente a {referencia.strftime('%d/%m/%Y')}.",
                 criado_por_id=None,
                 chave_idempotencia=chave,
             ))
             db.add(Log(
                 user_id=user.id,
                 acao="SALDO_FERIAS_CREDITADO",
-                detalhes=f"Credito automatico de {user.dias_totais} dia(s) em {referencia.strftime('%d/%m/%Y')}.",
+                detalhes=f"Crédito automático de {user.dias_totais} dia(s) em {referencia.strftime('%d/%m/%Y')}.",
             ))
             criados += 1
         user.proxima_concessao_ferias = _somar_anos(referencia, 1)
@@ -345,7 +345,7 @@ def verificar_bloqueio_datas(db: Session, data_inicio: date, data_fim: date) -> 
         tipo_label = "recesso" if bloqueio.tipo == "recesso" else "bloqueio"
         raise HTTPException(
             status_code=400,
-            detail=f"O periodo solicitado esta dentro de um {tipo_label}: '{bloqueio.motivo}' ({bloqueio.data_inicio} a {bloqueio.data_fim}).",
+            detail=f"O período solicitado está dentro de um {tipo_label}: '{bloqueio.motivo}' ({bloqueio.data_inicio} a {bloqueio.data_fim}).",
         )
 
 
@@ -367,7 +367,7 @@ def verificar_sobreposicao_usuario(
         raise HTTPException(
             status_code=409,
             detail=(
-                "O periodo se sobrepoe a outra solicitacao de ferias "
+                "O período se sobrepõe a outra solicitação de férias "
                 f"({existente.data_inicio} a {existente.data_fim})."
             ),
         )
@@ -492,17 +492,17 @@ def registrar_ferias(db: Session, payload: FeriasCreate, current_user: User) -> 
     if payload.ferias_acordo and current_user.role != "admin":
         raise HTTPException(
             status_code=403,
-            detail="Ferias por acordo so podem ser registradas por um administrador",
+            detail="Férias por acordo só podem ser registradas por um administrador",
         )
 
     if not payload.ferias_acordo:
         if verificar_sobreposicao_departamento(db, current_user, payload.data_inicio, payload.data_fim):
             limite = get_limite_departamento(current_user, db)
-            raise HTTPException(status_code=400, detail=f"Limite de {limite} colaborador(es) simultaneo(s) no departamento ja atingido no periodo solicitado.")
+            raise HTTPException(status_code=400, detail=f"Limite de {limite} colaborador(es) simultâneo(s) no departamento já atingido no período solicitado.")
 
         saldo = calcular_saldo(db, current_user)
         if saldo < dias_solicitados:
-            raise HTTPException(status_code=400, detail=f"Saldo insuficiente. Voce possui {saldo} dia(s) disponivel(is) no ciclo atual, mas solicitou {dias_solicitados}.")
+            raise HTTPException(status_code=400, detail=f"Saldo insuficiente. Você possui {saldo} dia(s) disponível(is) no ciclo atual, mas solicitou {dias_solicitados}.")
 
     novo_status = "aprovada" if current_user.role == "admin" else "pendente"
     nova_ferias = Ferias(
@@ -514,7 +514,7 @@ def registrar_ferias(db: Session, payload: FeriasCreate, current_user: User) -> 
         ferias_acordo=payload.ferias_acordo,
     )
     acao = "FERIAS_REGISTRADA" if novo_status == "aprovada" else "FERIAS_SOLICITADA"
-    log = Log(user_id=current_user.id, acao=acao, detalhes=f"Periodo: {payload.data_inicio} a {payload.data_fim} ({dias_solicitados} dias) - status: {novo_status}")
+    log = Log(user_id=current_user.id, acao=acao, detalhes=f"Período: {payload.data_inicio} a {payload.data_fim} ({dias_solicitados} dias) - status: {novo_status}")
     ferias_repository.salvar_ferias_com_log(db, nova_ferias, log)
     return formatar_ferias(nova_ferias)
 
@@ -522,18 +522,18 @@ def registrar_ferias(db: Session, payload: FeriasCreate, current_user: User) -> 
 def buscar_ferias_para_atualizar(db: Session, ferias_id: int) -> Ferias:
     ferias = ferias_repository.obter_ferias_por_id_para_atualizar(db, ferias_id)
     if not ferias:
-        raise HTTPException(status_code=404, detail="Ferias nao encontradas")
+        raise HTTPException(status_code=404, detail="Férias não encontradas")
     return ferias
 
 
 def aprovar_ferias(db: Session, ferias_id: int, current_user: User) -> dict:
     ferias = buscar_ferias_para_atualizar(db, ferias_id)
     if ferias.status != "pendente":
-        raise HTTPException(status_code=400, detail=f"Solicitacao nao esta pendente (status atual: {ferias.status})")
+        raise HTTPException(status_code=400, detail=f"Solicitação não está pendente (status atual: {ferias.status})")
 
     owner = ferias_repository.obter_user_por_id(db, ferias.user_id)
     if owner is None:
-        raise HTTPException(status_code=404, detail="Colaborador nao encontrado")
+        raise HTTPException(status_code=404, detail="Colaborador não encontrado")
     bloquear_regras_ferias(db, owner)
     garantir_saldo_atualizado(db, owner, current_user.id, commit=False)
     verificar_regras_data(ferias.data_inicio, ferias.data_fim)
@@ -548,13 +548,13 @@ def aprovar_ferias(db: Session, ferias_id: int, current_user: User) -> dict:
     if not ferias.ferias_acordo:
         if verificar_sobreposicao_departamento(db, owner, ferias.data_inicio, ferias.data_fim, excluir_ferias_id=ferias_id):
             limite = get_limite_departamento(owner, db)
-            raise HTTPException(status_code=400, detail=f"Nao e possivel aprovar: limite de {limite} simultaneo(s) no departamento seria excedido.")
+            raise HTTPException(status_code=400, detail=f"Não é possível aprovar: limite de {limite} simultâneo(s) no departamento seria excedido.")
         saldo = calcular_saldo(db, owner, excluir_ferias_id=ferias_id)
         if saldo < ferias.dias_usados:
             raise HTTPException(
                 status_code=400,
                 detail=(
-                    f"Nao e possivel aprovar: saldo disponivel de {saldo} dia(s), "
+                    f"Não é possível aprovar: saldo disponível de {saldo} dia(s), "
                     f"solicitado de {ferias.dias_usados} dia(s)."
                 ),
             )
@@ -566,7 +566,7 @@ def aprovar_ferias(db: Session, ferias_id: int, current_user: User) -> dict:
     ferias.rejeitado_por_id = None
     ferias.rejeitado_em = None
 
-    log = Log(user_id=current_user.id, acao="FERIAS_APROVADA", detalhes=f"Ferias #{ferias_id} de {owner.nome} aprovadas ({ferias.data_inicio} a {ferias.data_fim})")
+    log = Log(user_id=current_user.id, acao="FERIAS_APROVADA", detalhes=f"Férias #{ferias_id} de {owner.nome} aprovadas ({ferias.data_inicio} a {ferias.data_fim})")
     ferias_repository.atualizar_ferias_com_log(db, ferias, log)
     return formatar_ferias(ferias)
 
@@ -574,7 +574,7 @@ def aprovar_ferias(db: Session, ferias_id: int, current_user: User) -> dict:
 def rejeitar_ferias(db: Session, ferias_id: int, payload: FeriasAprovar, current_user: User) -> dict:
     ferias = buscar_ferias_para_atualizar(db, ferias_id)
     if ferias.status != "pendente":
-        raise HTTPException(status_code=400, detail=f"Solicitacao nao esta pendente (status atual: {ferias.status})")
+        raise HTTPException(status_code=400, detail=f"Solicitação não está pendente (status atual: {ferias.status})")
 
     owner = ferias_repository.obter_user_por_id(db, ferias.user_id)
     ferias.status = "rejeitada"
@@ -584,7 +584,7 @@ def rejeitar_ferias(db: Session, ferias_id: int, payload: FeriasAprovar, current
     ferias.aprovado_por_id = None
     ferias.aprovado_em = None
 
-    log = Log(user_id=current_user.id, acao="FERIAS_REJEITADA", detalhes=f"Ferias #{ferias_id} de {owner.nome} rejeitadas. Motivo: {payload.motivo_rejeicao or 'nao informado'}")
+    log = Log(user_id=current_user.id, acao="FERIAS_REJEITADA", detalhes=f"Férias #{ferias_id} de {owner.nome} rejeitadas. Motivo: {payload.motivo_rejeicao or 'não informado'}")
     ferias_repository.atualizar_ferias_com_log(db, ferias, log)
     return formatar_ferias(ferias)
 
@@ -594,13 +594,13 @@ def editar_ferias(db: Session, ferias_id: int, payload: FeriasUpdate, current_us
 
     if current_user.role != "admin":
         if ferias.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Sem permissao para editar ferias de outro usuario")
+            raise HTTPException(status_code=403, detail="Sem permissão para editar férias de outro usuário")
         if ferias.status not in ("pendente",):
-            raise HTTPException(status_code=403, detail="Apenas ferias pendentes podem ser editadas pelo colaborador")
+            raise HTTPException(status_code=403, detail="Apenas férias pendentes podem ser editadas pelo colaborador")
 
     owner = ferias_repository.obter_user_por_id(db, ferias.user_id)
     if owner is None:
-        raise HTTPException(status_code=404, detail="Colaborador nao encontrado")
+        raise HTTPException(status_code=404, detail="Colaborador não encontrado")
     bloquear_regras_ferias(db, owner)
     garantir_saldo_atualizado(db, owner, current_user.id, commit=False)
     nova_inicio = payload.data_inicio if payload.data_inicio is not None else ferias.data_inicio
@@ -620,24 +620,24 @@ def editar_ferias(db: Session, ferias_id: int, payload: FeriasUpdate, current_us
     if novo_acordo and current_user.role != "admin":
         raise HTTPException(
             status_code=403,
-            detail="Ferias por acordo so podem ser definidas por um administrador",
+            detail="Férias por acordo só podem ser definidas por um administrador",
         )
 
     if not novo_acordo:
         if verificar_sobreposicao_departamento(db, owner, nova_inicio, nova_fim, excluir_ferias_id=ferias_id):
             limite = get_limite_departamento(owner, db)
-            raise HTTPException(status_code=400, detail=f"Limite de {limite} simultaneo(s) no departamento seria excedido.")
+            raise HTTPException(status_code=400, detail=f"Limite de {limite} simultâneo(s) no departamento seria excedido.")
 
         saldo = calcular_saldo(db, owner, excluir_ferias_id=ferias_id)
         if saldo < dias_solicitados:
-            raise HTTPException(status_code=400, detail=f"Saldo insuficiente. Disponivel: {saldo} dia(s), solicitado: {dias_solicitados}.")
+            raise HTTPException(status_code=400, detail=f"Saldo insuficiente. Disponível: {saldo} dia(s), solicitado: {dias_solicitados}.")
 
     ferias.data_inicio = nova_inicio
     ferias.data_fim = nova_fim
     ferias.dias_usados = dias_solicitados
     ferias.ferias_acordo = novo_acordo
 
-    log = Log(user_id=current_user.id, acao="FERIAS_EDITADA", detalhes=f"Ferias #{ferias_id} de {owner.nome} alteradas para {nova_inicio} a {nova_fim} ({dias_solicitados} dias)")
+    log = Log(user_id=current_user.id, acao="FERIAS_EDITADA", detalhes=f"Férias #{ferias_id} de {owner.nome} alteradas para {nova_inicio} a {nova_fim} ({dias_solicitados} dias)")
     ferias_repository.atualizar_ferias_com_log(db, ferias, log)
     return formatar_ferias(ferias)
 
@@ -645,9 +645,9 @@ def editar_ferias(db: Session, ferias_id: int, payload: FeriasUpdate, current_us
 def cancelar_ferias(db: Session, ferias_id: int, current_user: User) -> None:
     ferias = buscar_ferias_para_atualizar(db, ferias_id)
     if current_user.role != "admin" and ferias.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Sem permissao para cancelar ferias de outro usuario")
+        raise HTTPException(status_code=403, detail="Sem permissão para cancelar férias de outro usuário")
 
     owner = ferias_repository.obter_user_por_id(db, ferias.user_id)
-    detalhes = f"Ferias #{ferias_id} de {owner.nome if owner else '?'} ({ferias.data_inicio} a {ferias.data_fim}) canceladas"
+    detalhes = f"Férias #{ferias_id} de {owner.nome if owner else '?'} ({ferias.data_inicio} a {ferias.data_fim}) canceladas"
     log = Log(user_id=current_user.id, acao="FERIAS_CANCELADA", detalhes=detalhes)
     ferias_repository.excluir_ferias_com_log(db, ferias, log)

@@ -8,12 +8,14 @@ class FakeQuery:
     def __init__(self, result):
         self.result = result
         self.filtered = False
+        self.filter_args = []
         self.ordered = False
         self.joined = False
         self.deleted = False
 
-    def filter(self, *_args):
+    def filter(self, *args):
         self.filtered = True
+        self.filter_args.extend(args)
         return self
 
     def order_by(self, *_args):
@@ -74,6 +76,13 @@ class CredenciaisRepositoryTests(unittest.TestCase):
 
         self.assertEqual(credenciais_repository.listar_credenciais(db), credenciais)
         self.assertTrue(db.last_query.ordered)
+
+    def test_listar_usuarios_exclui_admin_de_sistema(self):
+        usuarios = [SimpleNamespace(id=1)]
+        db = FakeDb(query_result=usuarios)
+
+        self.assertEqual(credenciais_repository.listar_usuarios(db), usuarios)
+        self.assertTrue(any("is_sistema" in str(arg) for arg in db.last_query.filter_args))
 
     def test_listar_credenciais_por_usuario_faz_join_e_filtro(self):
         credenciais = [SimpleNamespace(id=1)]

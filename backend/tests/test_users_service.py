@@ -57,7 +57,7 @@ class UsersServiceTests(unittest.TestCase):
                 users_service.preparar_cpf(SimpleNamespace(), "529.982.247-25", excluir_user_id=2)
 
         self.assertEqual(exc.exception.status_code, 400)
-        self.assertEqual(exc.exception.detail, "CPF ja cadastrado para outro colaborador")
+        self.assertEqual(exc.exception.detail, "CPF já cadastrado para outro colaborador")
 
     def test_preparar_cpf_rejeita_cpf_invalido_antes_de_consultar_banco(self):
         with patch("app.services.users_service.users_repository.obter_usuario_por_cpf_hash") as repo_mock:
@@ -386,7 +386,7 @@ class UsersServiceTests(unittest.TestCase):
             users_service.atualizar_configuracoes(MagicMock(), payload, current_user)
 
         self.assertEqual(exc.exception.status_code, 400)
-        self.assertIn("obrigatoria", exc.exception.detail)
+        self.assertIn("obrigatória", exc.exception.detail)
 
     def test_atualizar_configuracoes_rejeita_senha_atual_incorreta(self):
         current_user = SimpleNamespace(id=1, senha_hash="hash")

@@ -24,7 +24,7 @@ def formatar_aviso(aviso: Aviso) -> dict:
 def buscar_aviso(db: Session, aviso_id: int) -> Aviso:
     aviso = avisos_repository.obter_aviso_por_id(db, aviso_id)
     if not aviso:
-        raise HTTPException(status_code=404, detail="Aviso nao encontrado")
+        raise HTTPException(status_code=404, detail="Aviso não encontrado")
     return aviso
 
 

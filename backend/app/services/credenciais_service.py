@@ -36,7 +36,7 @@ def formatar_credencial(credencial: Credencial, incluir_senha: bool = False) -> 
 def buscar_credencial(db: Session, credencial_id: int) -> Credencial:
     credencial = credenciais_repository.obter_credencial_por_id(db, credencial_id)
     if not credencial:
-        raise HTTPException(status_code=404, detail="Credencial nao encontrada")
+        raise HTTPException(status_code=404, detail="Credencial não encontrada")
     return credencial
 
 
@@ -62,7 +62,7 @@ def revelar_credencial(
         current_user.id,
     )
     if not autorizado:
-        raise HTTPException(status_code=404, detail="Credencial nao encontrada")
+        raise HTTPException(status_code=404, detail="Credencial não encontrada")
     chave_limite = f"reveal:{current_user.id}"
     verificar_limite_login(chave_limite)
     if not verificar_senha(senha_atual, current_user.senha_hash):
@@ -178,14 +178,14 @@ def salvar_permissoes(
     if invalidos:
         raise HTTPException(
             status_code=400,
-            detail=f"Usuarios invalidos ou inativos: {', '.join(map(str, invalidos))}",
+            detail=f"Usuários inválidos ou inativos: {', '.join(map(str, invalidos))}",
         )
     if current_user is not None:
         db.add(Log(
             user_id=current_user.id,
             acao="CREDENCIAL_PERMISSOES_ATUALIZADAS",
             detalhes=(
-                f"Permissoes da credencial #{credencial_id} atualizadas "
+                f"Permissões da credencial #{credencial_id} atualizadas "
                 f"para {len(ids_unicos)} usuario(s)"
             ),
         ))

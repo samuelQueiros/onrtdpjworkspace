@@ -111,16 +111,16 @@ def gerar_nome_armazenamento(nome_original: str | None, mime: str) -> str:
 
 def caminho_documento(doc: Documento) -> Path:
     if not doc.caminho_arquivo:
-        raise HTTPException(status_code=404, detail="Arquivo do documento nao encontrado")
+        raise HTTPException(status_code=404, detail="Arquivo do documento não encontrado")
 
     upload_dir = obter_upload_dir()
     caminho = (upload_dir / doc.caminho_arquivo).resolve()
 
     if upload_dir not in caminho.parents and caminho != upload_dir:
-        raise HTTPException(status_code=400, detail="Caminho do documento invalido")
+        raise HTTPException(status_code=400, detail="Caminho do documento inválido")
 
     if not caminho.is_file():
-        raise HTTPException(status_code=404, detail="Arquivo do documento nao encontrado")
+        raise HTTPException(status_code=404, detail="Arquivo do documento não encontrado")
 
     return caminho
 

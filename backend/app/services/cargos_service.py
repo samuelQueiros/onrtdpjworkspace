@@ -30,14 +30,14 @@ def obter_cargo_por_nome(db: Session, nome: str | None) -> Cargo | None:
         return None
     cargo = cargos_repository.obter_cargo_por_nome(db, nome)
     if not cargo:
-        raise HTTPException(status_code=400, detail="Cargo nao cadastrado")
+        raise HTTPException(status_code=400, detail="Cargo não cadastrado")
     return cargo
 
 
 def criar_cargo(db: Session, payload: CargoCreate, current_user: User) -> dict:
     nome = _nome_limpo(payload.nome)
     if cargos_repository.obter_cargo_por_nome(db, nome):
-        raise HTTPException(status_code=400, detail="Ja existe um cargo com esse nome")
+        raise HTTPException(status_code=400, detail="Já existe um cargo com esse nome")
     cargo = Cargo(nome=nome)
     log = Log(user_id=current_user.id, acao="CARGO_CRIADO", detalhes=f"Cargo '{nome}' criado")
     cargos_repository.salvar_com_log(db, cargo, log)
@@ -47,10 +47,10 @@ def criar_cargo(db: Session, payload: CargoCreate, current_user: User) -> dict:
 def editar_cargo(db: Session, cargo_id: int, payload: CargoUpdate, current_user: User) -> dict:
     cargo = cargos_repository.obter_cargo_por_id(db, cargo_id)
     if not cargo:
-        raise HTTPException(status_code=404, detail="Cargo nao encontrado")
+        raise HTTPException(status_code=404, detail="Cargo não encontrado")
     nome = _nome_limpo(payload.nome)
     if cargos_repository.obter_cargo_por_nome_exceto_id(db, nome, cargo_id):
-        raise HTTPException(status_code=400, detail="Ja existe um cargo com esse nome")
+        raise HTTPException(status_code=400, detail="Já existe um cargo com esse nome")
     cargo.nome = nome
     log = Log(user_id=current_user.id, acao="CARGO_EDITADO", detalhes=f"Cargo #{cargo_id} renomeado para '{nome}'")
     cargos_repository.atualizar_com_log(db, cargo, log)
@@ -60,6 +60,6 @@ def editar_cargo(db: Session, cargo_id: int, payload: CargoUpdate, current_user:
 def excluir_cargo(db: Session, cargo_id: int, current_user: User) -> None:
     cargo = cargos_repository.obter_cargo_por_id(db, cargo_id)
     if not cargo:
-        raise HTTPException(status_code=404, detail="Cargo nao encontrado")
+        raise HTTPException(status_code=404, detail="Cargo não encontrado")
     log = Log(user_id=current_user.id, acao="CARGO_EXCLUIDO", detalhes=f"Cargo '{cargo.nome}' excluido")
     cargos_repository.excluir_com_log(db, cargo, log)

@@ -61,7 +61,7 @@ class BootstrapServiceTests(unittest.TestCase):
 
         admin_existente = SimpleNamespace(
             id=1, role="admin", senha_hash="hash-atual", token_version=0,
-            ativo=True, must_change_password=False,
+            ativo=True, must_change_password=False, is_sistema=True,
         )
 
         with (
@@ -78,6 +78,30 @@ class BootstrapServiceTests(unittest.TestCase):
         salvar.assert_not_called()
         self.assertEqual(admin_existente.token_version, 0)
 
+    def test_garantir_admin_inicial_marca_is_sistema_em_admin_pre_existente(self):
+        os.environ["ENVIRONMENT"] = "development"
+        os.environ["ADMIN_EMAIL"] = "admin@sistema.com"
+        os.environ["ADMIN_PASSWORD"] = "senha-atual"
+
+        admin_existente = SimpleNamespace(
+            id=1, role="admin", senha_hash="hash-atual", token_version=0,
+            ativo=True, must_change_password=False, is_sistema=False,
+        )
+        db = MagicMock()
+
+        with (
+            patch(
+                "app.services.bootstrap_service.users_repository.obter_usuario_por_email",
+                return_value=admin_existente,
+            ),
+            patch("app.services.bootstrap_service.verificar_senha", return_value=True),
+        ):
+            response = bootstrap_service.garantir_admin_inicial(db)
+
+        self.assertEqual(response, "admin_existente")
+        self.assertTrue(admin_existente.is_sistema)
+        db.commit.assert_called_once()
+
     def test_garantir_admin_inicial_sincroniza_senha_quando_diferente(self):
         os.environ["ENVIRONMENT"] = "development"
         os.environ["ADMIN_EMAIL"] = "admin@sistema.com"
@@ -85,7 +109,7 @@ class BootstrapServiceTests(unittest.TestCase):
 
         admin_existente = SimpleNamespace(
             id=1, role="admin", senha_hash="hash-antigo", token_version=3,
-            ativo=True, must_change_password=True,
+            ativo=True, must_change_password=True, is_sistema=False,
         )
 
         with (
@@ -103,6 +127,7 @@ class BootstrapServiceTests(unittest.TestCase):
         self.assertEqual(admin_existente.senha_hash, "hash-novo")
         self.assertEqual(admin_existente.token_version, 4)
         self.assertFalse(admin_existente.must_change_password)
+        self.assertTrue(admin_existente.is_sistema)
         log = salvar.call_args.args[2]
         self.assertEqual(log.acao, "ADMIN_SENHA_SINCRONIZADA_VIA_ENV")
 

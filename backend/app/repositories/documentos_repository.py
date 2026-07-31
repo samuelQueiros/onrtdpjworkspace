@@ -49,7 +49,7 @@ def _consulta_historico(
             Documento.tipo.in_(TIPOS_DOCUMENTOS_HISTORICO),
         )
     else:
-        raise ValueError("Caixa de documentos invalida")
+        raise ValueError("Caixa de documentos inválida")
 
     if filtro_usuario_id is not None:
         consulta = consulta.filter(Documento.user_id == filtro_usuario_id)

@@ -177,7 +177,7 @@ def exportar_usuarios_xlsx(db: Session, current_user: User) -> bytes:
     db.add(Log(
         user_id=current_user.id,
         acao="DADOS_SENSIVEIS_USUARIOS_EXPORTADOS",
-        detalhes=f"Planilha confidencial com dados de {len(usuarios)} usuario(s) exportada por administrador",
+        detalhes=f"Planilha confidencial com dados de {len(usuarios)} usuário(s) exportada por administrador",
     ))
     db.commit()
     return arquivo.getvalue()
@@ -232,7 +232,7 @@ def consultar_dados_sensiveis(db: Session, user_id: int, current_user: User) -> 
     log = Log(
         user_id=current_user.id,
         acao="CPF_COMPLETO_E_DADOS_SENSIVEIS_CONSULTADOS",
-        detalhes=f"CPF completo e dados sensiveis do usuario #{user_id} consultados por administrador",
+        detalhes=f"CPF completo e dados sensíveis do usuário #{user_id} consultados por administrador",
     )
     db.add(log)
     db.commit()
@@ -242,7 +242,7 @@ def consultar_dados_sensiveis(db: Session, user_id: int, current_user: User) -> 
 def buscar_usuario(db: Session, user_id: int) -> User:
     user = users_repository.obter_usuario_por_id(db, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Usuario nao encontrado")
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
     return user
 
 
@@ -250,27 +250,27 @@ def validar_email_disponivel(db: Session, email: str, user_id: int | None = None
     if user_id is None:
         existente = users_repository.obter_usuario_por_email(db, email)
         if existente:
-            raise HTTPException(status_code=400, detail="E-mail ja cadastrado")
+            raise HTTPException(status_code=400, detail="E-mail já cadastrado")
         return
 
     existente = users_repository.obter_usuario_por_email_exceto_id(db, email, user_id)
     if existente:
-        raise HTTPException(status_code=400, detail="E-mail ja em uso por outro usuario")
+        raise HTTPException(status_code=400, detail="E-mail já em uso por outro usuário")
 
 
 def validar_departamento(db: Session, departamento_id: int | None) -> None:
     if departamento_id and not users_repository.obter_departamento_por_id(db, departamento_id):
-        raise HTTPException(status_code=404, detail="Departamento nao encontrado")
+        raise HTTPException(status_code=404, detail="Departamento não encontrado")
 
 
 def preparar_cpf(db: Session, cpf: str, excluir_user_id: int | None = None) -> tuple[str, str]:
     try:
         normalizado = validar_cpf(cpf)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail="CPF invalido") from exc
+        raise HTTPException(status_code=400, detail="CPF inválido") from exc
     cpf_hash = hash_dado_sensivel(normalizado)
     if users_repository.obter_usuario_por_cpf_hash(db, cpf_hash, excluir_user_id):
-        raise HTTPException(status_code=400, detail="CPF ja cadastrado para outro colaborador")
+        raise HTTPException(status_code=400, detail="CPF já cadastrado para outro colaborador")
     return criptografar_dado_sensivel(normalizado), cpf_hash
 
 
@@ -327,7 +327,7 @@ def criar_usuario(
     log = Log(
         user_id=novo_user.id,
         acao="USUARIO_CRIADO",
-        detalhes=f"Usuario {novo_user.nome} ({novo_user.email}) criado por {current_user.nome}",
+        detalhes=f"Usuário {novo_user.nome} ({novo_user.email}) criado por {current_user.nome}",
     )
     try:
         users_repository.salvar_usuario_com_log(db, novo_user, log, commit=False)
@@ -357,7 +357,7 @@ def criar_usuario(
             db.refresh(novo_user)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="E-mail ou CPF ja cadastrado") from exc
+        raise HTTPException(status_code=409, detail="E-mail ou CPF já cadastrado") from exc
 
     return formatar_usuario(novo_user, db)
 
@@ -525,13 +525,13 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
     log = Log(
         user_id=current_user.id,
         acao="USUARIO_EDITADO",
-        detalhes=f"Usuario {user.nome} ({user.email}) editado por {current_user.nome}: {resumo}",
+        detalhes=f"Usuário {user.nome} ({user.email}) editado por {current_user.nome}: {resumo}",
     )
     try:
         users_repository.atualizar_usuario_com_log(db, user, log)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="E-mail ou CPF ja cadastrado") from exc
+        raise HTTPException(status_code=409, detail="E-mail ou CPF já cadastrado") from exc
 
     return formatar_usuario(user, db)
 
@@ -551,11 +551,11 @@ def listar_aniversariantes(db: Session) -> list[dict]:
 
 def desativar_usuario(db: Session, user_id: int, current_user: User) -> None:
     if user_id == current_user.id:
-        raise HTTPException(status_code=400, detail="Voce nao pode excluir sua propria conta")
+        raise HTTPException(status_code=400, detail="Você não pode excluir sua própria conta")
 
     user = buscar_usuario(db, user_id)
     if user.role == "admin" and users_repository.contar_administradores_ativos(db) <= 1:
-        raise HTTPException(status_code=400, detail="O ultimo administrador ativo nao pode ser desativado")
+        raise HTTPException(status_code=400, detail="O último administrador ativo não pode ser desativado")
     if not user.ativo:
         return
     from app.repositories import patrimonios_repository
@@ -564,7 +564,7 @@ def desativar_usuario(db: Session, user_id: int, current_user: User) -> None:
         raise HTTPException(
             status_code=409,
             detail=(
-                "O colaborador possui autorizacao de equipamento em aberto. "
+                "O colaborador possui autorização de equipamento em aberto. "
                 "Conclua ou encerre o fluxo antes de desativar a conta."
             ),
         )
@@ -572,13 +572,13 @@ def desativar_usuario(db: Session, user_id: int, current_user: User) -> None:
     log = Log(
         user_id=current_user.id,
         acao="USUARIO_DESATIVADO",
-        detalhes=f"Usuario {user.nome} ({user.email}) desativado por {current_user.nome}",
+        detalhes=f"Usuário {user.nome} ({user.email}) desativado por {current_user.nome}",
     )
     try:
         users_repository.atualizar_usuario_com_log(db, user, log)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="E-mail ou CPF ja cadastrado") from exc
+        raise HTTPException(status_code=409, detail="E-mail ou CPF já cadastrado") from exc
 
 
 def reativar_usuario(db: Session, user_id: int, current_user: User) -> dict:
@@ -589,7 +589,7 @@ def reativar_usuario(db: Session, user_id: int, current_user: User) -> dict:
     log = Log(
         user_id=current_user.id,
         acao="USUARIO_REATIVADO",
-        detalhes=f"Usuario {user.nome} ({user.email}) reativado por {current_user.nome}",
+        detalhes=f"Usuário {user.nome} ({user.email}) reativado por {current_user.nome}",
     )
     users_repository.atualizar_usuario_com_log(db, user, log)
     return formatar_usuario(user, db)
@@ -601,7 +601,7 @@ def atualizar_configuracoes(db: Session, payload: UserConfigUpdate, current_user
     if troca_obrigatoria and not senha_alterada:
         raise HTTPException(
             status_code=400,
-            detail="A troca da senha temporaria e obrigatoria antes de continuar",
+            detail="A troca da senha temporária é obrigatória antes de continuar",
         )
     if payload.nome is not None:
         current_user.nome = payload.nome
@@ -625,7 +625,7 @@ def atualizar_configuracoes(db: Session, payload: UserConfigUpdate, current_user
 
     if senha_alterada:
         if not payload.senha_atual:
-            raise HTTPException(status_code=400, detail="Informe a senha atual para altera-la")
+            raise HTTPException(status_code=400, detail="Informe a senha atual para alterá-la")
         if not verificar_senha(payload.senha_atual, current_user.senha_hash):
             raise HTTPException(status_code=400, detail="Senha atual incorreta")
         if verificar_senha(payload.nova_senha, current_user.senha_hash):
@@ -636,7 +636,7 @@ def atualizar_configuracoes(db: Session, payload: UserConfigUpdate, current_user
 
     if troca_obrigatoria:
         acao = "SENHA_TEMPORARIA_SUBSTITUIDA"
-        detalhes = "Senha temporaria substituida no primeiro acesso"
+        detalhes = "Senha temporária substituída no primeiro acesso"
     elif senha_alterada:
         acao = "SENHA_ALTERADA"
         detalhes = "Senha da conta alterada"
@@ -653,7 +653,7 @@ def atualizar_configuracoes(db: Session, payload: UserConfigUpdate, current_user
         users_repository.salvar_usuario(db, current_user)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="E-mail ja cadastrado") from exc
+        raise HTTPException(status_code=409, detail="E-mail já cadastrado") from exc
     return formatar_usuario(current_user, db)
 
 

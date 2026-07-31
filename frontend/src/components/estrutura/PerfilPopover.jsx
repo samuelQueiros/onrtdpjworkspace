@@ -35,6 +35,9 @@ export default function PerfilPopover({ onClose }) {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(blankForm)
   const [mostrarBancarios, setMostrarBancarios] = useState(false)
+  const [mostrarSenhaAtual, setMostrarSenhaAtual] = useState(false)
+  const [mostrarNovaSenha, setMostrarNovaSenha] = useState(false)
+  const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false)
 
   const carregar = useCallback(() => api.meuPerfil()
     .then(dados => {
@@ -242,42 +245,72 @@ export default function PerfilPopover({ onClose }) {
 
               <div className="form-group">
                 <label htmlFor="perfil-senha-atual">Senha atual</label>
-                <input
-                  id="perfil-senha-atual"
-                  name="senha_atual"
-                  type="password"
-                  autoComplete="current-password"
-                  value={form.senha_atual}
-                  onChange={event => update({ senha_atual: event.target.value })}
-                />
+                <div className="field-with-action">
+                  <input
+                    id="perfil-senha-atual"
+                    name="senha_atual"
+                    type={mostrarSenhaAtual ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    value={form.senha_atual}
+                    onChange={event => update({ senha_atual: event.target.value })}
+                    className="flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarSenhaAtual(current => !current)}
+                    className="btn btn-outline btn-sm nowrap"
+                  >
+                    {mostrarSenhaAtual ? 'Ocultar' : 'Mostrar'}
+                  </button>
+                </div>
               </div>
               <div className="form-group">
                 <label htmlFor="perfil-nova-senha">Nova senha</label>
-                <input
-                  id="perfil-nova-senha"
-                  name="nova_senha"
-                  type="password"
-                  minLength="8"
-                  autoComplete="new-password"
-                  value={form.nova_senha}
-                  onChange={event => update({ nova_senha: event.target.value })}
-                />
+                <div className="field-with-action">
+                  <input
+                    id="perfil-nova-senha"
+                    name="nova_senha"
+                    type={mostrarNovaSenha ? 'text' : 'password'}
+                    minLength="8"
+                    autoComplete="new-password"
+                    value={form.nova_senha}
+                    onChange={event => update({ nova_senha: event.target.value })}
+                    className="flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarNovaSenha(current => !current)}
+                    className="btn btn-outline btn-sm nowrap"
+                  >
+                    {mostrarNovaSenha ? 'Ocultar' : 'Mostrar'}
+                  </button>
+                </div>
               </div>
               <div className="form-group">
                 <label htmlFor="perfil-confirmar-senha">Confirmar nova senha</label>
-                <input
-                  id="perfil-confirmar-senha"
-                  name="confirmar_senha"
-                  type="password"
-                  minLength="8"
-                  autoComplete="new-password"
-                  value={form.confirmar_senha}
-                  onChange={event => update({ confirmar_senha: event.target.value })}
-                />
+                <div className="field-with-action">
+                  <input
+                    id="perfil-confirmar-senha"
+                    name="confirmar_senha"
+                    type={mostrarConfirmarSenha ? 'text' : 'password'}
+                    minLength="8"
+                    autoComplete="new-password"
+                    value={form.confirmar_senha}
+                    onChange={event => update({ confirmar_senha: event.target.value })}
+                    className="flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarConfirmarSenha(current => !current)}
+                    className="btn btn-outline btn-sm nowrap"
+                  >
+                    {mostrarConfirmarSenha ? 'Ocultar' : 'Mostrar'}
+                  </button>
+                </div>
               </div>
               <small className="form-hint">
                 Deixe os campos de senha em branco para mantê-la inalterada. Para trocá-la, use pelo menos 8
-                caracteres, com letras, números e um caractere especial.
+                caracteres, com letra maiúscula, letra minúscula, número e caractere especial.
               </small>
 
               <div className="button-row">

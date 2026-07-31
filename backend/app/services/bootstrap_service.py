@@ -50,6 +50,7 @@ def garantir_admin_inicial(db: Session) -> str:
             role="admin",
             dias_totais=30,
             must_change_password=False,
+            is_sistema=True,
         )
         log = Log(
             user_id=None,
@@ -71,11 +72,15 @@ def garantir_admin_inicial(db: Session) -> str:
         return "admin_email_pertence_a_usuario_nao_admin"
 
     if verificar_senha(admin_password, usuario_existente.senha_hash):
+        if not usuario_existente.is_sistema:
+            usuario_existente.is_sistema = True
+            db.commit()
         return "admin_existente"
 
     usuario_existente.senha_hash = hash_senha(admin_password)
     usuario_existente.ativo = True
     usuario_existente.must_change_password = False
+    usuario_existente.is_sistema = True
     usuario_existente.token_version += 1  # revoga sessoes emitidas com a senha antiga
     log = Log(
         user_id=usuario_existente.id,

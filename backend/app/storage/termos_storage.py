@@ -29,7 +29,7 @@ def _slug(valor: str, fallback: str, limite: int = 80) -> str:
 
 def _validar_solicitacao_id(solicitacao_id: int) -> None:
     if not isinstance(solicitacao_id, int) or isinstance(solicitacao_id, bool) or solicitacao_id <= 0:
-        raise ValueError("Identificador de solicitacao invalido.")
+        raise ValueError("Identificador de solicitação inválido.")
 
 
 def montar_nome_arquivo_termo(
@@ -53,7 +53,7 @@ def _diretorio_termo(nome_colaborador: str, solicitacao_id: int) -> Path:
         / f"solicitacao-{solicitacao_id}"
     ).resolve()
     if upload_dir not in diretorio.parents:
-        raise ValueError("Caminho de armazenamento do termo invalido.")
+        raise ValueError("Caminho de armazenamento do termo inválido.")
     diretorio.mkdir(parents=True, exist_ok=True)
     return diretorio
 
@@ -75,7 +75,7 @@ def _resultado(
     upload_dir = obter_upload_dir().resolve()
     caminho_resolvido = caminho.resolve()
     if upload_dir not in caminho_resolvido.parents:
-        raise ValueError("Caminho do termo fora do diretorio de uploads.")
+        raise ValueError("Caminho do termo fora do diretório de uploads.")
     return TermoArquivo(
         caminho_relativo=caminho_resolvido.relative_to(upload_dir).as_posix(),
         caminho_absoluto=caminho_resolvido,
@@ -95,7 +95,7 @@ def salvar_termo_pdf(
 ) -> TermoArquivo:
     """Salva o termo em arquivo único por solicitação/versão usando troca atômica."""
     if not isinstance(pdf_bytes, bytes) or not pdf_bytes.startswith(b"%PDF-"):
-        raise ValueError("Conteudo do termo nao e um PDF valido.")
+        raise ValueError("Conteúdo do termo não é um PDF válido.")
 
     pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
     diretorio = _diretorio_termo(nome_colaborador, solicitacao_id)

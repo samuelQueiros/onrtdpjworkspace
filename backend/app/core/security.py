@@ -53,8 +53,10 @@ def obter_ip_cliente(request: Request) -> str:
 def validar_forca_senha(senha: str) -> str:
     if len(senha) < 8:
         raise ValueError("A senha deve ter pelo menos 8 caracteres.")
-    if not re.search(r"[A-Za-z]", senha):
-        raise ValueError("A senha deve conter pelo menos uma letra.")
+    if not re.search(r"[A-Z]", senha):
+        raise ValueError("A senha deve conter pelo menos uma letra maiúscula.")
+    if not re.search(r"[a-z]", senha):
+        raise ValueError("A senha deve conter pelo menos uma letra minúscula.")
     if not re.search(r"\d", senha):
         raise ValueError("A senha deve conter pelo menos um número.")
     if not re.search(r"[^A-Za-z0-9]", senha):
@@ -132,7 +134,7 @@ def get_current_user(request: Request, token: str | None = Depends(oauth2_scheme
 
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Token invalido ou expirado",
+        detail="Token inválido ou expirado",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:

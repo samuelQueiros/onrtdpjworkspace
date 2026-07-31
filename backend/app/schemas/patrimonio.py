@@ -55,7 +55,7 @@ class EquipamentoUpdate(TextoNormalizadoMixin):
     def impedir_nulos_em_campos_obrigatorios(self):
         for campo in ("tipo", "marca", "modelo", "estado_conservacao", "ativo"):
             if campo in self.model_fields_set and getattr(self, campo) is None:
-                raise ValueError(f"O campo {campo} nao pode ser nulo")
+                raise ValueError(f"O campo {campo} não pode ser nulo")
         return self
 
 
@@ -68,7 +68,7 @@ class VinculoCreate(TextoNormalizadoMixin):
     @model_validator(mode="after")
     def validar_justificativa(self):
         if self.permitir_segunda_maquina and not self.justificativa_excecao:
-            raise ValueError("Informe a justificativa para permitir uma segunda maquina principal")
+            raise ValueError("Informe a justificativa para permitir uma segunda máquina principal")
         return self
 
 
@@ -150,9 +150,9 @@ class SolicitacaoEquipamentoCreate(TextoNormalizadoMixin):
     @classmethod
     def ids_unicos(cls, ids: list[int]) -> list[int]:
         if any(item_id <= 0 for item_id in ids):
-            raise ValueError("Equipamento invalido")
+            raise ValueError("Equipamento inválido")
         if len(ids) != len(set(ids)):
-            raise ValueError("Nao repita equipamentos na solicitacao")
+            raise ValueError("Não repita equipamentos na solicitação")
         return ids
 
 
@@ -241,15 +241,15 @@ class AprovacaoSolicitacaoCreate(TextoNormalizadoMixin):
     @classmethod
     def itens_unicos(cls, ids: list[int]) -> list[int]:
         if any(item_id <= 0 for item_id in ids):
-            raise ValueError("Item de aprovacao invalido")
+            raise ValueError("Item de aprovação inválido")
         if len(ids) != len(set(ids)):
-            raise ValueError("Nao repita itens na aprovacao")
+            raise ValueError("Não repita itens na aprovação")
         return ids
 
     @model_validator(mode="after")
     def validar_excecao(self):
         if self.permitir_segunda_maquina and not self.justificativa_excecao:
-            raise ValueError("Informe a justificativa para a segunda maquina principal")
+            raise ValueError("Informe a justificativa para a segunda máquina principal")
         return self
 
 
@@ -280,13 +280,13 @@ class EntregaSolicitacaoCreate(TextoNormalizadoMixin):
     def itens_unicos(cls, itens: list[ItemEntregaCreate]) -> list[ItemEntregaCreate]:
         ids = [item.item_id for item in itens]
         if len(ids) != len(set(ids)):
-            raise ValueError("Nao repita itens na entrega")
+            raise ValueError("Não repita itens na entrega")
         return itens
 
     @model_validator(mode="after")
     def validar_excecao(self):
         if self.permitir_segunda_maquina and not self.justificativa_excecao:
-            raise ValueError("Informe a justificativa para a segunda maquina principal")
+            raise ValueError("Informe a justificativa para a segunda máquina principal")
         return self
 
 
@@ -310,7 +310,7 @@ class ItemDevolucaoCreate(TextoNormalizadoMixin):
     @model_validator(mode="after")
     def validar_estado_devolvido(self):
         if self.situacao == "devolvido" and not self.estado_conservacao:
-            raise ValueError("Informe o estado de conservacao do item devolvido")
+            raise ValueError("Informe o estado de conservação do item devolvido")
         return self
 
 
@@ -324,7 +324,7 @@ class DevolucaoSolicitacaoCreate(TextoNormalizadoMixin):
     def itens_unicos(cls, itens: list[ItemDevolucaoCreate]) -> list[ItemDevolucaoCreate]:
         ids = [item.item_id for item in itens]
         if len(ids) != len(set(ids)):
-            raise ValueError("Nao repita itens na devolucao")
+            raise ValueError("Não repita itens na devolução")
         return itens
 
 

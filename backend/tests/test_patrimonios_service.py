@@ -81,7 +81,7 @@ class PatrimoniosServiceTests(unittest.TestCase):
                 patrimonios_service.criar_equipamento(FakeDb(), payload, self.admin)
 
         self.assertEqual(exc.exception.status_code, 400)
-        self.assertIn("patrimonio", exc.exception.detail.lower())
+        self.assertIn("patrimônio", exc.exception.detail.lower())
 
     def test_criar_equipamento_persiste_evento_e_log(self):
         payload = EquipamentoCreate(
@@ -237,7 +237,7 @@ class PatrimoniosServiceTests(unittest.TestCase):
                 )
 
         self.assertEqual(exc.exception.status_code, 400)
-        self.assertIn("maquina principal", exc.exception.detail.lower())
+        self.assertIn("máquina principal", exc.exception.detail.lower())
 
     def test_vincular_traduz_concorrencia_e_faz_rollback(self):
         item = equipamento(tipo="monitor")

@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, CheckConstraint, Column, Integer, String, DateTime, Date, ForeignKey, Index, UniqueConstraint, text, true
+from sqlalchemy import Boolean, CheckConstraint, Column, Integer, String, DateTime, Date, ForeignKey, Index, UniqueConstraint, false, text, true
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -33,6 +33,7 @@ class User(Base):
     cargo_id = Column(Integer, ForeignKey("cargos.id", ondelete="SET NULL"), nullable=True)
     ativo = Column(Boolean, nullable=False, default=True)
     must_change_password = Column(Boolean, nullable=False, default=True, server_default=true())
+    is_sistema = Column(Boolean, nullable=False, default=False, server_default=false())  # conta administrativa criada via .env: oculta das listagens voltadas ao usuário
     token_version = Column(Integer, nullable=False, default=0)
     cpf_criptografado = Column(String, nullable=True)
     cpf_hash = Column(String(64), nullable=True)

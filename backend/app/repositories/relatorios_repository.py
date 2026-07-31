@@ -10,7 +10,7 @@ from app.models.patrimonio import SolicitacaoEquipamento
 
 
 def listar_usuarios_ordenados(db: Session) -> list[User]:
-    return db.query(User).order_by(User.nome).all()
+    return db.query(User).filter(User.is_sistema.is_(False)).order_by(User.nome).all()
 
 
 def listar_ferias_aprovadas_ciclo(db: Session, user_id: int, ciclo_inicio: date) -> list[Ferias]:

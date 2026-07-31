@@ -12,6 +12,7 @@ def listar_usuarios(db: Session) -> list[User]:
     return (
         db.query(User)
         .options(selectinload(User.departamento), selectinload(User.cargo))
+        .filter(User.is_sistema.is_(False))
         .order_by(User.nome)
         .all()
     )
@@ -20,7 +21,7 @@ def listar_usuarios(db: Session) -> list[User]:
 def listar_usuarios_com_aniversario(db: Session) -> list[User]:
     return (
         db.query(User)
-        .filter(User.data_aniversario.isnot(None), User.ativo.is_(True))
+        .filter(User.data_aniversario.isnot(None), User.ativo.is_(True), User.is_sistema.is_(False))
         .order_by(User.data_aniversario)
         .all()
     )

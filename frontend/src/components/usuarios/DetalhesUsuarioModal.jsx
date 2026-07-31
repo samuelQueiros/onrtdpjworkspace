@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { StatusBadge } from '../comum/PageHelpers'
 import { DetailField, EditableField, DetailSection } from '../comum/DetailFields'
 import { formatCurrency, formatDate } from '../../utils/formatters'
-import { maskCpf, maskPhone } from '../../utils/inputMasks'
+import { maskCpf, maskCurrency, maskPhone } from '../../utils/inputMasks'
 import { useModalFocusTrap } from '../../utils/useModalFocusTrap'
 import { SEXO_LABEL, ESTADO_CIVIL_LABEL, UF_OPTIONS } from '../../utils/fichaAdmissionalLabels'
 import { blankFichaAdmissionalForm, normalizeFicha, buildFichaPayload } from '../../utils/fichaAdmissionalForm'
@@ -393,9 +393,9 @@ export default function DetalhesUsuarioModal({
                 <input
                   type="text"
                   inputMode="decimal"
-                  placeholder="0.00"
+                  placeholder="0,00"
                   value={fichaForm.salario}
-                  onChange={event => updateFicha({ salario: event.target.value })}
+                  onChange={event => updateFicha({ salario: maskCurrency(event.target.value) })}
                 />
               )}
             >
@@ -460,9 +460,9 @@ export default function DetalhesUsuarioModal({
                 <input
                   type="text"
                   inputMode="decimal"
-                  placeholder="0.00"
+                  placeholder="0,00"
                   value={fichaForm.vale_transporte}
-                  onChange={event => updateFicha({ vale_transporte: event.target.value })}
+                  onChange={event => updateFicha({ vale_transporte: maskCurrency(event.target.value) })}
                 />
               )}
             >
@@ -489,9 +489,9 @@ export default function DetalhesUsuarioModal({
                 <input
                   type="text"
                   inputMode="decimal"
-                  placeholder="0.00"
+                  placeholder="0,00"
                   value={fichaForm.valor_beneficios}
-                  onChange={event => updateFicha({ valor_beneficios: event.target.value })}
+                  onChange={event => updateFicha({ valor_beneficios: maskCurrency(event.target.value) })}
                 />
               )}
             >

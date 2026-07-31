@@ -58,7 +58,7 @@ def _evento(
 
 
 def _log(usuario_id: int, acao: str, solicitacao_id: int | None, detalhe: str = "") -> Log:
-    identificador = f"Solicitacao de equipamento #{solicitacao_id}" if solicitacao_id else "Solicitacao de equipamento"
+    identificador = f"Solicitação de equipamento #{solicitacao_id}" if solicitacao_id else "Solicitação de equipamento"
     return Log(user_id=usuario_id, acao=acao, detalhes=f"{identificador}{': ' + detalhe if detalhe else ''}")
 
 
@@ -187,7 +187,7 @@ def buscar_solicitacao(
 ) -> SolicitacaoEquipamento:
     solicitacao = patrimonios_repository.obter_solicitacao(db, solicitacao_id, bloquear)
     if not solicitacao:
-        raise HTTPException(status_code=404, detail="Solicitacao de equipamento nao encontrada")
+        raise HTTPException(status_code=404, detail="Solicitação de equipamento não encontrada")
     if current_user.role != "admin" and solicitacao.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Acesso negado")
     return solicitacao
@@ -197,9 +197,9 @@ def _validar_dados_termo(user: User) -> tuple[str, str, str, str]:
     if not user.cpf_criptografado:
         raise HTTPException(status_code=400, detail="Cadastre o CPF do colaborador antes de solicitar equipamentos")
     if not user.cargo:
-        raise HTTPException(status_code=400, detail="Cadastre o cargo do colaborador antes da solicitacao")
+        raise HTTPException(status_code=400, detail="Cadastre o cargo do colaborador antes da solicitação")
     if not user.departamento:
-        raise HTTPException(status_code=400, detail="Cadastre o departamento do colaborador antes da solicitacao")
+        raise HTTPException(status_code=400, detail="Cadastre o departamento do colaborador antes da solicitação")
     return user.nome, user.cpf_criptografado, user.cargo.nome, user.departamento.nome
 
 
@@ -212,7 +212,7 @@ def criar_solicitacao(
     ids = sorted(payload.equipamento_ids)
     equipamentos = patrimonios_repository.obter_equipamentos_por_ids(db, ids, bloquear=True)
     if len(equipamentos) != len(ids):
-        raise HTTPException(status_code=404, detail="Um ou mais equipamentos nao foram encontrados")
+        raise HTTPException(status_code=404, detail="Um ou mais equipamentos não foram encontrados")
 
     vinculos = {
         vinculo.equipamento_id: vinculo
@@ -221,14 +221,14 @@ def criar_solicitacao(
     for equipamento in equipamentos:
         if payload.tipo_solicitacao == "itens_vinculados":
             if equipamento.id not in vinculos or not equipamento.ativo or equipamento.status != "vinculado":
-                raise HTTPException(status_code=400, detail=f"Equipamento {_identificacao(equipamento)} nao esta vinculado a voce")
+                raise HTTPException(status_code=400, detail=f"Equipamento {_identificacao(equipamento)} não está vinculado a você")
         else:
             if not equipamento.ativo or equipamento.status != "disponivel":
-                raise HTTPException(status_code=409, detail=f"Equipamento {_identificacao(equipamento)} nao esta disponivel")
+                raise HTTPException(status_code=409, detail=f"Equipamento {_identificacao(equipamento)} não está disponível")
             if patrimonios_repository.obter_vinculo_ativo(db, equipamento.id):
-                raise HTTPException(status_code=409, detail=f"Equipamento {_identificacao(equipamento)} possui vinculo ativo")
+                raise HTTPException(status_code=409, detail=f"Equipamento {_identificacao(equipamento)} possui vínculo ativo")
         if patrimonios_repository.existe_solicitacao_concorrente(db, current_user.id, equipamento.id):
-            raise HTTPException(status_code=409, detail=f"Ja existe solicitacao em andamento para {_identificacao(equipamento)}")
+            raise HTTPException(status_code=409, detail=f"Já existe solicitação em andamento para {_identificacao(equipamento)}")
 
     solicitacao = SolicitacaoEquipamento(
         user_id=current_user.id,
@@ -256,7 +256,7 @@ def criar_solicitacao(
         patrimonios_repository.commit(db)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Solicitacao concorrente detectada. Atualize os equipamentos.") from exc
+        raise HTTPException(status_code=409, detail="Solicitação concorrente detectada. Atualize os equipamentos.") from exc
     return formatar_solicitacao(buscar_solicitacao(db, solicitacao.id, current_user), current_user)
 
 
@@ -278,9 +278,9 @@ def listar_solicitacoes_admin(
     page_size: int = 25,
 ) -> dict:
     if status and status not in STATUS_SOLICITACAO:
-        raise HTTPException(status_code=400, detail="Status de solicitacao invalido")
+        raise HTTPException(status_code=400, detail="Status de solicitação inválido")
     if criado_de and criado_ate and criado_de > criado_ate:
-        raise HTTPException(status_code=400, detail="A data inicial nao pode ser posterior a data final")
+        raise HTTPException(status_code=400, detail="A data inicial não pode ser posterior à data final")
     items, total = patrimonios_repository.listar_solicitacoes_admin(
         db,
         status,
@@ -314,7 +314,7 @@ def cancelar_solicitacao(
         return formatar_solicitacao(solicitacao, current_user)
     status_permitidos = {"pendente", "aguardando_entrega"} if current_user.role == "admin" else {"pendente"}
     if solicitacao.status not in status_permitidos:
-        raise HTTPException(status_code=400, detail="Solicitacao nao pode ser cancelada neste estado")
+        raise HTTPException(status_code=400, detail="Solicitação não pode ser cancelada neste estado")
     if current_user.role == "admin" and solicitacao.status == "aguardando_entrega" and not payload.motivo:
         raise HTTPException(status_code=400, detail="Informe o motivo do cancelamento administrativo")
     agora = agora_utc()
@@ -355,12 +355,12 @@ def _validar_maquinas_aprovadas(
     if not novas_maquinas or solicitacao.tipo_solicitacao == "itens_vinculados":
         return
     if not patrimonios_repository.obter_usuario_bloqueado(db, solicitacao.user_id):
-        raise HTTPException(status_code=404, detail="Colaborador da solicitacao nao encontrado")
+        raise HTTPException(status_code=404, detail="Colaborador da solicitação não encontrado")
     existentes = patrimonios_repository.contar_maquinas_principais_ativas(db, solicitacao.user_id)
     if existentes + len(novas_maquinas) > 1 and not payload.permitir_segunda_maquina:
         raise HTTPException(
             status_code=400,
-            detail="A aprovacao criaria mais de uma maquina principal. Confirme e justifique a excecao.",
+            detail="A aprovação criaria mais de uma máquina principal. Confirme e justifique a exceção.",
         )
 
 
@@ -372,14 +372,14 @@ def aprovar_solicitacao(
 ) -> dict:
     solicitacao = buscar_solicitacao(db, solicitacao_id, current_user, bloquear=True)
     if solicitacao.status != "pendente":
-        raise HTTPException(status_code=400, detail="Solicitacao nao esta pendente")
+        raise HTTPException(status_code=400, detail="Solicitação não está pendente")
     itens_por_id = {item.id: item for item in solicitacao.itens}
     aprovados_ids = set(payload.item_ids_aprovados)
     if not aprovados_ids.issubset(itens_por_id):
-        raise HTTPException(status_code=400, detail="Item informado nao pertence a solicitacao")
+        raise HTTPException(status_code=400, detail="Item informado não pertence à solicitação")
     removidos = [item for item in solicitacao.itens if item.id not in aprovados_ids]
     if removidos and not payload.motivo_ajuste:
-        raise HTTPException(status_code=400, detail="Informe o motivo da aprovacao parcial")
+        raise HTTPException(status_code=400, detail="Informe o motivo da aprovação parcial")
 
     aprovados = [itens_por_id[item_id] for item_id in sorted(aprovados_ids)]
     equipamentos = patrimonios_repository.obter_equipamentos_por_ids(
@@ -394,14 +394,14 @@ def aprovar_solicitacao(
     for item in aprovados:
         equipamento = equipamentos_por_id[item.equipamento_id]
         if not equipamento.ativo or equipamento.status in {"manutencao", "baixado", "reservado"}:
-            raise HTTPException(status_code=409, detail=f"Equipamento {_identificacao(equipamento)} nao esta disponivel")
+            raise HTTPException(status_code=409, detail=f"Equipamento {_identificacao(equipamento)} não está disponível")
         vinculo = patrimonios_repository.obter_vinculo_ativo(db, equipamento.id, bloquear=True)
         if solicitacao.tipo_solicitacao == "itens_vinculados":
             if not vinculo or vinculo.user_id != solicitacao.user_id or equipamento.status != "vinculado":
-                raise HTTPException(status_code=409, detail=f"Vinculo de {_identificacao(equipamento)} foi alterado")
+                raise HTTPException(status_code=409, detail=f"Vínculo de {_identificacao(equipamento)} foi alterado")
         else:
             if vinculo or equipamento.status != "disponivel":
-                raise HTTPException(status_code=409, detail=f"Equipamento {_identificacao(equipamento)} deixou de estar disponivel")
+                raise HTTPException(status_code=409, detail=f"Equipamento {_identificacao(equipamento)} deixou de estar disponível")
             equipamento.status = "reservado"
             item.reservado_em = agora
         _atualizar_snapshot_item(item, equipamento, item.observacoes_snapshot)
@@ -446,7 +446,7 @@ def rejeitar_solicitacao(
 ) -> dict:
     solicitacao = buscar_solicitacao(db, solicitacao_id, current_user, bloquear=True)
     if solicitacao.status != "pendente":
-        raise HTTPException(status_code=400, detail="Somente solicitacao pendente pode ser rejeitada")
+        raise HTTPException(status_code=400, detail="Somente solicitação pendente pode ser rejeitada")
     anterior = solicitacao.status
     solicitacao.status = "rejeitada"
     solicitacao.rejeitado_em = agora_utc()
@@ -469,7 +469,7 @@ def registrar_entrega(
 ) -> dict:
     solicitacao = buscar_solicitacao(db, solicitacao_id, current_user, bloquear=True)
     if solicitacao.status != "aguardando_entrega":
-        raise HTTPException(status_code=400, detail="Solicitacao nao esta aguardando entrega")
+        raise HTTPException(status_code=400, detail="Solicitação não está aguardando entrega")
     aprovados = [item for item in solicitacao.itens if item.status_item == "aprovado"]
     payload_por_id = {item.item_id: item for item in payload.itens}
     if set(payload_por_id) != {item.id for item in aprovados}:
@@ -483,31 +483,31 @@ def registrar_entrega(
 
     if solicitacao.tipo_solicitacao == "item_diferente":
         if not patrimonios_repository.obter_usuario_bloqueado(db, solicitacao.user_id):
-            raise HTTPException(status_code=404, detail="Colaborador da solicitacao nao encontrado")
+            raise HTTPException(status_code=404, detail="Colaborador da solicitação não encontrado")
 
     for item in aprovados:
         equipamento = equipamentos_por_id.get(item.equipamento_id)
         if not equipamento or not equipamento.ativo:
-            raise HTTPException(status_code=409, detail="Equipamento aprovado nao esta mais ativo")
+            raise HTTPException(status_code=409, detail="Equipamento aprovado não está mais ativo")
         vinculo = patrimonios_repository.obter_vinculo_ativo(db, equipamento.id, bloquear=True)
         if solicitacao.tipo_solicitacao == "itens_vinculados":
             if not vinculo or vinculo.user_id != solicitacao.user_id:
-                raise HTTPException(status_code=409, detail=f"Vinculo de {_identificacao(equipamento)} foi alterado")
+                raise HTTPException(status_code=409, detail=f"Vínculo de {_identificacao(equipamento)} foi alterado")
         else:
             if vinculo or equipamento.status != "reservado" or not item.reservado_em or item.reserva_liberada_em:
-                raise HTTPException(status_code=409, detail=f"Reserva de {_identificacao(equipamento)} nao esta valida")
+                raise HTTPException(status_code=409, detail=f"Reserva de {_identificacao(equipamento)} não está válida")
             maquina = equipamento.tipo in MAQUINAS_PRINCIPAIS
             existentes = patrimonios_repository.contar_maquinas_principais_ativas(db, solicitacao.user_id)
             if maquina and existentes + len([v for _, v in novos_vinculos if v.maquina_principal]) >= 1:
                 if not payload.permitir_segunda_maquina:
-                    raise HTTPException(status_code=400, detail="Entrega criaria segunda maquina principal sem excecao")
+                    raise HTTPException(status_code=400, detail="Entrega criaria segunda máquina principal sem exceção")
                 if not payload.justificativa_excecao:
-                    raise HTTPException(status_code=400, detail="Justifique a excecao de segunda maquina")
+                    raise HTTPException(status_code=400, detail="Justifique a exceção de segunda máquina")
             vinculo = EquipamentoVinculo(
                 equipamento_id=equipamento.id,
                 user_id=solicitacao.user_id,
                 vinculado_por_id=current_user.id,
-                observacoes=f"Criado na entrega da solicitacao #{solicitacao.id}",
+                observacoes=f"Criado na entrega da solicitação #{solicitacao.id}",
                 maquina_principal=maquina,
                 excecao_maquina_principal=maquina and payload.permitir_segunda_maquina,
                 justificativa_excecao=payload.justificativa_excecao,
@@ -563,7 +563,7 @@ def registrar_entrega(
         patrimonios_repository.commit(db)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Conflito ao criar vinculo durante a entrega") from exc
+        raise HTTPException(status_code=409, detail="Conflito ao criar vínculo durante a entrega") from exc
     return formatar_solicitacao(buscar_solicitacao(db, solicitacao.id, current_user), current_user)
 
 
@@ -578,12 +578,12 @@ def registrar_aceite(
     if solicitacao.user_id != current_user.id:
         raise HTTPException(
             status_code=403,
-            detail="O aceite deve ser registrado pelo colaborador responsavel pela solicitacao",
+            detail="O aceite deve ser registrado pelo colaborador responsável pela solicitação",
         )
     if solicitacao.status == "entregue" and solicitacao.documento_id:
         return formatar_solicitacao(solicitacao, current_user)
     if solicitacao.status != "aguardando_aceite":
-        raise HTTPException(status_code=400, detail="Solicitacao nao esta aguardando aceite")
+        raise HTTPException(status_code=400, detail="Solicitação não está aguardando aceite")
     if any(item.status_item != "entregue" for item in solicitacao.itens if item.status_item != "removido"):
         raise HTTPException(status_code=409, detail="Nem todos os itens aprovados foram entregues")
 
@@ -617,7 +617,7 @@ def registrar_aceite(
 def regenerar_documento(db: Session, solicitacao_id: int, current_user: User) -> dict:
     solicitacao = buscar_solicitacao(db, solicitacao_id, current_user)
     if not solicitacao.aceito_em:
-        raise HTTPException(status_code=400, detail="O termo so pode ser gerado apos o aceite")
+        raise HTTPException(status_code=400, detail="O termo só pode ser gerado após o aceite")
     from app.services import termos_equipamentos_service
 
     try:
@@ -639,11 +639,11 @@ def registrar_devolucao(
     if solicitacao.status == "devolvida":
         return formatar_solicitacao(solicitacao, current_user)
     if solicitacao.status != "entregue":
-        raise HTTPException(status_code=400, detail="Somente solicitacao entregue pode ser devolvida")
+        raise HTTPException(status_code=400, detail="Somente solicitação entregue pode ser devolvida")
     entregues = [item for item in solicitacao.itens if item.status_item == "entregue"]
     payload_por_id = {item.item_id: item for item in payload.itens}
     if set(payload_por_id) != {item.id for item in entregues}:
-        raise HTTPException(status_code=400, detail="Registre a situacao de todos os itens entregues")
+        raise HTTPException(status_code=400, detail="Registre a situação de todos os itens entregues")
     equipamentos = patrimonios_repository.obter_equipamentos_por_ids(
         db, sorted(item.equipamento_id for item in entregues), bloquear=True
     )
@@ -668,7 +668,7 @@ def registrar_devolucao(
                     estado_conservacao=equipamento.estado_conservacao,
                     observacoes=(
                         dado.observacoes
-                        or f"Item ausente na devolucao da solicitacao #{solicitacao.id}"
+                        or f"Item ausente na devolução da solicitação #{solicitacao.id}"
                     ),
                     criado_por_id=current_user.id,
                 ),
@@ -690,7 +690,7 @@ def registrar_devolucao(
             status_anterior=status_anterior_equipamento,
             status_novo=equipamento.status,
             estado_conservacao=dado.estado_conservacao,
-            observacoes=f"Devolucao da solicitacao #{solicitacao.id}",
+            observacoes=f"Devolução da solicitação #{solicitacao.id}",
             criado_por_id=current_user.id,
         )
         patrimonios_repository.salvar(db, evento_equipamento)

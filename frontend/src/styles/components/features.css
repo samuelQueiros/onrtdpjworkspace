@@ -89,15 +89,20 @@
 .empty p  { font-size: 13px; }
 
 /* Avisos / Mural */
-.avisos-lista { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
+.avisos-lista { display: flex; flex-direction: column; gap: 14px; }
 .aviso-card {
   border: 1px solid var(--border); border-radius: var(--radius);
   padding: 16px; background: white; transition: box-shadow .15s;
+  min-width: 0;
 }
 .aviso-card:hover { box-shadow: var(--shadow); }
 .aviso-fixado { border-left: 4px solid var(--amber); background: #fffdf0; }
-.aviso-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.aviso-corpo { font-size: 13.5px; color: var(--text); line-height: 1.6; margin-bottom: 10px; white-space: pre-wrap; }
+.aviso-header {
+  display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
+  gap: 8px 12px; margin-bottom: 8px;
+}
+.aviso-header strong { overflow-wrap: anywhere; }
+.aviso-corpo { font-size: 13.5px; color: var(--text); line-height: 1.6; margin-bottom: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* Search / filters */
 /* .search-input e .select-filter herdam os estilos do bloco de inputs acima */

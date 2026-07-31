@@ -7,17 +7,17 @@ def normalizar_cpf(valor: str) -> str:
 
 def validar_cpf(valor: str) -> str:
     if not isinstance(valor, str) or not re.fullmatch(r"[0-9.\-\s]+", valor):
-        raise ValueError("CPF invalido")
+        raise ValueError("CPF inválido")
     cpf = normalizar_cpf(valor)
     if len(cpf) != 11 or cpf == cpf[0] * 11:
-        raise ValueError("CPF invalido")
+        raise ValueError("CPF inválido")
 
     for tamanho in (9, 10):
         soma = sum(int(cpf[indice]) * (tamanho + 1 - indice) for indice in range(tamanho))
         digito = (soma * 10) % 11
         digito = 0 if digito == 10 else digito
         if digito != int(cpf[tamanho]):
-            raise ValueError("CPF invalido")
+            raise ValueError("CPF inválido")
     return cpf
 
 

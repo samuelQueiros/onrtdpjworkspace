@@ -34,14 +34,14 @@ def validar_permissao_upload(tipo: str, user_id: int, destino_tipo: str, current
         raise HTTPException(status_code=403, detail="Apenas administradores podem enviar contracheques")
 
     if tipo not in TIPOS_DOCUMENTO:
-        raise HTTPException(status_code=400, detail="Tipo de documento invalido")
+        raise HTTPException(status_code=400, detail="Tipo de documento inválido")
 
     if destino_tipo not in DESTINOS_DOCUMENTO:
-        raise HTTPException(status_code=400, detail="Destino de documento invalido")
+        raise HTTPException(status_code=400, detail="Destino de documento inválido")
 
     if current_user.role != "admin":
         if destino_tipo != "administracao" or user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Colaboradores so podem enviar documentos para a administracao")
+            raise HTTPException(status_code=403, detail="Colaboradores só podem enviar documentos para a administração")
 
 
 def validar_acesso_documento(doc: Documento, current_user: User) -> None:
@@ -54,10 +54,10 @@ def validar_arquivo_upload(arquivo_bytes: bytes, mime: str) -> None:
         raise HTTPException(status_code=400, detail="Arquivo muito grande. Limite: 10 MB")
 
     if mime not in TIPOS_PERMITIDOS:
-        raise HTTPException(status_code=400, detail="Tipo de arquivo nao permitido. Aceitos: PDF, JPEG, PNG")
+        raise HTTPException(status_code=400, detail="Tipo de arquivo não permitido. Aceitos: PDF, JPEG, PNG")
 
     if not validar_assinatura_arquivo(arquivo_bytes, mime):
-        raise HTTPException(status_code=400, detail="Assinatura do arquivo invalida")
+        raise HTTPException(status_code=400, detail="Assinatura do arquivo inválida")
 
 
 def normalizar_observacao(observacao: str | None) -> str | None:
@@ -67,7 +67,7 @@ def normalizar_observacao(observacao: str | None) -> str | None:
     if len(texto) > MAX_OBSERVACAO_LENGTH:
         raise HTTPException(
             status_code=400,
-            detail=f"A observacao deve ter no maximo {MAX_OBSERVACAO_LENGTH} caracteres",
+            detail=f"A observação deve ter no máximo {MAX_OBSERVACAO_LENGTH} caracteres",
         )
     return texto
 
@@ -75,14 +75,14 @@ def normalizar_observacao(observacao: str | None) -> str | None:
 def buscar_usuario(db: Session, user_id: int) -> User:
     user = documentos_repository.obter_usuario_por_id(db, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Usuario nao encontrado")
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
     return user
 
 
 def buscar_documento(db: Session, doc_id: int) -> Documento:
     doc = documentos_repository.obter_documento_por_id(db, doc_id)
     if not doc:
-        raise HTTPException(status_code=404, detail="Documento nao encontrado")
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
     return doc
 
 
@@ -99,7 +99,7 @@ def listar_historico_documentos_paginado(
     user_id: int | None = None,
 ) -> dict:
     if caixa not in CAIXAS_DOCUMENTOS:
-        raise HTTPException(status_code=400, detail="Caixa de documentos invalida")
+        raise HTTPException(status_code=400, detail="Caixa de documentos inválida")
     if caixa == "recebidos_administracao" and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Acesso negado")
     if user_id is not None and current_user.role != "admin":
@@ -267,14 +267,14 @@ def excluir_documento_admin(db: Session, doc_id: int, current_user: User) -> Non
     if doc.tipo == "termo_equipamentos":
         raise HTTPException(
             status_code=400,
-            detail="Termos definitivos de equipamentos nao podem ser excluidos pelo modulo de documentos",
+            detail="Termos definitivos de equipamentos não podem ser excluídos pelo módulo de documentos",
         )
     caminhos = caminhos_para_excluir(doc)
 
     log = Log(
         user_id=current_user.id,
         acao="DOCUMENTO_EXCLUIDO",
-        detalhes=f"Documento '{doc.nome_arquivo}' excluido",
+        detalhes=f"Documento '{doc.nome_arquivo}' excluído",
     )
     quarentena: list[tuple[Path, Path]] = []
     try:

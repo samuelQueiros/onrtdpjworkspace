@@ -8,10 +8,12 @@ class FakeQuery:
     def __init__(self, result):
         self.result = result
         self.filtered = False
+        self.filter_args = []
         self.ordered = False
 
-    def filter(self, *_args):
+    def filter(self, *args):
         self.filtered = True
+        self.filter_args.extend(args)
         return self
 
     def order_by(self, *_args):
@@ -48,6 +50,14 @@ class RelatoriosRepositoryTests(unittest.TestCase):
 
         self.assertEqual(relatorios_repository.listar_usuarios_ordenados(db), users)
         self.assertTrue(db.last_query.ordered)
+
+    def test_listar_usuarios_ordenados_exclui_admin_de_sistema(self):
+        users = [SimpleNamespace(id=1)]
+        db = FakeDb(query_result=users)
+
+        relatorios_repository.listar_usuarios_ordenados(db)
+
+        self.assertTrue(any("is_sistema" in str(arg) for arg in db.last_query.filter_args))
 
     def test_listar_ferias_aprovadas_ciclo_filtra(self):
         ferias = [SimpleNamespace(id=1)]

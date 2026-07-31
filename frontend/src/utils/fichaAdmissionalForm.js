@@ -1,3 +1,7 @@
+import { numberToCurrencyMask, parseCurrencyToNumber } from './inputMasks'
+
+const CAMPOS_MONETARIOS = ['salario', 'vale_transporte', 'valor_beneficios']
+
 export const blankFichaAdmissionalForm = {
   local_nascimento: '',
   uf_nascimento: '',
@@ -38,7 +42,11 @@ export function normalizeFicha(ficha) {
   const normalized = {}
   for (const key of Object.keys(blankFichaAdmissionalForm)) {
     const value = ficha[key]
-    normalized[key] = value === null || value === undefined ? '' : value
+    if (CAMPOS_MONETARIOS.includes(key)) {
+      normalized[key] = numberToCurrencyMask(value)
+    } else {
+      normalized[key] = value === null || value === undefined ? '' : value
+    }
   }
   return normalized
 }
@@ -48,6 +56,8 @@ export function buildFichaPayload(form) {
   for (const [key, value] of Object.entries(form)) {
     if (key === 'contrato_experiencia_dias') {
       payload[key] = value === '' ? null : Number(value)
+    } else if (CAMPOS_MONETARIOS.includes(key)) {
+      payload[key] = parseCurrencyToNumber(value)
     } else if (value === '') {
       payload[key] = null
     } else {

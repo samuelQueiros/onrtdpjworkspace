@@ -14,6 +14,9 @@ export default function AlterarSenha() {
   const [novaSenha, setNovaSenha] = useState('')
   const [confirmacao, setConfirmacao] = useState('')
   const [saving, setSaving] = useState(false)
+  const [mostrarSenhaAtual, setMostrarSenhaAtual] = useState(false)
+  const [mostrarNovaSenha, setMostrarNovaSenha] = useState(false)
+  const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false)
 
   const submit = async event => {
     event.preventDefault()
@@ -59,41 +62,71 @@ export default function AlterarSenha() {
         <div className="card-body form-stack">
           <div className="form-group">
             <label htmlFor="senha-temporaria">Senha temporária</label>
-            <input
-              id="senha-temporaria"
-              type="password"
-              autoComplete="current-password"
-              value={senhaAtual}
-              onChange={event => setSenhaAtual(event.target.value)}
-              required
-            />
+            <div className="field-with-action">
+              <input
+                id="senha-temporaria"
+                type={mostrarSenhaAtual ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={senhaAtual}
+                onChange={event => setSenhaAtual(event.target.value)}
+                className="flex-1"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarSenhaAtual(current => !current)}
+                className="btn btn-outline btn-sm nowrap"
+              >
+                {mostrarSenhaAtual ? 'Ocultar' : 'Mostrar'}
+              </button>
+            </div>
           </div>
           <div className="form-group">
             <label htmlFor="nova-senha">Nova senha</label>
-            <input
-              id="nova-senha"
-              type="password"
-              autoComplete="new-password"
-              minLength="8"
-              value={novaSenha}
-              onChange={event => setNovaSenha(event.target.value)}
-              required
-            />
+            <div className="field-with-action">
+              <input
+                id="nova-senha"
+                type={mostrarNovaSenha ? 'text' : 'password'}
+                autoComplete="new-password"
+                minLength="8"
+                value={novaSenha}
+                onChange={event => setNovaSenha(event.target.value)}
+                className="flex-1"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarNovaSenha(current => !current)}
+                className="btn btn-outline btn-sm nowrap"
+              >
+                {mostrarNovaSenha ? 'Ocultar' : 'Mostrar'}
+              </button>
+            </div>
             <small className="form-hint">
-              Mínimo de 8 caracteres, com letras, números e ao menos um caractere especial.
+              Mínimo de 8 caracteres, com letra maiúscula, letra minúscula, número e caractere especial.
             </small>
           </div>
           <div className="form-group">
             <label htmlFor="confirmar-nova-senha">Confirmar nova senha</label>
-            <input
-              id="confirmar-nova-senha"
-              type="password"
-              autoComplete="new-password"
-              minLength="8"
-              value={confirmacao}
-              onChange={event => setConfirmacao(event.target.value)}
-              required
-            />
+            <div className="field-with-action">
+              <input
+                id="confirmar-nova-senha"
+                type={mostrarConfirmacao ? 'text' : 'password'}
+                autoComplete="new-password"
+                minLength="8"
+                value={confirmacao}
+                onChange={event => setConfirmacao(event.target.value)}
+                className="flex-1"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarConfirmacao(current => !current)}
+                className="btn btn-outline btn-sm nowrap"
+              >
+                {mostrarConfirmacao ? 'Ocultar' : 'Mostrar'}
+              </button>
+            </div>
           </div>
           <button className="btn btn-primary btn-lg" type="submit" disabled={saving}>
             {saving && <span className="inline-spinner" />}

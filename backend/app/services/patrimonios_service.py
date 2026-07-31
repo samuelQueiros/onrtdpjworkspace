@@ -109,7 +109,7 @@ def formatar_detalhe(equipamento: Equipamento) -> dict:
 def buscar_equipamento(db: Session, equipamento_id: int, bloquear: bool = False) -> Equipamento:
     equipamento = patrimonios_repository.obter_equipamento(db, equipamento_id, bloquear)
     if not equipamento:
-        raise HTTPException(status_code=404, detail="Equipamento nao encontrado")
+        raise HTTPException(status_code=404, detail="Equipamento não encontrado")
     return equipamento
 
 
@@ -120,9 +120,9 @@ def _validar_identificadores(
     excluir_id: int | None = None,
 ) -> None:
     if patrimonio and patrimonios_repository.obter_por_patrimonio(db, patrimonio, excluir_id):
-        raise HTTPException(status_code=400, detail="Numero de patrimonio ja cadastrado")
+        raise HTTPException(status_code=400, detail="Número de patrimônio já cadastrado")
     if serie and patrimonios_repository.obter_por_serie(db, serie, excluir_id):
-        raise HTTPException(status_code=400, detail="Numero de serie ja cadastrado")
+        raise HTTPException(status_code=400, detail="Número de série já cadastrado")
 
 
 def _normalizar_identificadores(dados: dict) -> dict:
@@ -144,9 +144,9 @@ def listar_equipamentos(
     page_size: int,
 ) -> dict:
     if tipo and tipo not in TIPOS_EQUIPAMENTO:
-        raise HTTPException(status_code=400, detail="Tipo de equipamento invalido")
+        raise HTTPException(status_code=400, detail="Tipo de equipamento inválido")
     if status and status not in STATUS_EQUIPAMENTO:
-        raise HTTPException(status_code=400, detail="Status de equipamento invalido")
+        raise HTTPException(status_code=400, detail="Status de equipamento inválido")
     items, total = patrimonios_repository.listar_equipamentos(
         db, busca, tipo, status, ativo, user_id, (page - 1) * page_size, page_size
     )
@@ -181,7 +181,7 @@ def criar_equipamento(db: Session, payload: EquipamentoCreate, current_user: Use
         db.refresh(equipamento)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Patrimonio ou numero de serie ja cadastrado") from exc
+        raise HTTPException(status_code=409, detail="Patrimônio ou número de série já cadastrado") from exc
     return formatar_equipamento(buscar_equipamento(db, equipamento.id))
 
 
@@ -193,7 +193,7 @@ def editar_equipamento(
 ) -> dict:
     equipamento = buscar_equipamento(db, equipamento_id, bloquear=True)
     if equipamento.status == "baixado":
-        raise HTTPException(status_code=400, detail="Equipamento baixado nao pode ser editado")
+        raise HTTPException(status_code=400, detail="Equipamento baixado não pode ser editado")
 
     dados = _normalizar_identificadores(payload.model_dump(exclude_unset=True))
     if (
@@ -203,7 +203,7 @@ def editar_equipamento(
     ):
         raise HTTPException(
             status_code=400,
-            detail="O tipo nao pode ser alterado enquanto o equipamento estiver vinculado ou reservado",
+            detail="O tipo não pode ser alterado enquanto o equipamento estiver vinculado ou reservado",
         )
     _validar_identificadores(
         db,
@@ -215,10 +215,10 @@ def editar_equipamento(
         if equipamento.status != "disponivel":
             raise HTTPException(
                 status_code=400,
-                detail="Somente equipamento disponivel pode ser desativado",
+                detail="Somente equipamento disponível pode ser desativado",
             )
         if patrimonios_repository.obter_vinculo_ativo(db, equipamento.id):
-            raise HTTPException(status_code=400, detail="Desvincule o equipamento antes de desativa-lo")
+            raise HTTPException(status_code=400, detail="Desvincule o equipamento antes de desativá-lo")
 
     alterados = []
     for campo, valor in dados.items():
@@ -247,7 +247,7 @@ def editar_equipamento(
         patrimonios_repository.commit(db)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Patrimonio ou numero de serie ja cadastrado") from exc
+        raise HTTPException(status_code=409, detail="Patrimônio ou número de série já cadastrado") from exc
     return formatar_equipamento(buscar_equipamento(db, equipamento.id))
 
 
@@ -260,23 +260,23 @@ def vincular_equipamento(
     equipamento = buscar_equipamento(db, equipamento_id, bloquear=True)
     usuario = patrimonios_repository.obter_usuario_bloqueado(db, payload.user_id)
     if not usuario or not usuario.ativo:
-        raise HTTPException(status_code=404, detail="Colaborador ativo nao encontrado")
+        raise HTTPException(status_code=404, detail="Colaborador ativo não encontrado")
     if not equipamento.ativo or equipamento.status != "disponivel":
-        raise HTTPException(status_code=400, detail="Equipamento nao esta disponivel para vinculacao")
+        raise HTTPException(status_code=400, detail="Equipamento não está disponível para vinculação")
     if patrimonios_repository.obter_vinculo_ativo(db, equipamento.id, bloquear=True):
-        raise HTTPException(status_code=409, detail="Equipamento ja possui um vinculo ativo")
+        raise HTTPException(status_code=409, detail="Equipamento já possui um vínculo ativo")
 
     maquina_principal = equipamento.tipo in MAQUINAS_PRINCIPAIS
     if maquina_principal and patrimonios_repository.contar_maquinas_principais_ativas(db, usuario.id):
         if not payload.permitir_segunda_maquina:
             raise HTTPException(
                 status_code=400,
-                detail="Colaborador ja possui uma maquina principal. Confirme e justifique a excecao.",
+                detail="Colaborador já possui uma máquina principal. Confirme e justifique a exceção.",
             )
 
     observacoes = payload.observacoes
     if payload.justificativa_excecao:
-        observacoes = f"{observacoes + ' | ' if observacoes else ''}Excecao: {payload.justificativa_excecao}"
+        observacoes = f"{observacoes + ' | ' if observacoes else ''}Exceção: {payload.justificativa_excecao}"
     vinculo = EquipamentoVinculo(
         equipamento_id=equipamento.id,
         user_id=usuario.id,
@@ -299,14 +299,14 @@ def vincular_equipamento(
     log = Log(
         user_id=current_user.id,
         acao="EQUIPAMENTO_VINCULADO",
-        detalhes=f"Equipamento {_texto_identificacao(equipamento)} vinculado ao usuario #{usuario.id}",
+        detalhes=f"Equipamento {_texto_identificacao(equipamento)} vinculado ao usuário #{usuario.id}",
     )
     try:
         patrimonios_repository.salvar(db, vinculo, evento, log)
         patrimonios_repository.commit(db)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Equipamento recebeu outro vinculo simultaneamente") from exc
+        raise HTTPException(status_code=409, detail="Equipamento recebeu outro vínculo simultaneamente") from exc
     return formatar_equipamento(buscar_equipamento(db, equipamento.id))
 
 
@@ -319,11 +319,11 @@ def desvincular_equipamento(
     equipamento = buscar_equipamento(db, equipamento_id, bloquear=True)
     vinculo = patrimonios_repository.obter_vinculo_ativo(db, equipamento.id, bloquear=True)
     if not vinculo:
-        raise HTTPException(status_code=400, detail="Equipamento nao possui vinculo ativo")
+        raise HTTPException(status_code=400, detail="Equipamento não possui vínculo ativo")
     if patrimonios_repository.existe_autorizacao_entregue_em_aberto(db, equipamento.id):
         raise HTTPException(
             status_code=409,
-            detail="Registre a devolucao da autorizacao antes de encerrar este vinculo",
+            detail="Registre a devolução da autorização antes de encerrar este vínculo",
         )
     agora = agora_utc()
     vinculo.desvinculado_em = agora
@@ -342,7 +342,7 @@ def desvincular_equipamento(
     log = Log(
         user_id=current_user.id,
         acao="EQUIPAMENTO_DESVINCULADO",
-        detalhes=f"Equipamento {_texto_identificacao(equipamento)} desvinculado do usuario #{vinculo.user_id}",
+        detalhes=f"Equipamento {_texto_identificacao(equipamento)} desvinculado do usuário #{vinculo.user_id}",
     )
     patrimonios_repository.salvar(db, evento, log)
     patrimonios_repository.commit(db)
@@ -386,9 +386,9 @@ def iniciar_manutencao(
 ) -> dict:
     equipamento = buscar_equipamento(db, equipamento_id, bloquear=True)
     if not equipamento.ativo or equipamento.status != "disponivel":
-        raise HTTPException(status_code=400, detail="Somente equipamento disponivel pode entrar em manutencao")
+        raise HTTPException(status_code=400, detail="Somente equipamento disponível pode entrar em manutenção")
     if patrimonios_repository.obter_vinculo_ativo(db, equipamento.id):
-        raise HTTPException(status_code=400, detail="Desvincule o equipamento antes da manutencao")
+        raise HTTPException(status_code=400, detail="Desvincule o equipamento antes da manutenção")
     return _alterar_status_operacional(
         db, equipamento, "manutencao", "manutencao_iniciada", payload.observacoes,
         current_user, payload.estado_conservacao,
@@ -400,7 +400,7 @@ def finalizar_manutencao(
 ) -> dict:
     equipamento = buscar_equipamento(db, equipamento_id, bloquear=True)
     if equipamento.status != "manutencao":
-        raise HTTPException(status_code=400, detail="Equipamento nao esta em manutencao")
+        raise HTTPException(status_code=400, detail="Equipamento não está em manutenção")
     return _alterar_status_operacional(
         db, equipamento, "disponivel", "manutencao_finalizada", payload.observacoes,
         current_user, payload.estado_conservacao,
@@ -412,7 +412,7 @@ def baixar_equipamento(db: Session, equipamento_id: int, payload: BaixaCreate, c
     if equipamento.status == "baixado":
         return formatar_equipamento(equipamento)
     if equipamento.status == "reservado":
-        raise HTTPException(status_code=400, detail="Equipamento reservado nao pode ser baixado")
+        raise HTTPException(status_code=400, detail="Equipamento reservado não pode ser baixado")
     if patrimonios_repository.obter_vinculo_ativo(db, equipamento.id):
         raise HTTPException(status_code=400, detail="Desvincule o equipamento antes da baixa")
     equipamento.ativo = False

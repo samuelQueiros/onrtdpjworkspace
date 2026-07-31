@@ -47,7 +47,7 @@ def excluir_credencial(db: Session, credencial: Credencial) -> None:
 
 
 def listar_usuarios(db: Session) -> list[User]:
-    return db.query(User).order_by(User.nome).all()
+    return db.query(User).filter(User.is_sistema.is_(False)).order_by(User.nome).all()
 
 
 def substituir_permissoes(db: Session, credencial_id: int, user_ids: list[int]) -> None:

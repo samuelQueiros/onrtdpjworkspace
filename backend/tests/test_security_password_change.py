@@ -100,5 +100,30 @@ class SecurityPasswordChangeTests(unittest.TestCase):
         self.assertEqual(exc.exception.status_code, 401)
 
 
+class ValidarForcaSenhaTests(unittest.TestCase):
+    def test_exige_minimo_de_caracteres(self):
+        with self.assertRaisesRegex(ValueError, "8 caracteres"):
+            security.validar_forca_senha("Ab1!")
+
+    def test_exige_letra_maiuscula(self):
+        with self.assertRaisesRegex(ValueError, "letra maiúscula"):
+            security.validar_forca_senha("abcdefg1!")
+
+    def test_exige_letra_minuscula(self):
+        with self.assertRaisesRegex(ValueError, "letra minúscula"):
+            security.validar_forca_senha("ABCDEFG1!")
+
+    def test_exige_numero(self):
+        with self.assertRaisesRegex(ValueError, "número"):
+            security.validar_forca_senha("Abcdefgh!")
+
+    def test_exige_caractere_especial(self):
+        with self.assertRaisesRegex(ValueError, "caractere especial"):
+            security.validar_forca_senha("Abcdefg1")
+
+    def test_aceita_senha_com_todas_as_regras(self):
+        self.assertEqual(security.validar_forca_senha("Abcdefg1!"), "Abcdefg1!")
+
+
 if __name__ == "__main__":
     unittest.main()

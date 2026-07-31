@@ -87,7 +87,7 @@ class TermoGerado:
 
 def _caminhos_versao(codigo: str) -> tuple[Path, Path]:
     if not codigo or not codigo.replace("_", "").replace("-", "").isalnum():
-        raise TermoEquipamentoError("Codigo de versao de termo invalido.")
+        raise TermoEquipamentoError("Código de versão de termo inválido.")
     if codigo == TERMO_VERSAO_CODIGO:
         return TEMPLATE_PATH, CLAUSULAS_PATH
     return TEMPLATE_DIR / f"{codigo}.html", TEMPLATE_DIR / f"{codigo}_clausulas.txt"
@@ -98,7 +98,7 @@ def obter_conteudo_template(codigo: str = TERMO_VERSAO_CODIGO) -> str:
     try:
         conteudo = template_path.read_text(encoding="utf-8")
     except OSError as exc:
-        raise TermoEquipamentoError("Template do termo de equipamentos nao encontrado.") from exc
+        raise TermoEquipamentoError("Template do termo de equipamentos não encontrado.") from exc
     # O hash nao pode variar apenas por conversao LF/CRLF entre Linux e Windows.
     return conteudo.replace("\r\n", "\n").replace("\r", "\n")
 
@@ -113,7 +113,7 @@ def obter_hash_template(codigo: str = TERMO_VERSAO_CODIGO) -> str:
         digest.update(b"\0clausulas\0")
         digest.update(obter_clausulas_termo(codigo).encode("utf-8"))
     except OSError as exc:
-        raise TermoEquipamentoError("Recursos do termo de equipamentos nao encontrados.") from exc
+        raise TermoEquipamentoError("Recursos do termo de equipamentos não encontrados.") from exc
     return digest.hexdigest()
 
 
@@ -122,7 +122,7 @@ def obter_clausulas_termo(codigo: str = TERMO_VERSAO_CODIGO) -> str:
     try:
         conteudo = clausulas_path.read_text(encoding="utf-8")
     except OSError as exc:
-        raise TermoEquipamentoError("Clausulas do termo de equipamentos nao encontradas.") from exc
+        raise TermoEquipamentoError("Cláusulas do termo de equipamentos não encontradas.") from exc
     return conteudo.replace("\r\n", "\n").replace("\r", "\n").strip()
 
 
@@ -136,7 +136,7 @@ def obter_metadados_versao() -> dict[str, str]:
 
 def _em_sao_paulo(valor: datetime | None, campo: str) -> datetime:
     if valor is None:
-        raise TermoEquipamentoError(f"{campo} deve estar registrado antes da geracao do termo.")
+        raise TermoEquipamentoError(f"{campo} deve estar registrado antes da geração do termo.")
     if valor.tzinfo is None:
         valor = valor.replace(tzinfo=UTC)
     return valor.astimezone(FUSO_SAO_PAULO)
@@ -159,14 +159,14 @@ def _logo_data_uri() -> str:
     try:
         encoded = base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
     except OSError as exc:
-        raise TermoEquipamentoError("Logotipo do termo de equipamentos nao encontrado.") from exc
+        raise TermoEquipamentoError("Logotipo do termo de equipamentos não encontrado.") from exc
     return f"data:image/png;base64,{encoded}"
 
 
 def _texto_obrigatorio(objeto, atributo: str, rotulo: str) -> str:
     valor = getattr(objeto, atributo, None)
     if not isinstance(valor, str) or not valor.strip():
-        raise TermoEquipamentoError(f"{rotulo} nao esta registrado na solicitacao.")
+        raise TermoEquipamentoError(f"{rotulo} não está registrado na solicitação.")
     return valor.strip()
 
 
@@ -178,7 +178,7 @@ def _validar_versao_solicitacao(solicitacao: SolicitacaoEquipamento) -> None:
     hash_atual = obter_hash_template(versao.codigo)
     if versao.conteudo_hash != hash_atual or versao.clausulas != obter_clausulas_termo(versao.codigo):
         raise TermoEquipamentoError(
-            "O template versionado foi alterado sem atualizacao da versao do termo."
+            "O template versionado foi alterado sem atualização da versão do termo."
         )
 
 
@@ -191,7 +191,7 @@ def _itens_snapshot(solicitacao: SolicitacaoEquipamento) -> list[dict[str, str |
     itens_ativos.sort(key=lambda item: getattr(item, "id", 0) or 0)
 
     if not itens_ativos:
-        raise TermoEquipamentoError("A solicitacao nao possui itens entregues para emissao do termo.")
+        raise TermoEquipamentoError("A solicitação não possui itens entregues para emissão do termo.")
 
     itens = []
     for item in itens_ativos:
@@ -200,7 +200,7 @@ def _itens_snapshot(solicitacao: SolicitacaoEquipamento) -> list[dict[str, str |
         estado = _texto_obrigatorio(
             item,
             "estado_conservacao_snapshot",
-            "Estado de conservacao do equipamento",
+            "Estado de conservação do equipamento",
         )
         itens.append(
             {
@@ -223,15 +223,15 @@ def _contexto_termo(
 ) -> dict:
     solicitacao_id = getattr(solicitacao, "id", None)
     if not isinstance(solicitacao_id, int) or solicitacao_id <= 0:
-        raise TermoEquipamentoError("Solicitacao invalida para geracao do termo.")
+        raise TermoEquipamentoError("Solicitação inválida para geração do termo.")
 
     try:
         cpf = formatar_cpf(validar_cpf(cpf_completo))
     except ValueError as exc:
-        raise TermoEquipamentoError("CPF do colaborador invalido para geracao do termo.") from exc
+        raise TermoEquipamentoError("CPF do colaborador inválido para geração do termo.") from exc
 
     if not getattr(solicitacao, "aceite_declaracao", False):
-        raise TermoEquipamentoError("O aceite do termo ainda nao foi confirmado.")
+        raise TermoEquipamentoError("O aceite do termo ainda não foi confirmado.")
 
     _validar_versao_solicitacao(solicitacao)
     itens = _itens_snapshot(solicitacao)
@@ -247,12 +247,12 @@ def _contexto_termo(
     responsavel_nome = _texto_obrigatorio(
         solicitacao,
         "responsavel_entrega_nome",
-        "Responsavel pela entrega",
+        "Responsável pela entrega",
     )
     responsavel_cargo = _texto_obrigatorio(
         solicitacao,
         "responsavel_entrega_cargo",
-        "Cargo do responsavel pela entrega",
+        "Cargo do responsável pela entrega",
     )
     local_entrega = _texto_obrigatorio(solicitacao, "local_entrega", "Local da entrega")
     local_aceite = _texto_obrigatorio(solicitacao, "local_aceite", "Local do aceite")
@@ -269,7 +269,7 @@ def _contexto_termo(
             "cargo": cargo,
             "departamento": departamento,
         },
-        "data_solicitacao": _formatar_data(solicitacao.criado_em, "Data da solicitacao"),
+        "data_solicitacao": _formatar_data(solicitacao.criado_em, "Data da solicitação"),
         "data_entrega": _formatar_data(solicitacao.entregue_em, "Data da entrega"),
         "local_aceite": local_aceite,
         "data_aceite_extenso": _formatar_data_extenso(solicitacao.aceito_em, "Data do aceite"),
@@ -308,7 +308,7 @@ def renderizar_termo_html(solicitacao: SolicitacaoEquipamento, cpf_completo: str
     except TermoEquipamentoError:
         raise
     except Exception as exc:
-        raise TermoEquipamentoError("Nao foi possivel renderizar o termo de equipamentos.") from exc
+        raise TermoEquipamentoError("Não foi possível renderizar o termo de equipamentos.") from exc
 
 
 def gerar_termo_pdf(solicitacao: SolicitacaoEquipamento, cpf_completo: str) -> TermoGerado:
@@ -325,10 +325,10 @@ def gerar_termo_pdf(solicitacao: SolicitacaoEquipamento, cpf_completo: str) -> T
 
         pdf_bytes = HTML(string=html).write_pdf()
     except Exception as exc:
-        raise TermoEquipamentoError("Nao foi possivel gerar o PDF do termo de equipamentos.") from exc
+        raise TermoEquipamentoError("Não foi possível gerar o PDF do termo de equipamentos.") from exc
 
     if not pdf_bytes.startswith(b"%PDF-"):
-        raise TermoEquipamentoError("O renderizador retornou um documento PDF invalido.")
+        raise TermoEquipamentoError("O renderizador retornou um documento PDF inválido.")
 
     nome_colaborador = _texto_obrigatorio(
         solicitacao,
@@ -352,15 +352,15 @@ def gerar_termo_pdf(solicitacao: SolicitacaoEquipamento, cpf_completo: str) -> T
 def gerar_pdf_snapshot(solicitacao: SolicitacaoEquipamento) -> TermoGerado:
     html = descriptografar_dado_sensivel(solicitacao.termo_html_snapshot_criptografado)
     if not html or not solicitacao.termo_versao:
-        raise TermoEquipamentoError("Snapshot historico do termo nao esta disponivel.")
+        raise TermoEquipamentoError("Snapshot histórico do termo não está disponível.")
     try:
         from weasyprint import HTML
 
         pdf_bytes = HTML(string=html).write_pdf()
     except Exception as exc:
-        raise TermoEquipamentoError("Nao foi possivel regenerar o PDF historico.") from exc
+        raise TermoEquipamentoError("Não foi possível regenerar o PDF histórico.") from exc
     if not pdf_bytes.startswith(b"%PDF-"):
-        raise TermoEquipamentoError("O renderizador retornou um documento PDF invalido.")
+        raise TermoEquipamentoError("O renderizador retornou um documento PDF inválido.")
     return TermoGerado(
         versao_codigo=solicitacao.termo_versao.codigo,
         conteudo_hash=solicitacao.termo_versao.conteudo_hash,
@@ -408,7 +408,7 @@ def garantir_versao_termo(db: Session) -> TermoEquipamentoVersao:
 
     if versao.conteudo_hash != metadados["conteudo_hash"] or versao.clausulas != metadados["clausulas"]:
         raise TermoEquipamentoError(
-            "A versao atual do termo foi alterada sem incremento do codigo de versao."
+            "A versão atual do termo foi alterada sem incremento do código de versão."
         )
     return versao
 
@@ -422,7 +422,7 @@ def _obter_ou_criar_versao(db: Session, solicitacao: SolicitacaoEquipamento) -> 
         or versao.clausulas != obter_clausulas_termo(versao.codigo)
     ):
         raise TermoEquipamentoError(
-            "A versao historica do termo nao corresponde ao template versionado disponivel."
+            "A versão histórica do termo não corresponde ao template versionado disponível."
         )
     solicitacao.termo_versao = versao
     return versao
@@ -440,13 +440,13 @@ def _registrar_falha_geracao(
             return
         solicitacao.documento_status = "falha"
         solicitacao.documento_erro = (
-            "Falha tecnica ao gerar o termo. A operacao pode ser repetida por um administrador."
+            "Falha técnica ao gerar o termo. A operação pode ser repetida por um administrador."
         )
         db.add(
             Log(
                 user_id=current_user.id,
                 acao="TERMO_EQUIPAMENTOS_FALHA",
-                detalhes=f"Falha tecnica na geracao do termo da solicitacao #{solicitacao_id}",
+                detalhes=f"Falha técnica na geração do termo da solicitação #{solicitacao_id}",
             )
         )
         db.commit()
@@ -463,7 +463,7 @@ def gerar_termo_definitivo(
     """Gera e integra o termo definitivo ao módulo de documentos em uma única linha histórica."""
     solicitacao = patrimonios_repository.obter_solicitacao(db, solicitacao_id, bloquear=True)
     if solicitacao is None:
-        raise HTTPException(status_code=404, detail="Solicitacao de equipamento nao encontrada")
+        raise HTTPException(status_code=404, detail="Solicitação de equipamento não encontrada")
     if current_user.role != "admin" and solicitacao.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Acesso negado")
     if regenerar and current_user.role != "admin":
@@ -474,9 +474,9 @@ def gerar_termo_definitivo(
         return documento_existente
 
     if not solicitacao.aceite_declaracao or not solicitacao.aceito_em:
-        raise HTTPException(status_code=400, detail="O termo ainda nao foi aceito pelo colaborador")
+        raise HTTPException(status_code=400, detail="O termo ainda não foi aceito pelo colaborador")
     if not solicitacao.entregue_em:
-        raise HTTPException(status_code=400, detail="A entrega deve ser registrada antes da emissao do termo")
+        raise HTTPException(status_code=400, detail="A entrega deve ser registrada antes da emissão do termo")
 
     arquivo = None
     commit_concluido = False
@@ -489,7 +489,7 @@ def gerar_termo_definitivo(
             _obter_ou_criar_versao(db, solicitacao)
         cpf_completo = descriptografar_dado_sensivel(solicitacao.cpf_snapshot_criptografado)
         if not cpf_completo:
-            raise TermoEquipamentoError("CPF historico do colaborador nao esta disponivel.")
+            raise TermoEquipamentoError("CPF histórico do colaborador não está disponível.")
 
         termo = (
             gerar_pdf_snapshot(solicitacao)
@@ -525,7 +525,7 @@ def gerar_termo_definitivo(
             db.flush()
         else:
             if documento.user_id != solicitacao.user_id:
-                raise TermoEquipamentoError("Documento historico associado a outro colaborador.")
+                raise TermoEquipamentoError("Documento histórico associado a outro colaborador.")
             documento.tipo = "termo_equipamentos"
             documento.nome_arquivo = arquivo.nome_arquivo
             documento.mime_type = "application/pdf"
@@ -550,7 +550,7 @@ def gerar_termo_definitivo(
                 user_id=current_user.id,
                 acao=acao,
                 detalhes=(
-                    f"Termo {termo.versao_codigo} da solicitacao #{solicitacao.id} "
+                    f"Termo {termo.versao_codigo} da solicitação #{solicitacao.id} "
                     f"associado ao documento #{documento.id}"
                 ),
             )
@@ -571,4 +571,4 @@ def gerar_termo_definitivo(
             _registrar_falha_geracao(db, solicitacao_id, current_user)
         if isinstance(exc, TermoEquipamentoError):
             raise
-        raise TermoEquipamentoError("Nao foi possivel concluir a geracao do termo.") from exc
+        raise TermoEquipamentoError("Não foi possível concluir a geração do termo.") from exc

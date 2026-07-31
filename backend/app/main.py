@@ -157,10 +157,10 @@ def readiness():
         upload_dir = settings.upload_dir
         upload_dir.mkdir(parents=True, exist_ok=True)
         if not upload_dir.is_dir() or not os.access(upload_dir, os.W_OK):
-            raise RuntimeError("diretorio de uploads sem permissao de escrita")
+            raise RuntimeError("diretório de uploads sem permissão de escrita")
     except Exception as exc:
         logger.error("readiness failed: %s", type(exc).__name__)
-        raise HTTPException(status_code=503, detail="Servico temporariamente indisponivel") from exc
+        raise HTTPException(status_code=503, detail="Serviço temporariamente indisponível") from exc
     finally:
         db.close()
     return {"status": "ready"}

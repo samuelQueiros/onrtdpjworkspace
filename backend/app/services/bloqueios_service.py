@@ -35,7 +35,7 @@ def validar_tipo(tipo: str | None) -> None:
 def buscar_bloqueio(db: Session, bloqueio_id: int) -> BloqueioData:
     bloqueio = bloqueios_repository.obter_bloqueio_por_id(db, bloqueio_id)
     if not bloqueio:
-        raise HTTPException(status_code=404, detail="Bloqueio nao encontrado")
+        raise HTTPException(status_code=404, detail="Bloqueio não encontrado")
     return bloqueio
 
 
