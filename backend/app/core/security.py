@@ -4,12 +4,13 @@ import re
 import threading
 import time
 from collections import defaultdict, deque
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Optional
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -24,6 +25,8 @@ _login_attempts: dict[str, deque[float]] = defaultdict(deque)
 _login_lock = threading.Lock()
 LOGIN_WINDOW_SECONDS = 15 * 60
 LOGIN_MAX_ATTEMPTS = 5
+LOGIN_ACCOUNT_MAX_ATTEMPTS = 10
+LOGIN_IP_MAX_ATTEMPTS = 25
 
 
 def obter_ip_cliente(request: Request) -> str:
@@ -64,17 +67,37 @@ def hash_senha(senha: str) -> str:
 
 
 def verificar_senha(senha: str, senha_hash: str) -> bool:
-    return bcrypt.checkpw(senha.encode("utf-8"), senha_hash.encode("utf-8"))
+    try:
+        return bcrypt.checkpw(senha.encode("utf-8"), senha_hash.encode("utf-8"))
+    except (TypeError, ValueError):
+        return False
 
 
 def criar_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def verificar_limite_login(chave: str) -> None:
+def chaves_limite_login(ip: str, email: str) -> list[str]:
+    email_normalizado = email.strip().lower()
+    return [f"par:{ip}|{email_normalizado}", f"ip:{ip}", f"conta:{email_normalizado}"]
+
+
+def _normalizar_chaves(chaves: str | list[str]) -> list[str]:
+    return [chaves] if isinstance(chaves, str) else chaves
+
+
+def _limite_da_chave(chave: str) -> int:
+    if chave.startswith("ip:"):
+        return LOGIN_IP_MAX_ATTEMPTS
+    if chave.startswith("conta:"):
+        return LOGIN_ACCOUNT_MAX_ATTEMPTS
+    return LOGIN_MAX_ATTEMPTS
+
+
+def verificar_limite_login(chaves: str | list[str]) -> None:
     agora = time.monotonic()
     with _login_lock:
         expiradas = []
@@ -85,19 +108,23 @@ def verificar_limite_login(chave: str) -> None:
                 expiradas.append(existente)
         for existente in expiradas:
             _login_attempts.pop(existente, None)
-        tentativas = _login_attempts[chave]
-        if len(tentativas) >= LOGIN_MAX_ATTEMPTS:
-            raise HTTPException(status_code=429, detail="Muitas tentativas. Tente novamente mais tarde.")
+        for chave in _normalizar_chaves(chaves):
+            tentativas = _login_attempts[chave]
+            if len(tentativas) >= _limite_da_chave(chave):
+                raise HTTPException(status_code=429, detail="Muitas tentativas. Tente novamente mais tarde.")
 
 
-def registrar_falha_login(chave: str) -> None:
+def registrar_falha_login(chaves: str | list[str]) -> None:
     with _login_lock:
-        _login_attempts[chave].append(time.monotonic())
+        agora = time.monotonic()
+        for chave in _normalizar_chaves(chaves):
+            _login_attempts[chave].append(agora)
 
 
-def limpar_falhas_login(chave: str) -> None:
+def limpar_falhas_login(chaves: str | list[str]) -> None:
     with _login_lock:
-        _login_attempts.pop(chave, None)
+        for chave in _normalizar_chaves(chaves):
+            _login_attempts.pop(chave, None)
 
 
 def get_current_user(request: Request, token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -117,7 +144,7 @@ def get_current_user(request: Request, token: str | None = Depends(oauth2_scheme
         token_version = payload.get("token_version")
         if user_id is None:
             raise credentials_exception
-    except JWTError:
+    except InvalidTokenError:
         raise credentials_exception
 
     try:

@@ -52,8 +52,10 @@ class SettingsTests(unittest.TestCase):
         os.environ.update(
             {
                 "ENVIRONMENT": "production",
-                "SECRET_KEY": "segredo",
-                "CREDENTIALS_ENCRYPTION_KEY": "criptografia",
+                "SECRET_KEY": "segredo-de-producao-com-mais-de-32-caracteres",
+                "CREDENTIALS_ENCRYPTION_KEY": "criptografia-producao-distinta-com-32-caracteres",
+                "DATABASE_URL": "postgresql://app:senha-forte@db:5432/ferias",
+                "ADMIN_PASSWORD": "SenhaInicialForte1!",
                 "COOKIE_SECURE": "false",
                 "ALLOW_INSECURE_PRODUCTION_COOKIE": "false",
             }
@@ -65,8 +67,10 @@ class SettingsTests(unittest.TestCase):
         os.environ.update(
             {
                 "ENVIRONMENT": "production",
-                "SECRET_KEY": "segredo",
-                "CREDENTIALS_ENCRYPTION_KEY": "criptografia",
+                "SECRET_KEY": "segredo-de-producao-com-mais-de-32-caracteres",
+                "CREDENTIALS_ENCRYPTION_KEY": "criptografia-producao-distinta-com-32-caracteres",
+                "DATABASE_URL": "postgresql://app:senha-forte@db:5432/ferias",
+                "ADMIN_PASSWORD": "SenhaInicialForte1!",
                 "COOKIE_SECURE": "false",
                 "ALLOW_INSECURE_PRODUCTION_COOKIE": "true",
             }

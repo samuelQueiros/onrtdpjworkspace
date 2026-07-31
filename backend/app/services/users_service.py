@@ -80,11 +80,9 @@ def formatar_dados_sensiveis(user: User) -> dict:
 
 
 def exportar_usuarios_xlsx(db: Session, current_user: User) -> bytes:
-    usuarios = listar_usuarios(db)
-    usuarios_model = {
-        usuario.id: usuario
-        for usuario in users_repository.listar_usuarios(db)
-    }
+    modelos = users_repository.listar_usuarios(db)
+    usuarios = listar_usuarios(db, modelos)
+    usuarios_model = {usuario.id: usuario for usuario in modelos}
     workbook = Workbook()
     planilha = workbook.active
     planilha.title = "Colaboradores"
@@ -276,12 +274,12 @@ def preparar_cpf(db: Session, cpf: str, excluir_user_id: int | None = None) -> t
     return criptografar_dado_sensivel(normalizado), cpf_hash
 
 
-def listar_usuarios(db: Session) -> list[dict]:
-    from app.services.ferias_service import calcular_extrato_saldo
-    users = users_repository.listar_usuarios(db)
+def listar_usuarios(db: Session, users: list[User] | None = None) -> list[dict]:
+    users = users if users is not None else users_repository.listar_usuarios(db)
+    resumos = users_repository.resumir_saldos_usuarios(db, [user.id for user in users])
     resultado = []
     for user in users:
-        extrato = calcular_extrato_saldo(db, user)
+        extrato = resumos.get(user.id, {"saldo": 0, "dias_usados_total": 0})
         resultado.append(
             formatar_usuario(
                 user,
@@ -381,17 +379,24 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
     cargo_anterior_nome = user.cargo.nome if user.cargo else None
     departamento_anterior_nome = user.departamento.nome if user.departamento else None
     departamento_novo_nome = departamento_anterior_nome
-    valores_anteriores = {campo: getattr(user, campo) for campo, _ in CAMPOS_DIFF_USUARIO}
+    valores_anteriores = {campo: getattr(user, campo, None) for campo, _ in CAMPOS_DIFF_USUARIO}
     # A criptografia usada não é determinística (mesmo texto gera cifra
     # diferente a cada vez), então comparar o valor cru já criptografado
     # sempre acusaria mudança. Descriptografa antes/depois para comparar o
     # conteúdo de verdade — o formulário reenvia esses campos preenchidos
     # em todo submit, mesmo quando o admin não mexeu neles.
-    cpf_anterior = descriptografar_dado_sensivel(user.cpf_criptografado) if user.cpf_criptografado else None
-    telefone_emergencia_anterior = descriptografar_dado_sensivel(user.telefone_emergencia)
-    telefone_emergencia_2_anterior = descriptografar_dado_sensivel(user.telefone_emergencia_2)
-    endereco_anterior = _desserializar_endereco(user.endereco)
-    dados_bancarios_anterior = _desserializar_dados_bancarios(user.dados_bancarios)
+    cpf_armazenado = getattr(user, "cpf_criptografado", None)
+    cpf_anterior = descriptografar_dado_sensivel(cpf_armazenado) if cpf_armazenado else None
+    telefone_emergencia_anterior = descriptografar_dado_sensivel(
+        getattr(user, "telefone_emergencia", None)
+    )
+    telefone_emergencia_2_anterior = descriptografar_dado_sensivel(
+        getattr(user, "telefone_emergencia_2", None)
+    )
+    endereco_anterior = _desserializar_endereco(getattr(user, "endereco", None))
+    dados_bancarios_anterior = _desserializar_dados_bancarios(
+        getattr(user, "dados_bancarios", None)
+    )
 
     if payload.nome is not None:
         user.nome = payload.nome
@@ -478,7 +483,7 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
     alteracoes = []
     for campo, rotulo in CAMPOS_DIFF_USUARIO:
         anterior = valores_anteriores[campo]
-        novo = getattr(user, campo)
+        novo = getattr(user, campo, None)
         if novo != anterior:
             alteracoes.append(f"{rotulo}: {anterior if anterior is not None else '—'} -> {novo if novo is not None else '—'}")
     if cargo_novo_nome != cargo_anterior_nome:
@@ -488,11 +493,18 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
     if payload.senha is not None and payload.senha.strip():
         alteracoes.append("senha redefinida")
 
-    cpf_novo = descriptografar_dado_sensivel(user.cpf_criptografado) if user.cpf_criptografado else None
-    telefone_emergencia_novo = descriptografar_dado_sensivel(user.telefone_emergencia)
-    telefone_emergencia_2_novo = descriptografar_dado_sensivel(user.telefone_emergencia_2)
-    endereco_novo = _desserializar_endereco(user.endereco)
-    dados_bancarios_novo = _desserializar_dados_bancarios(user.dados_bancarios)
+    cpf_armazenado_novo = getattr(user, "cpf_criptografado", None)
+    cpf_novo = descriptografar_dado_sensivel(cpf_armazenado_novo) if cpf_armazenado_novo else None
+    telefone_emergencia_novo = descriptografar_dado_sensivel(
+        getattr(user, "telefone_emergencia", None)
+    )
+    telefone_emergencia_2_novo = descriptografar_dado_sensivel(
+        getattr(user, "telefone_emergencia_2", None)
+    )
+    endereco_novo = _desserializar_endereco(getattr(user, "endereco", None))
+    dados_bancarios_novo = _desserializar_dados_bancarios(
+        getattr(user, "dados_bancarios", None)
+    )
 
     # Valores de campos sensiveis/criptografados (senha, telefones de
     # emergencia, endereco, dados bancarios, CPF) nao aparecem no log — só o
@@ -529,7 +541,8 @@ def listar_aniversariantes(db: Session) -> list[dict]:
     return [
         {
             "nome": user.nome,
-            "data_aniversario": user.data_aniversario,
+            "dia": user.data_aniversario.day,
+            "mes": user.data_aniversario.month,
         }
         for user in users_repository.listar_usuarios_com_aniversario(db)
         if user.data_aniversario and user.data_aniversario.month == hoje.month

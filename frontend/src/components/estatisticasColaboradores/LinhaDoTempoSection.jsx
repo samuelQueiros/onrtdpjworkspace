@@ -1,5 +1,5 @@
 import Timeline from '../comum/Timeline'
-import { formatCurrency } from '../comum/DetailFields'
+import { formatCurrency } from '../../utils/formatters'
 import { aplicarCorrecoesSalariais } from '../../utils/historicoSalarial'
 
 const TITULO_CAMPO = {

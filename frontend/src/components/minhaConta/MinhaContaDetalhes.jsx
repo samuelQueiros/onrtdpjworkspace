@@ -1,5 +1,5 @@
-import { DetailField, DetailSection, formatCurrency } from '../comum/DetailFields'
-import { formatDate } from '../../utils/formatters'
+import { DetailField, DetailSection } from '../comum/DetailFields'
+import { formatCurrency, formatDate } from '../../utils/formatters'
 import { maskCpf, maskPhone } from '../../utils/inputMasks'
 import { SEXO_LABEL, ESTADO_CIVIL_LABEL } from '../../utils/fichaAdmissionalLabels'
 

@@ -1,10 +1,21 @@
+import { useState } from 'react'
+
 export default function CredencialCompartilhadaCard({
   copiado,
   credencial,
   onCopiar,
-  onToggleVisivel,
-  visivel,
+  onOcultar,
+  onRevelar,
+  revelando,
+  segredo,
 }) {
+  const [senhaAtual, setSenhaAtual] = useState('')
+
+  const revelar = async () => {
+    const revelado = await onRevelar(credencial.id, senhaAtual)
+    if (revelado) setSenhaAtual('')
+  }
+
   return (
     <div className="card">
       <div className="card-header">
@@ -23,22 +34,51 @@ export default function CredencialCompartilhadaCard({
         </div>
         <div className="inline-center gap-8">
           <span className="credential-field-label">Senha</span>
-          <span className={`credential-secret${visivel ? '' : ' masked'}`}>
-            {visivel ? credencial.senha : '********'}
+          <span className={`credential-secret${segredo ? '' : ' masked'}`}>
+            {segredo || '********'}
           </span>
+          {segredo ? (
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => onOcultar(credencial.id)}
+            >
+              Ocultar
+            </button>
+          ) : null}
           <button
+            type="button"
             className="btn btn-outline btn-sm"
-            onClick={() => onToggleVisivel(credencial.id)}
-          >
-            {visivel ? 'Ocultar' : 'Mostrar'}
-          </button>
-          <button
-            className="btn btn-outline btn-sm"
-            onClick={() => onCopiar(`senha-${credencial.id}`, credencial.senha)}
+            onClick={() => onCopiar(`senha-${credencial.id}`, segredo)}
+            disabled={!segredo}
           >
             {copiado[`senha-${credencial.id}`] ? 'Copiado!' : 'Copiar'}
           </button>
         </div>
+        {!segredo ? (
+          <div className="inline-center gap-8">
+            <label className="credential-field-label" htmlFor={`senha-atual-${credencial.id}`}>
+              Sua senha
+            </label>
+            <input
+              id={`senha-atual-${credencial.id}`}
+              type="password"
+              autoComplete="current-password"
+              value={senhaAtual}
+              onChange={event => setSenhaAtual(event.target.value)}
+              disabled={revelando}
+              required
+            />
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={revelar}
+              disabled={revelando || !senhaAtual}
+            >
+              {revelando ? 'Validando...' : 'Revelar'}
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   )

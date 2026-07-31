@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import relationship
 from datetime import UTC, datetime
 from app.database import Base
@@ -10,6 +10,9 @@ def agora_utc() -> datetime:
 
 class Log(Base):
     __tablename__ = "logs"
+    __table_args__ = (
+        Index("ix_logs_criado_em_id", "criado_em", "id"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)

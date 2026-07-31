@@ -1,4 +1,3 @@
-import { formatDate } from '../../utils/formatters'
 import BirthdayAvatar from './BirthdayAvatar'
 
 export default function AniversariantesMes({ aniversariantes }) {
@@ -15,7 +14,9 @@ export default function AniversariantesMes({ aniversariantes }) {
             <div key={index} className="birthday-card">
               <BirthdayAvatar nome={item.nome} />
               <strong className="birthday-nome">{item.nome}</strong>
-              <span className="birthday-data">🎂 {formatDate(item.data_aniversario)}</span>
+              <span className="birthday-data">
+                🎂 {String(item.dia).padStart(2, '0')}/{String(item.mes).padStart(2, '0')}
+              </span>
             </div>
           ))}
         </div>

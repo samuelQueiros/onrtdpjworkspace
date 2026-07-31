@@ -15,6 +15,9 @@ class FakeQuery:
         self.filtered = True
         return self
 
+    def options(self, *_args):
+        return self
+
     def order_by(self, *_args):
         self.ordered = True
         return self

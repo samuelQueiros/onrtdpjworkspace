@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, Date, ForeignKey, Index, UniqueConstraint, text, true
+from sqlalchemy import Boolean, CheckConstraint, Column, Integer, String, DateTime, Date, ForeignKey, Index, UniqueConstraint, text, true
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -9,14 +9,16 @@ class User(Base):
     __table_args__ = (
         UniqueConstraint("cpf_hash", name="uq_users_cpf_hash"),
         Index("uq_users_email_normalizado", text("lower(email)"), unique=True),
+        CheckConstraint("role IN ('user', 'admin')", name="ck_users_role_valida"),
+        CheckConstraint("dias_totais > 0", name="ck_users_dias_totais_positivos"),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     nome = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
     senha_hash = Column(String, nullable=False)
-    role = Column(String, default="user")  # "user" ou "admin"
-    dias_totais = Column(Integer, default=30)
+    role = Column(String, nullable=False, default="user")  # "user" ou "admin"
+    dias_totais = Column(Integer, nullable=False, default=30)
     saldo_manual_dias = Column(Integer, nullable=True, default=None)  # override manual do saldo acumulado (None = automatico)
     proxima_concessao_ferias = Column(Date, nullable=True)
     departamento_id = Column(Integer, ForeignKey("departamentos.id"), nullable=True)

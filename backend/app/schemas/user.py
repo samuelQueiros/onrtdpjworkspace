@@ -273,4 +273,5 @@ class MeuPerfilOut(BaseModel):
 
 class AniversarianteOut(BaseModel):
     nome: str
-    data_aniversario: date
+    dia: int
+    mes: int

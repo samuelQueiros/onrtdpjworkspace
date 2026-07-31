@@ -8,6 +8,7 @@ from app.models.user import User
 from app.repositories import auth_repository
 
 logger = logging.getLogger(__name__)
+_DUMMY_PASSWORD_HASH = "$2b$12$7a4fZ0Zp1QF81hMbPZfM2uTNtZ3.YZfXxqVV7qCOzUIJKdwD7lyj."
 
 
 def formatar_usuario_autenticado(user: User, db: Session) -> dict:
@@ -36,7 +37,8 @@ def formatar_usuario_autenticado(user: User, db: Session) -> dict:
 
 def autenticar_usuario(db: Session, email: str, senha: str) -> dict:
     user = auth_repository.obter_usuario_por_email(db, email.strip().lower())
-    if not user or not verificar_senha(senha, user.senha_hash):
+    senha_valida = verificar_senha(senha, user.senha_hash if user else _DUMMY_PASSWORD_HASH)
+    if not user or not senha_valida:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-mail ou senha incorretos",

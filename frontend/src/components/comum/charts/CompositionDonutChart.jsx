@@ -1,5 +1,5 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
-import { formatCurrency } from '../DetailFields'
+import { formatCurrency } from '../../../utils/formatters'
 import { EmptyState } from '../PageHelpers'
 
 function TooltipContent({ active, payload }) {

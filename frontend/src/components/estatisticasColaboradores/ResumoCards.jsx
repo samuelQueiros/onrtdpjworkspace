@@ -1,6 +1,5 @@
 import StatCard from '../comum/StatCard'
-import { formatCurrency } from '../comum/DetailFields'
-import { formatDate, calcularTempoDeEmpresa } from '../../utils/formatters'
+import { calcularTempoDeEmpresa, formatCurrency, formatDate } from '../../utils/formatters'
 import { StatIcon } from './StatIcons'
 
 export default function ResumoCards({ user, ficha }) {

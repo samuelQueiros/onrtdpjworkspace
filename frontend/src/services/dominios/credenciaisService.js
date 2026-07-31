@@ -8,4 +8,5 @@ export const credenciaisService = {
   usuariosCredencial: id => req('GET', `/credenciais/${id}/usuarios`),
   salvarPermissoes: (id, user_ids) => req('PUT', `/credenciais/${id}/permissoes`, { user_ids }),
   minhasCredenciais: () => req('GET', '/credenciais/minhas'),
+  revelarCredencial: (id, senha_atual) => req('POST', `/credenciais/${id}/revelar`, { senha_atual }),
 }

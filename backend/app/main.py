@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Request
 from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from uuid import uuid4
 import logging
@@ -54,12 +55,39 @@ async def security_and_request_id(request: Request, call_next):
     request_id = uuid4().hex
     request.state.request_id = request_id
     inicio = time.perf_counter()
-    response = await call_next(request)
+    origin = request.headers.get("origin")
+    origem_invalida = (
+        request.method not in {"GET", "HEAD", "OPTIONS"}
+        and origin is not None
+        and origin != settings.frontend_url.rstrip("/")
+    )
+    if origem_invalida:
+        response = JSONResponse(
+            status_code=403,
+            content={"detail": "Origem da requisicao nao autorizada", "request_id": request_id},
+        )
+    else:
+        try:
+            response = await call_next(request)
+        except Exception:
+            logger.exception(
+                "unhandled_exception method=%s path=%s request_id=%s",
+                request.method,
+                request.url.path,
+                request_id,
+            )
+            response = JSONResponse(
+                status_code=500,
+                content={"detail": "Erro interno do servidor", "request_id": request_id},
+            )
     duracao_ms = round((time.perf_counter() - inicio) * 1000, 2)
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Cache-Control"] = "no-store"
+    if settings.environment == "production" and settings.cookie_secure:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     logger.info(
         "request method=%s path=%s status=%s duration_ms=%s request_id=%s",
         request.method,

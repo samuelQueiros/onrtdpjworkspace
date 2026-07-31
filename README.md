@@ -95,7 +95,7 @@ O frontend publicado pelo Docker acessa a API pelo proxy interno `/api`. Para in
 | **Backend** | Python + FastAPI | 3.12 / 0.110+ |
 | **ORM** | SQLAlchemy | 2.x |
 | **Banco de Dados** | PostgreSQL | 16 |
-| **Autenticação** | JWT via `python-jose` + hash `bcrypt` | — |
+| **Autenticação** | JWT via `PyJWT` + hash `bcrypt` | — |
 | **Feriados** | `holidays` (calendário oficial brasileiro) | — |
 | **PDF e templates** | Jinja2 + WeasyPrint | 3.1.6 / 69.0 |
 | **Frontend** | React + Vite | 18.3.1 / 8.1.3 |
@@ -368,8 +368,8 @@ Aguarde o processo concluir (~2-3 minutos na primeira vez). O Docker irá:
 2. Instalar as dependências Python e Node
 3. Fazer o build de produção do React
 4. Copiar os arquivos estáticos para o Nginx
-5. Aplicar migrations Alembic no backend
-6. Iniciar os três serviços em sequência (o backend aguarda o Postgres estar saudável)
+5. Executar as migrations em um container `migrate` de execução única
+6. Iniciar o backend somente se as migrations terminarem com sucesso
 
 #### 4. Verificar o status dos serviços
 
@@ -423,7 +423,7 @@ docker compose exec db psql -U ferias -d ferias
 
 # Backup e restauração segura (PowerShell)
 .\scripts\backup.ps1
-.\scripts\restore.ps1 -BackupFile .\backups\ferias-AAAAMMDD-HHMMSS.dump
+.\scripts\restore.ps1 -BackupFile .\backups\ferias-AAAAMMDD-HHMMSS.zip
 ```
 
 #### 7. Configurar domínio com HTTPS (Nginx Proxy + Certbot)
@@ -442,17 +442,27 @@ sudo certbot --nginx -d seudominio.com.br
 
 ```nginx
 server {
+    listen 80;
+    server_name seudominio.com.br;
+    return 301 https://$host$request_uri;
+}
+
+server {
     listen 443 ssl;
     server_name seudominio.com.br;
+    client_max_body_size 11m;
 
     ssl_certificate     /etc/letsencrypt/live/seudominio.com.br/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/seudominio.com.br/privkey.pem;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
     # Frontend
     location / {
         proxy_pass http://localhost:80;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # API
@@ -461,6 +471,8 @@ server {
         proxy_pass http://localhost:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 ```
@@ -491,6 +503,12 @@ server {
 | `BACKEND_PORT` | Porta exposta do backend | `8000` |
 | `FRONTEND_PORT` | Porta exposta do frontend | `80` |
 | `UPLOAD_DIR` | Pasta interna onde documentos enviados sao salvos | `/app/uploads` |
+| `DATABASE_POOL_SIZE` | Conexões persistentes por processo do backend | `10` |
+| `DATABASE_MAX_OVERFLOW` | Conexões extras temporárias por processo | `20` |
+| `DATABASE_POOL_TIMEOUT_SECONDS` | Espera máxima por conexão livre | `30` |
+| `DATABASE_POOL_RECYCLE_SECONDS` | Reciclagem preventiva de conexões | `1800` |
+| `DATABASE_CONNECT_TIMEOUT_SECONDS` | Timeout ao abrir conexão com PostgreSQL | `10` |
+| `DATABASE_STATEMENT_TIMEOUT_MS` | Timeout de cada comando SQL | `30000` |
 
 ### Backend — `backend/.env` (desenvolvimento local)
 
@@ -782,8 +800,12 @@ FRONTEND_PORT=8080
 .\scripts\backup.ps1
 
 # Restaurar com backend pausado e migrations ao final
-.\scripts\restore.ps1 -BackupFile .\backups\ferias-AAAAMMDD-HHMMSS.dump
+.\scripts\restore.ps1 -BackupFile .\backups\ferias-AAAAMMDD-HHMMSS.zip
 ```
+
+O pacote `.zip` contém o dump PostgreSQL, os uploads e um manifesto. O arquivo
+`.sha256` ao lado do pacote é validado antes da restauração. Por padrão, a
+restauração também cria um backup de segurança do estado atual.
 
 ### Exportação de Logs
 

@@ -7,9 +7,10 @@ from app.core.security import get_current_user, require_admin
 from app.database import get_db
 from app.models.user import User
 from app.schemas.credencial import (
-    CredencialComSenhaOut,
     CredencialCreate,
     CredencialOut,
+    CredencialRevealOut,
+    CredencialRevealRequest,
     CredencialUpdate,
     PermissoesUpdate,
 )
@@ -18,12 +19,27 @@ from app.services import credenciais_service
 router = APIRouter(prefix="/credenciais", tags=["Credenciais"])
 
 
-@router.get("/minhas", response_model=List[CredencialComSenhaOut])
+@router.get("/minhas", response_model=List[CredencialOut])
 def minhas_credenciais(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     return credenciais_service.minhas_credenciais(db, current_user.id, current_user)
+
+
+@router.post("/{credencial_id}/revelar", response_model=CredencialRevealOut)
+def revelar_credencial(
+    credencial_id: int,
+    payload: CredencialRevealRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return credenciais_service.revelar_credencial(
+        db,
+        credencial_id,
+        payload.senha_atual,
+        current_user,
+    )
 
 
 @router.get("", response_model=List[CredencialOut])

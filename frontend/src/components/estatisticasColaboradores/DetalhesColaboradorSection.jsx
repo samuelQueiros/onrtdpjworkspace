@@ -1,5 +1,5 @@
-import { DetailField, DetailSection, formatCurrency } from '../comum/DetailFields'
-import { formatDate, calcularTempoDeEmpresa } from '../../utils/formatters'
+import { DetailField, DetailSection } from '../comum/DetailFields'
+import { calcularTempoDeEmpresa, formatCurrency, formatDate } from '../../utils/formatters'
 
 export default function DetalhesColaboradorSection({ user, ficha }) {
   return (

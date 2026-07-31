@@ -348,9 +348,12 @@ class SchemasDtoTests(unittest.TestCase):
         self.assertEqual(user.departamento.nome, "RH")
 
     def test_aniversariante_out_aceita_data(self):
-        aniversariante = AniversarianteOut(nome="Gabriel", data_aniversario=datetime.now(UTC).date())
+        hoje = datetime.now(UTC).date()
+        aniversariante = AniversarianteOut(nome="Gabriel", dia=hoje.day, mes=hoje.month)
 
         self.assertEqual(aniversariante.nome, "Gabriel")
+        self.assertEqual(aniversariante.dia, hoje.day)
+        self.assertEqual(aniversariante.mes, hoje.month)
 
 
 if __name__ == "__main__":

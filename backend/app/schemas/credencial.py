@@ -27,7 +27,12 @@ class CredencialOut(BaseModel):
         from_attributes = True
 
 
-class CredencialComSenhaOut(CredencialOut):
+class CredencialRevealRequest(BaseModel):
+    senha_atual: str = Field(min_length=1)
+
+
+class CredencialRevealOut(BaseModel):
+    id: int
     senha: str
 
 

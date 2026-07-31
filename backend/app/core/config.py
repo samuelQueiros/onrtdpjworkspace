@@ -50,6 +50,30 @@ class Settings:
         return int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
 
     @property
+    def database_pool_size(self) -> int:
+        return int(os.getenv("DATABASE_POOL_SIZE", "10"))
+
+    @property
+    def database_max_overflow(self) -> int:
+        return int(os.getenv("DATABASE_MAX_OVERFLOW", "20"))
+
+    @property
+    def database_pool_timeout_seconds(self) -> int:
+        return int(os.getenv("DATABASE_POOL_TIMEOUT_SECONDS", "30"))
+
+    @property
+    def database_pool_recycle_seconds(self) -> int:
+        return int(os.getenv("DATABASE_POOL_RECYCLE_SECONDS", "1800"))
+
+    @property
+    def database_connect_timeout_seconds(self) -> int:
+        return int(os.getenv("DATABASE_CONNECT_TIMEOUT_SECONDS", "10"))
+
+    @property
+    def database_statement_timeout_ms(self) -> int:
+        return int(os.getenv("DATABASE_STATEMENT_TIMEOUT_MS", "30000"))
+
+    @property
     def cookie_secure(self) -> bool:
         valor = os.getenv("COOKIE_SECURE")
         if valor is None:
@@ -67,8 +91,27 @@ class Settings:
         return valor.strip().lower() in {"1", "true", "sim", "yes", "on"}
 
     def validate_runtime(self) -> None:
-        _ = self.secret_key
-        _ = self.credentials_encryption_key
+        secret_key = self.secret_key
+        credentials_key = self.credentials_encryption_key
+        if self.environment == "production":
+            if len(secret_key) < 32 or "troque" in secret_key.lower():
+                raise RuntimeError("SECRET_KEY deve ter pelo menos 32 caracteres e nao pode ser um placeholder.")
+            if len(credentials_key) < 32 or "troque" in credentials_key.lower():
+                raise RuntimeError(
+                    "CREDENTIALS_ENCRYPTION_KEY deve ter pelo menos 32 caracteres e nao pode ser um placeholder."
+                )
+            if secret_key == credentials_key:
+                raise RuntimeError("SECRET_KEY e CREDENTIALS_ENCRYPTION_KEY devem ser diferentes.")
+            if "://ferias:ferias@" in self.database_url:
+                raise RuntimeError("DATABASE_URL de producao nao pode usar as credenciais padrao.")
+            if self.admin_password and (
+                len(self.admin_password) < 12
+                or "troque" in self.admin_password.lower()
+                or self.admin_password == "Teste@123456"
+            ):
+                raise RuntimeError(
+                    "ADMIN_PASSWORD deve ter pelo menos 12 caracteres e nao pode ser um placeholder."
+                )
         if (
             self.environment == "production"
             and not self.cookie_secure

@@ -1,7 +1,7 @@
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
-import { formatCurrency } from '../DetailFields'
+import { formatCurrency } from '../../../utils/formatters'
 import { formatDateFromTimestamp } from '../../../utils/formatters'
 import { EmptyState } from '../PageHelpers'
 

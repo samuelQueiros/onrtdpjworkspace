@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.bloqueio import BloqueioData
 from app.models.departamento import Departamento
@@ -21,19 +21,54 @@ def listar_users_por_departamento(db: Session, departamento_id: int) -> list[Use
 
 
 def listar_ferias_por_usuario(db: Session, user_id: int) -> list[Ferias]:
-    return db.query(Ferias).filter(Ferias.user_id == user_id).order_by(Ferias.criado_em.desc()).all()
+    return (
+        db.query(Ferias)
+        .options(
+            selectinload(Ferias.usuario),
+            selectinload(Ferias.aprovado_por),
+            selectinload(Ferias.rejeitado_por),
+        )
+        .filter(Ferias.user_id == user_id)
+        .order_by(Ferias.criado_em.desc())
+        .all()
+    )
 
 
 def listar_ferias_pendentes(db: Session) -> list[Ferias]:
-    return db.query(Ferias).filter(Ferias.status == "pendente").order_by(Ferias.criado_em.asc()).all()
+    return (
+        db.query(Ferias)
+        .options(
+            selectinload(Ferias.usuario),
+            selectinload(Ferias.aprovado_por),
+            selectinload(Ferias.rejeitado_por),
+        )
+        .filter(Ferias.status == "pendente")
+        .order_by(Ferias.criado_em.asc())
+        .all()
+    )
 
 
 def listar_todas_ferias(db: Session) -> list[Ferias]:
-    return db.query(Ferias).order_by(Ferias.criado_em.desc()).all()
+    return (
+        db.query(Ferias)
+        .options(
+            selectinload(Ferias.usuario),
+            selectinload(Ferias.aprovado_por),
+            selectinload(Ferias.rejeitado_por),
+        )
+        .order_by(Ferias.criado_em.desc())
+        .all()
+    )
 
 
 def listar_ferias_aprovadas(db: Session) -> list[Ferias]:
-    return db.query(Ferias).filter(Ferias.status == "aprovada").order_by(Ferias.data_inicio).all()
+    return (
+        db.query(Ferias)
+        .options(selectinload(Ferias.usuario))
+        .filter(Ferias.status == "aprovada")
+        .order_by(Ferias.data_inicio)
+        .all()
+    )
 
 
 def listar_ferias_para_saldo_desde(

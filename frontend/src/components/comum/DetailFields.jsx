@@ -1,8 +1,3 @@
-export function formatCurrency(value) {
-  if (value === null || value === undefined || value === '') return null
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value))
-}
-
 export function DetailField({ label, children, wide = false }) {
   const vazio = children === null || children === undefined || children === ''
 

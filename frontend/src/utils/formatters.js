@@ -5,6 +5,11 @@ export function formatDate(value) {
   return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`
 }
 
+export function formatCurrency(value) {
+  if (value === null || value === undefined || value === '') return null
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value))
+}
+
 // Para campos `date` puros (sem hora, ex: data_vigencia), formatDate() é
 // seguro — só recorta a string, sem conversão de fuso. Mas para um
 // `datetime` completo em UTC (ex: criado_em) isso está errado: os 10

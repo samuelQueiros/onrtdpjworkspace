@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.security import (
+    chaves_limite_login,
     get_current_user,
     limpar_falhas_login,
     obter_ip_cliente,
@@ -20,15 +21,15 @@ router = APIRouter(prefix="/auth", tags=["Autenticacao"])
 
 def _autenticar_limitado(request: Request, form_data: OAuth2PasswordRequestForm, db: Session):
     ip = obter_ip_cliente(request)
-    chave = f"{ip}|{form_data.username.strip().lower()}"
-    verificar_limite_login(chave)
+    chaves = chaves_limite_login(ip, form_data.username)
+    verificar_limite_login(chaves)
     try:
         resultado = autenticar_usuario(db, form_data.username, form_data.password)
     except HTTPException as exc:
         if exc.status_code == 401:
-            registrar_falha_login(chave)
+            registrar_falha_login(chaves)
         raise
-    limpar_falhas_login(chave)
+    limpar_falhas_login(chaves)
     return resultado
 
 

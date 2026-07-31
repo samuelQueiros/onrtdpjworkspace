@@ -5,7 +5,9 @@ from types import SimpleNamespace
 from fastapi import HTTPException
 
 from app.core.security import (
+    LOGIN_ACCOUNT_MAX_ATTEMPTS,
     LOGIN_MAX_ATTEMPTS,
+    chaves_limite_login,
     limpar_falhas_login,
     registrar_falha_login,
     obter_ip_cliente,
@@ -44,6 +46,22 @@ class SecurityRateLimitTests(unittest.TestCase):
         finally:
             limpar_falhas_login(chave)
             limpar_falhas_login(outra)
+
+    def test_limite_por_conta_funciona_mesmo_com_ips_diferentes(self):
+        todas_as_chaves = []
+        try:
+            for indice in range(LOGIN_ACCOUNT_MAX_ATTEMPTS):
+                chaves = chaves_limite_login(f"192.0.2.{indice}", "alvo@sistema.com")
+                todas_as_chaves.extend(chaves)
+                registrar_falha_login(chaves)
+
+            tentativa_nova = chaves_limite_login("198.51.100.10", "alvo@sistema.com")
+            todas_as_chaves.extend(tentativa_nova)
+            with self.assertRaises(HTTPException) as exc:
+                verificar_limite_login(tentativa_nova)
+            self.assertEqual(exc.exception.status_code, 429)
+        finally:
+            limpar_falhas_login(todas_as_chaves)
 
 
 if __name__ == "__main__":

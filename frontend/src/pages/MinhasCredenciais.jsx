@@ -9,7 +9,8 @@ export default function MinhasCredenciais() {
   const toast = useToast()
   const [credenciais, setCredenciais] = useState([])
   const [loading, setLoading] = useState(true)
-  const [visiveis, setVisiveis] = useState({})
+  const [segredos, setSegredos] = useState({})
+  const [revelando, setRevelando] = useState({})
   const [copiado, setCopiado] = useState({})
 
   useEffect(() => {
@@ -19,8 +20,26 @@ export default function MinhasCredenciais() {
       .finally(() => setLoading(false))
   }, [toast])
 
-  const toggleVisivel = id => {
-    setVisiveis(prev => ({ ...prev, [id]: !prev[id] }))
+  const revelar = async (id, senhaAtual) => {
+    setRevelando(prev => ({ ...prev, [id]: true }))
+    try {
+      const response = await api.revelarCredencial(id, senhaAtual)
+      setSegredos(prev => ({ ...prev, [id]: response.senha }))
+      return true
+    } catch (err) {
+      toast.error(err.message)
+      return false
+    } finally {
+      setRevelando(prev => ({ ...prev, [id]: false }))
+    }
+  }
+
+  const ocultar = id => {
+    setSegredos(prev => {
+      const atualizados = { ...prev }
+      delete atualizados[id]
+      return atualizados
+    })
   }
 
   const copiar = async (id, texto) => {
@@ -57,8 +76,10 @@ export default function MinhasCredenciais() {
               copiado={copiado}
               credencial={credencial}
               onCopiar={copiar}
-              onToggleVisivel={toggleVisivel}
-              visivel={!!visiveis[credencial.id]}
+              onOcultar={ocultar}
+              onRevelar={revelar}
+              revelando={!!revelando[credencial.id]}
+              segredo={segredos[credencial.id]}
             />
           ))}
         </div>

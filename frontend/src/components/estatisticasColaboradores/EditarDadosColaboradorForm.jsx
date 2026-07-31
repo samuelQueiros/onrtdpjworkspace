@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatCurrency } from '../comum/DetailFields'
+import { formatCurrency } from '../../utils/formatters'
 
 export default function EditarDadosColaboradorForm({ user, ficha, cargos, departamentos, saving, onSave, onCancel }) {
   const [form, setForm] = useState({

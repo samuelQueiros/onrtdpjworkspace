@@ -4,6 +4,12 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.crypto import criptografar_credencial, descriptografar_credencial
+from app.core.security import (
+    limpar_falhas_login,
+    registrar_falha_login,
+    verificar_limite_login,
+    verificar_senha,
+)
 from app.models.credencial import Credencial
 from app.models.log import Log
 from app.models.user import User
@@ -40,15 +46,38 @@ def minhas_credenciais(
     current_user: User | None = None,
 ) -> list[dict]:
     credenciais = credenciais_repository.listar_credenciais_por_usuario(db, user_id)
-    resultado = [formatar_credencial(c, incluir_senha=True) for c in credenciais]
-    if current_user is not None:
-        db.add(Log(
-            user_id=current_user.id,
-            acao="CREDENCIAIS_COMPARTILHADAS_CONSULTADAS",
-            detalhes=f"{len(credenciais)} credencial(is) descriptografada(s) pelo usuario",
-        ))
-        db.commit()
-    return resultado
+    return [formatar_credencial(c) for c in credenciais]
+
+
+def revelar_credencial(
+    db: Session,
+    credencial_id: int,
+    senha_atual: str,
+    current_user: User,
+) -> dict:
+    credencial = buscar_credencial(db, credencial_id)
+    autorizado = current_user.role == "admin" or credenciais_repository.usuario_tem_acesso(
+        db,
+        credencial_id,
+        current_user.id,
+    )
+    if not autorizado:
+        raise HTTPException(status_code=404, detail="Credencial nao encontrada")
+    chave_limite = f"reveal:{current_user.id}"
+    verificar_limite_login(chave_limite)
+    if not verificar_senha(senha_atual, current_user.senha_hash):
+        registrar_falha_login(chave_limite)
+        raise HTTPException(status_code=401, detail="Senha atual incorreta")
+    limpar_falhas_login(chave_limite)
+
+    senha = descriptografar_credencial(credencial.senha)
+    db.add(Log(
+        user_id=current_user.id,
+        acao="CREDENCIAL_REVELADA",
+        detalhes=f"Credencial #{credencial_id} revelada pelo usuario",
+    ))
+    db.commit()
+    return {"id": credencial.id, "senha": senha}
 
 
 def listar_credenciais(db: Session) -> list[dict]:

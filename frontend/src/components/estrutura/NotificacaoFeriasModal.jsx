@@ -1,5 +1,6 @@
 import { formatDate } from '../../utils/formatters'
 import { copiarModeloEmailFerias } from '../../utils/emailTemplates'
+import { useModalFocusTrap } from '../../utils/useModalFocusTrap'
 
 const KICKER_POR_TIPO = {
   ferias_5dias: 'Aviso de férias em 5 dias',
@@ -8,6 +9,7 @@ const KICKER_POR_TIPO = {
 
 export default function NotificacaoFeriasModal({ alerta, total, onCopiar, onFechar }) {
   const kicker = KICKER_POR_TIPO[alerta.tipo] || 'Aviso de férias'
+  const modalRef = useModalFocusTrap(onFechar)
 
   const copiar = async () => {
     try {
@@ -21,6 +23,7 @@ export default function NotificacaoFeriasModal({ alerta, total, onCopiar, onFech
   return (
     <div className="modal-overlay ferias-alerta-overlay" role="presentation">
       <section
+        ref={modalRef}
         className="modal ferias-alerta-modal"
         role="dialog"
         aria-modal="true"
@@ -45,7 +48,7 @@ export default function NotificacaoFeriasModal({ alerta, total, onCopiar, onFech
           </p>
         </div>
         <div className="modal-footer">
-          <button className="btn btn-outline" type="button" onClick={onFechar}>Fechar aviso</button>
+          <button data-autofocus className="btn btn-outline" type="button" onClick={onFechar}>Fechar aviso</button>
           <button className="btn btn-primary" type="button" onClick={copiar}>Copiar modelo de e-mail</button>
         </div>
       </section>

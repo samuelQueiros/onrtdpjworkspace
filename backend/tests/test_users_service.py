@@ -217,7 +217,10 @@ class UsersServiceTests(unittest.TestCase):
         with patch("app.services.users_service.users_repository.listar_usuarios_com_aniversario", return_value=usuarios):
             response = users_service.listar_aniversariantes(SimpleNamespace())
 
-        self.assertEqual(response, [{"nome": "Pessoa A", "data_aniversario": usuarios[0].data_aniversario}])
+        self.assertEqual(
+            response,
+            [{"nome": "Pessoa A", "dia": 10, "mes": hoje.month}],
+        )
 
     def test_listar_usuarios_usa_extrato_de_movimentacoes(self):
         hoje = date.today()
@@ -242,7 +245,10 @@ class UsersServiceTests(unittest.TestCase):
         )
         with (
             patch("app.services.users_service.users_repository.listar_usuarios", return_value=[user]),
-            patch("app.services.ferias_service.calcular_extrato_saldo", return_value={"saldo": 15, "dias_usados_total": 10}),
+            patch(
+                "app.services.users_service.users_repository.resumir_saldos_usuarios",
+                return_value={1: {"saldo": 15, "dias_usados_total": 10}},
+            ),
         ):
             resultado = users_service.listar_usuarios(SimpleNamespace())
 
@@ -272,7 +278,10 @@ class UsersServiceTests(unittest.TestCase):
         )
         with (
             patch("app.services.users_service.users_repository.listar_usuarios", return_value=[user]),
-            patch("app.services.ferias_service.calcular_extrato_saldo", return_value={"saldo": 7, "dias_usados_total": 0}),
+            patch(
+                "app.services.users_service.users_repository.resumir_saldos_usuarios",
+                return_value={1: {"saldo": 7, "dias_usados_total": 0}},
+            ),
         ):
             resultado = users_service.listar_usuarios(SimpleNamespace())
 

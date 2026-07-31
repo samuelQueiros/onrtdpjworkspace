@@ -22,6 +22,18 @@ def obter_credencial_por_id(db: Session, credencial_id: int) -> Credencial | Non
     return db.query(Credencial).filter(Credencial.id == credencial_id).first()
 
 
+def usuario_tem_acesso(db: Session, credencial_id: int, user_id: int) -> bool:
+    return (
+        db.query(CredencialUsuario)
+        .filter(
+            CredencialUsuario.credencial_id == credencial_id,
+            CredencialUsuario.user_id == user_id,
+        )
+        .first()
+        is not None
+    )
+
+
 def salvar_credencial(db: Session, credencial: Credencial) -> Credencial:
     db.add(credencial)
     db.commit()
