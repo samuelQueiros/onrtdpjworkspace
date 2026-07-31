@@ -18,6 +18,17 @@ def relatorio_colaboradores(db: Session = Depends(get_db), _=Depends(require_adm
     return relatorios_service.relatorio_colaboradores(db)
 
 
+@router.get("/relatorios/exportar")
+def exportar_relatorio_colaboradores(db: Session = Depends(get_db), _=Depends(require_admin)):
+    conteudo = relatorios_service.exportar_relatorio_colaboradores_xlsx(db)
+    nome_arquivo = f"relatorio-ferias-{date.today().isoformat()}.xlsx"
+    return StreamingResponse(
+        BytesIO(conteudo),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{nome_arquivo}"'},
+    )
+
+
 @router.get("/dashboard", response_model=DashboardOut)
 def dashboard_admin(db: Session = Depends(get_db), _=Depends(require_admin)):
     return relatorios_service.dashboard_admin(db)

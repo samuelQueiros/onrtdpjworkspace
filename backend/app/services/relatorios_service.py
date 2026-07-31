@@ -64,6 +64,69 @@ def relatorio_colaboradores(db: Session) -> dict:
     return {"colaboradores": colaboradores}
 
 
+def exportar_relatorio_colaboradores_xlsx(db: Session) -> bytes:
+    dados = relatorio_colaboradores(db)
+
+    workbook = Workbook()
+    planilha = workbook.active
+    planilha.title = "Relatorio"
+    planilha.append([
+        "Tipo", "Nome", "E-mail", "Departamento",
+        "Dias totais", "Dias usados", "Dias restantes",
+        "Início período", "Fim período", "Dias do período",
+    ])
+
+    for colaborador in dados["colaboradores"]:
+        nome_departamento = colaborador["departamento"]["nome"] if colaborador["departamento"] else ""
+        planilha.append([
+            "Resumo",
+            colaborador["nome"],
+            colaborador["email"],
+            nome_departamento,
+            colaborador["dias_totais"],
+            colaborador["dias_usados"],
+            colaborador["dias_restantes"],
+            None,
+            None,
+            None,
+        ])
+        for ferias in colaborador["ferias"]:
+            planilha.append([
+                "Período",
+                colaborador["nome"],
+                colaborador["email"],
+                nome_departamento,
+                None,
+                None,
+                None,
+                ferias["data_inicio"],
+                ferias["data_fim"],
+                ferias["dias_usados"],
+            ])
+
+    preenchimento = PatternFill("solid", fgColor="14213D")
+    for celula in planilha[1]:
+        celula.fill = preenchimento
+        celula.font = Font(color="FFFFFF", bold=True)
+        celula.alignment = Alignment(horizontal="center")
+
+    for coluna in ("H", "I"):
+        for celula in planilha[coluna][1:]:
+            if celula.value:
+                celula.number_format = "dd/mm/yyyy"
+
+    larguras = {"A": 12, "B": 28, "C": 30, "D": 22, "E": 12, "F": 12, "G": 14, "H": 16, "I": 16, "J": 16}
+    for coluna, largura in larguras.items():
+        planilha.column_dimensions[coluna].width = largura
+
+    planilha.freeze_panes = "A2"
+    planilha.auto_filter.ref = planilha.dimensions
+
+    arquivo = BytesIO()
+    workbook.save(arquivo)
+    return arquivo.getvalue()
+
+
 def dashboard_admin(db: Session) -> dict:
     hoje = hoje_sao_paulo()
 
