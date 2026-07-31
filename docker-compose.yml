@@ -58,7 +58,7 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-/api}
+        VITE_API_URL: ${VITE_DOCKER_API_URL:-/api}
     container_name: ferias-frontend
     restart: unless-stopped
     depends_on:

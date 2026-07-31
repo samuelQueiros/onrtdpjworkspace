@@ -338,7 +338,7 @@ ADMIN_PASSWORD=troque-por-uma-senha-forte
 
 # ── Frontend ───────────────────────────────────
 # Troque pelo IP ou domínio público do servidor
-VITE_API_URL=/api
+VITE_DOCKER_API_URL=/api
 FRONTEND_URL=http://SEU_IP_OU_DOMINIO
 FRONTEND_PORT=80
 ```
@@ -498,7 +498,7 @@ server {
 | `ADMIN_NAME` | Nome do administrador inicial criado no primeiro startup | `Administrador` |
 | `ADMIN_EMAIL` | E-mail do administrador inicial | — |
 | `ADMIN_PASSWORD` | Senha do administrador inicial | — |
-| `VITE_API_URL` | URL usada pelo frontend para acessar a API | `/api` no Docker |
+| `VITE_DOCKER_API_URL` | URL compilada no frontend pelo Docker Compose | `/api` |
 | `FRONTEND_URL` | URL do frontend (CORS) | `http://chat-server` |
 | `BACKEND_PORT` | Porta exposta do backend | `8000` |
 | `FRONTEND_PORT` | Porta exposta do frontend | `80` |
