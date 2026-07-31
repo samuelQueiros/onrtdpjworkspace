@@ -364,11 +364,34 @@ def criar_usuario(
     return formatar_usuario(novo_user, db)
 
 
+CAMPOS_DIFF_USUARIO = (
+    ("nome", "nome"),
+    ("email", "e-mail"),
+    ("dias_totais", "dias de férias por ano"),
+    ("proxima_concessao_ferias", "próxima concessão de férias"),
+    ("data_admissao", "data de admissão"),
+    ("data_aniversario", "data de aniversário"),
+    ("cor", "cor"),
+    ("telefone", "telefone"),
+)
+
+
 def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user: User) -> dict:
     user = buscar_usuario(db, user_id)
     cargo_anterior_nome = user.cargo.nome if user.cargo else None
     departamento_anterior_nome = user.departamento.nome if user.departamento else None
     departamento_novo_nome = departamento_anterior_nome
+    valores_anteriores = {campo: getattr(user, campo) for campo, _ in CAMPOS_DIFF_USUARIO}
+    # A criptografia usada não é determinística (mesmo texto gera cifra
+    # diferente a cada vez), então comparar o valor cru já criptografado
+    # sempre acusaria mudança. Descriptografa antes/depois para comparar o
+    # conteúdo de verdade — o formulário reenvia esses campos preenchidos
+    # em todo submit, mesmo quando o admin não mexeu neles.
+    cpf_anterior = descriptografar_dado_sensivel(user.cpf_criptografado) if user.cpf_criptografado else None
+    telefone_emergencia_anterior = descriptografar_dado_sensivel(user.telefone_emergencia)
+    telefone_emergencia_2_anterior = descriptografar_dado_sensivel(user.telefone_emergencia_2)
+    endereco_anterior = _desserializar_endereco(user.endereco)
+    dados_bancarios_anterior = _desserializar_dados_bancarios(user.dados_bancarios)
 
     if payload.nome is not None:
         user.nome = payload.nome
@@ -452,10 +475,45 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
                 commit=False,
             )
 
+    alteracoes = []
+    for campo, rotulo in CAMPOS_DIFF_USUARIO:
+        anterior = valores_anteriores[campo]
+        novo = getattr(user, campo)
+        if novo != anterior:
+            alteracoes.append(f"{rotulo}: {anterior if anterior is not None else '—'} -> {novo if novo is not None else '—'}")
+    if cargo_novo_nome != cargo_anterior_nome:
+        alteracoes.append(f"cargo: {cargo_anterior_nome or '—'} -> {cargo_novo_nome or '—'}")
+    if departamento_novo_nome != departamento_anterior_nome:
+        alteracoes.append(f"departamento: {departamento_anterior_nome or '—'} -> {departamento_novo_nome or '—'}")
+    if payload.senha is not None and payload.senha.strip():
+        alteracoes.append("senha redefinida")
+
+    cpf_novo = descriptografar_dado_sensivel(user.cpf_criptografado) if user.cpf_criptografado else None
+    telefone_emergencia_novo = descriptografar_dado_sensivel(user.telefone_emergencia)
+    telefone_emergencia_2_novo = descriptografar_dado_sensivel(user.telefone_emergencia_2)
+    endereco_novo = _desserializar_endereco(user.endereco)
+    dados_bancarios_novo = _desserializar_dados_bancarios(user.dados_bancarios)
+
+    # Valores de campos sensiveis/criptografados (senha, telefones de
+    # emergencia, endereco, dados bancarios, CPF) nao aparecem no log — só o
+    # nome do campo — para nao expor em texto plano dados que sao
+    # armazenados criptografados justamente por serem sensiveis.
+    if telefone_emergencia_novo != telefone_emergencia_anterior:
+        alteracoes.append("telefone de emergência alterado")
+    if telefone_emergencia_2_novo != telefone_emergencia_2_anterior:
+        alteracoes.append("telefone de emergência 2 alterado")
+    if endereco_novo != endereco_anterior:
+        alteracoes.append("endereço alterado")
+    if dados_bancarios_novo != dados_bancarios_anterior:
+        alteracoes.append("dados bancários alterados")
+    if cpf_novo != cpf_anterior:
+        alteracoes.append("CPF alterado")
+    resumo = "; ".join(alteracoes) if alteracoes else "nenhum campo alterado"
+
     log = Log(
         user_id=current_user.id,
         acao="USUARIO_EDITADO",
-        detalhes=f"Usuario {user.nome} ({user.email}) editado por {current_user.nome}",
+        detalhes=f"Usuario {user.nome} ({user.email}) editado por {current_user.nome}: {resumo}",
     )
     try:
         users_repository.atualizar_usuario_com_log(db, user, log)

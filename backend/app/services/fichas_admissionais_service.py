@@ -89,6 +89,9 @@ CAMPOS_MODELO = (
 )
 
 
+ROTULOS_CAMPO_FICHA = {campo: rotulo for _, rotulo, campo, _, _ in CAMPOS_MODELO}
+
+
 def _valor_criptografado(valor) -> str | None:
     if valor is None or valor == "":
         return None
@@ -119,12 +122,12 @@ def formatar_ficha(ficha: FichaAdmissional) -> dict:
 
 
 def consultar_ficha(db: Session, user_id: int, current_user: User) -> dict | None:
-    users_service.buscar_usuario(db, user_id)
+    user = users_service.buscar_usuario(db, user_id)
     ficha = fichas_admissionais_repository.obter_por_usuario(db, user_id)
     db.add(Log(
         user_id=current_user.id,
         acao="FICHA_ADMISSIONAL_CONSULTADA",
-        detalhes=f"Ficha admissional do usuario #{user_id} consultada por administrador",
+        detalhes=f"Ficha admissional de {user.nome} consultada por administrador",
     ))
     db.commit()
     return formatar_ficha(ficha) if ficha else None
@@ -143,7 +146,7 @@ def atualizar_ficha(
     acao: str = "FICHA_ADMISSIONAL_ATUALIZADA",
     origem_importacao: bool = False,
 ) -> dict:
-    users_service.buscar_usuario(db, user_id)
+    user = users_service.buscar_usuario(db, user_id)
     ficha = fichas_admissionais_repository.obter_por_usuario(db, user_id)
     salario_anterior = (
         _valor_decimal(descriptografar_dado_sensivel(ficha.salario_criptografado)) if ficha else None
@@ -151,6 +154,18 @@ def atualizar_ficha(
     valor_beneficios_anterior = (
         _valor_decimal(descriptografar_dado_sensivel(ficha.valor_beneficios_criptografado)) if ficha else None
     )
+    # A criptografia não é determinística (mesmo texto gera cifra diferente
+    # a cada vez), então precisa descriptografar antes/depois pra comparar o
+    # conteúdo de verdade — o formulário reenvia todos os campos da ficha em
+    # todo submit, mesmo os que o admin não tocou.
+    valores_anteriores_criptografados = {
+        campo: (descriptografar_dado_sensivel(getattr(ficha, atributo)) if ficha else None)
+        for campo, atributo in CAMPOS_CRIPTOGRAFADOS.items()
+    }
+    valores_anteriores_diretos = {
+        campo: (getattr(ficha, campo) if ficha else None)
+        for campo in CAMPOS_DIRETOS
+    }
     if ficha is None:
         ficha = FichaAdmissional(
             user_id=user_id,
@@ -167,10 +182,27 @@ def atualizar_ficha(
     ficha.atualizado_por_id = current_user.id
 
     fichas_admissionais_repository.salvar(db, ficha, commit=False)
+
+    alteracoes = []
+    for campo, atributo in CAMPOS_CRIPTOGRAFADOS.items():
+        anterior = valores_anteriores_criptografados[campo]
+        novo = descriptografar_dado_sensivel(getattr(ficha, atributo))
+        if novo == anterior:
+            continue
+        rotulo = ROTULOS_CAMPO_FICHA.get(campo, campo)
+        alteracoes.append(f"{rotulo}: {anterior or '—'} -> {novo or '—'}")
+    for campo in CAMPOS_DIRETOS:
+        anterior = valores_anteriores_diretos[campo]
+        novo = getattr(ficha, campo)
+        if novo != anterior:
+            rotulo = ROTULOS_CAMPO_FICHA.get(campo, campo)
+            alteracoes.append(f"{rotulo}: {anterior if anterior is not None else '—'} -> {novo if novo is not None else '—'}")
+    resumo = "; ".join(alteracoes) if alteracoes else "nenhum campo alterado"
+
     db.add(Log(
         user_id=current_user.id,
         acao=acao,
-        detalhes=f"Ficha admissional do usuario #{user_id} atualizada por administrador",
+        detalhes=f"Ficha admissional de {user.nome} atualizada por administrador: {resumo}",
     ))
 
     if "salario" in payload.model_fields_set and payload.salario is not None and payload.salario != salario_anterior:
@@ -285,7 +317,7 @@ def gerar_modelo_xlsx(db: Session, user_id: int, current_user: User) -> bytes:
     db.add(Log(
         user_id=current_user.id,
         acao="MODELO_FICHA_ADMISSIONAL_EXPORTADO",
-        detalhes=f"Modelo preenchivel da ficha admissional do usuario #{user_id} exportado",
+        detalhes=f"Modelo preenchivel da ficha admissional de {user.nome} exportado",
     ))
     db.commit()
     arquivo = BytesIO()
@@ -423,12 +455,12 @@ def importar_xlsx(
 
 
 def historico_salarial(db: Session, user_id: int, current_user: User) -> list[dict]:
-    users_service.buscar_usuario(db, user_id)
+    user = users_service.buscar_usuario(db, user_id)
     movimentos = historico_salarial_repository.listar_por_usuario(db, user_id)
     db.add(Log(
         user_id=current_user.id,
         acao="HISTORICO_SALARIAL_CONSULTADO",
-        detalhes=f"Historico salarial do usuario #{user_id} consultado por administrador",
+        detalhes=f"Historico salarial de {user.nome} consultado por administrador",
     ))
     db.commit()
     return [
@@ -444,12 +476,12 @@ def historico_salarial(db: Session, user_id: int, current_user: User) -> list[di
 
 
 def historico_funcional(db: Session, user_id: int, current_user: User) -> list[dict]:
-    users_service.buscar_usuario(db, user_id)
+    user = users_service.buscar_usuario(db, user_id)
     resultado = historico_colaborador_service.listar_historico(db, user_id)
     db.add(Log(
         user_id=current_user.id,
         acao="HISTORICO_FUNCIONAL_CONSULTADO",
-        detalhes=f"Historico funcional (cargo/departamento/beneficios) do usuario #{user_id} consultado por administrador",
+        detalhes=f"Historico funcional (cargo/departamento/beneficios) de {user.nome} consultado por administrador",
     ))
     db.commit()
     return resultado
