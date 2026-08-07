@@ -6,6 +6,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _ler_secret_arquivo(nome_var_arquivo: str, fallback_env: str | None = None) -> str | None:
+    """Le um valor sensivel a partir de um arquivo montado (Docker/Portainer secret).
+
+    `nome_var_arquivo` deve apontar (via env var) para o caminho do arquivo montado, ex.
+    GMAIL_APP_PASSWORD_FILE=/run/secrets/gmail_app_password. Se o arquivo nao existir (ex.
+    ambiente local sem Docker secrets), cai para a env var simples `fallback_env`, se informada.
+    Nunca logar o valor retornado.
+    """
+    caminho = os.getenv(nome_var_arquivo)
+    if caminho:
+        arquivo = Path(caminho)
+        if arquivo.is_file():
+            return arquivo.read_text(encoding="utf-8").strip()
+    if fallback_env:
+        return os.getenv(fallback_env)
+    return None
+
+
 class Settings:
     @property
     def environment(self) -> str:
@@ -121,6 +139,14 @@ class Settings:
                 "COOKIE_SECURE deve ser true em producao. "
                 "Use ALLOW_INSECURE_PRODUCTION_COOKIE=true somente em uma rede HTTP controlada."
             )
+        if self.environment == "production":
+            if not self.gmail_user or not self.gmail_app_password:
+                raise RuntimeError(
+                    "GMAIL_USER e GMAIL_APP_PASSWORD (ou GMAIL_APP_PASSWORD_FILE) "
+                    "sao obrigatorios para o envio de lembretes de ferias."
+                )
+            if not self.public_app_url:
+                raise RuntimeError("PUBLIC_APP_URL nao esta configurada.")
 
     @property
     def credentials_encryption_key(self) -> str:
@@ -136,6 +162,26 @@ class Settings:
     @property
     def upload_dir(self) -> Path:
         return Path(os.getenv("UPLOAD_DIR", "data/uploads")).resolve()
+
+    @property
+    def gmail_user(self) -> str | None:
+        return os.getenv("GMAIL_USER")
+
+    @property
+    def gmail_app_password(self) -> str | None:
+        return _ler_secret_arquivo("GMAIL_APP_PASSWORD_FILE", fallback_env="GMAIL_APP_PASSWORD")
+
+    @property
+    def public_app_url(self) -> str | None:
+        """Dominio HTTPS publico real (alcancavel da internet), usado para montar a URL do
+        pixel de rastreio de e-mail. Diferente de `frontend_url`, que hoje so serve para CORS
+        e pode ser um hostname interno de rede Docker."""
+        valor = os.getenv("PUBLIC_APP_URL")
+        return valor.rstrip("/") if valor else None
+
+    @property
+    def envios_monitoramento_intervalo_minutos(self) -> int:
+        return int(os.getenv("ENVIOS_MONITORAMENTO_INTERVALO_MINUTOS", "20"))
 
 
 settings = Settings()

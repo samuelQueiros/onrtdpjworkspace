@@ -42,6 +42,39 @@ def formatar_alerta(alerta: Alerta, db: Session | None = None) -> dict:
     }
 
 
+def _formatar_data_br(valor) -> str:
+    return valor.strftime("%d/%m/%Y") if valor else None
+
+
+def gerar_texto_email(alerta: dict) -> str:
+    """Monta o texto (puro) do e-mail de aviso de férias a partir do dict de
+    `formatar_alerta`. Porte 1:1 de `montarModeloEmailFerias`
+    (frontend/src/utils/emailTemplates.js) - mesmo modelo, mesmos placeholders quando um
+    campo está ausente. Não injeta nenhum elemento de rastreio: isso é responsabilidade
+    exclusiva de `envios_service.montar_email_ferias`, que reaproveita esta função."""
+    cargo = alerta.get("cargo_usuario") or "[Cargo]"
+    periodo_inicio = _formatar_data_br(alerta.get("ciclo_inicio")) or "[Data Inicial]"
+    periodo_fim = _formatar_data_br(alerta.get("ciclo_fim")) or "[Data Final]"
+    inicio_gozo = _formatar_data_br(alerta.get("ferias_data_inicio")) or "[Data]"
+    retorno = _formatar_data_br(alerta.get("retorno_trabalho")) or "[Data]"
+    dias = alerta.get("ferias_dias_usados")
+    dias = dias if dias is not None else "[Quantidade de dias]"
+    nome = alerta.get("ferias_usuario") or "[Nome do Colaborador]"
+
+    return (
+        "Prezados,\n\n"
+        "Espero que estejam bem.\n\n"
+        f"Solicito o processamento das férias do colaborador **{nome}**, conforme os dados abaixo:\n\n"
+        f"- Cargo: {cargo}\n\n"
+        f"- Período Aquisitivo: {periodo_inicio} a {periodo_fim}\n\n"
+        f"- Início do gozo: {inicio_gozo}\n\n"
+        f"- Retorno ao trabalho: {retorno}\n\n"
+        f"- Dias de gozo solicitados: {dias}\n\n"
+        "Peço que preparem os recibos de férias e confirmem o envio da documentação para assinatura.\n\n"
+        "Atenciosamente,"
+    )
+
+
 def gerar_alertas_contabilidade(
     db: Session,
     hoje: date | None = None,

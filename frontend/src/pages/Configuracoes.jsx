@@ -17,15 +17,35 @@ export default function Configuracoes() {
   const [departamentosOpen, setDepartamentosOpen] = useState(false)
   const [departamentoForm, setDepartamentoForm] = useState({ nome: '', limite_simultaneo: 2 })
   const [departamentoEditing, setDepartamentoEditing] = useState(null)
+  const [emailDestinatario, setEmailDestinatario] = useState('')
+  const [salvandoEmail, setSalvandoEmail] = useState(false)
 
-  const load = useCallback(() => Promise.all([api.listarCargos(), api.listarDepartamentos()])
-    .then(([listaCargos, listaDepartamentos]) => {
+  const load = useCallback(() => Promise.all([
+    api.listarCargos(),
+    api.listarDepartamentos(),
+    api.obterConfiguracao().catch(() => null),
+  ])
+    .then(([listaCargos, listaDepartamentos, configuracao]) => {
       setCargos(listaCargos)
       setDepartamentos(listaDepartamentos)
+      setEmailDestinatario(configuracao?.email_destinatario || '')
     })
     .catch(error => toast.error(error.message))
     .finally(() => setLoading(false)), [toast])
   useEffect(() => { load() }, [load])
+
+  const salvarEmailDestinatario = async event => {
+    event.preventDefault()
+    setSalvandoEmail(true)
+    try {
+      await api.atualizarConfiguracao({ email_destinatario: emailDestinatario })
+      toast.success('E-mail de destino atualizado.')
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setSalvandoEmail(false)
+    }
+  }
 
   const reset = () => { setNome(''); setEditing(null) }
   const resetDepartamento = () => {
@@ -208,6 +228,40 @@ export default function Configuracoes() {
             <div className="button-row">
               {departamentoEditing && <button className="btn btn-outline" type="button" onClick={resetDepartamento}>Cancelar</button>}
               <button className="btn btn-primary" type="submit">{departamentoEditing ? 'Salvar alterações' : 'Criar departamento'}</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div className="grid-2 grid-2-wide-left">
+        <section className="card">
+          <div className="card-header"><h2 className="card-title">Lembretes de férias por e-mail</h2></div>
+          <div className="card-body">
+            <p className="muted">
+              E-mail que recebe os avisos automáticos de férias enviados pelo botão
+              "Enviar automaticamente". Deve ser um único endereço fixo.
+            </p>
+          </div>
+        </section>
+
+        <form className="card form-card" onSubmit={salvarEmailDestinatario}>
+          <div className="card-header"><h2 className="card-title">E-mail de destino</h2></div>
+          <div className="card-body form-stack">
+            <div className="form-group">
+              <label htmlFor="email-destinatario-lembretes">E-mail (contabilidade/RH)</label>
+              <input
+                id="email-destinatario-lembretes"
+                name="email_destinatario"
+                type="email"
+                value={emailDestinatario}
+                onChange={event => setEmailDestinatario(event.target.value)}
+                required
+              />
+            </div>
+            <div className="button-row">
+              <button className="btn btn-primary" type="submit" disabled={salvandoEmail}>
+                {salvandoEmail ? 'Salvando...' : 'Salvar e-mail'}
+              </button>
             </div>
           </div>
         </form>

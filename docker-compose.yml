@@ -40,6 +40,12 @@ services:
       DATABASE_CONNECT_TIMEOUT_SECONDS: ${DATABASE_CONNECT_TIMEOUT_SECONDS:-10}
       DATABASE_STATEMENT_TIMEOUT_MS: ${DATABASE_STATEMENT_TIMEOUT_MS:-30000}
       DATABASE_URL: postgresql://${POSTGRES_USER:-ferias}:${POSTGRES_PASSWORD:-ferias}@db:5432/${POSTGRES_DB:-ferias}
+      GMAIL_USER: ${GMAIL_USER:-}
+      GMAIL_APP_PASSWORD_FILE: /run/secrets/gmail_app_password
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
+      ENVIOS_MONITORAMENTO_INTERVALO_MINUTOS: ${ENVIOS_MONITORAMENTO_INTERVALO_MINUTOS:-20}
+    secrets:
+      - gmail_app_password
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -94,3 +100,11 @@ services:
 
 volumes:
   ferias_data:
+
+secrets:
+  # Arquivo local com a Senha de App de 16 dígitos do Gmail (2FA ativado), uma linha, sem
+  # quebra de linha ao final. Nunca commitar - ver .gitignore. Em Portainer/Compose puro
+  # isso é um bind-mount do arquivo do host; se o Portainer estiver em modo Swarm/stack, o
+  # mecanismo de secrets é outro (docker secret create) - confirmar antes do deploy.
+  gmail_app_password:
+    file: ./secrets/gmail_app_password.txt

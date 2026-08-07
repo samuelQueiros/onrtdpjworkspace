@@ -18,13 +18,17 @@ from app.routers import (
     avisos,
     bloqueios,
     cargos,
+    configuracao,
     credenciais,
     departamentos,
     documentos,
+    envios,
     fichas_admissionais,
     importacao,
     patrimonios,
+    track,
 )
+from app.core.scheduler import iniciar_scheduler, parar_scheduler
 from app.services import bootstrap_service
 
 logger = logging.getLogger("app.http")
@@ -114,6 +118,9 @@ app.include_router(cargos.router)
 app.include_router(patrimonios.router)
 app.include_router(autorizacoes_equipamentos.router)
 app.include_router(autorizacoes_equipamentos.pendencias_router)
+app.include_router(configuracao.router)
+app.include_router(envios.router)
+app.include_router(track.router)
 
 
 @app.on_event("startup")
@@ -137,6 +144,13 @@ def startup():
             print("Nenhum administrador encontrado. Configure ADMIN_EMAIL e ADMIN_PASSWORD.")
     finally:
         db.close()
+
+    app.state.scheduler = iniciar_scheduler()
+
+
+@app.on_event("shutdown")
+def shutdown():
+    parar_scheduler(getattr(app.state, "scheduler", None))
 
 
 @app.get("/", tags=["Health"])

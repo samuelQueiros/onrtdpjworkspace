@@ -119,6 +119,11 @@ export default function AppLayout({ children }) {
     else toast.error('Não foi possível copiar o modelo automaticamente.')
   }
 
+  const lembreteFeriasEnviado = () => {
+    toast.success('E-mail enviado com sucesso!')
+    window.dispatchEvent(new Event('lembretes-ferias:changed'))
+  }
+
   return (
     <div className="layout">
       <Sidebar user={user} pendingApprovals={pendentes} avisosNaoVistos={avisosNaoVistos} />
@@ -144,6 +149,10 @@ export default function AppLayout({ children }) {
           total={avisosFerias.length}
           onFechar={() => fecharAvisoFerias(avisosFerias[0])}
           onCopiar={copiarModeloFerias}
+          onEnviado={() => {
+            lembreteFeriasEnviado()
+            fecharAvisoFerias(avisosFerias[0])
+          }}
         />
       )}
     </div>

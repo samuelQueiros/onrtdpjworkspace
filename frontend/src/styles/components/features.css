@@ -183,6 +183,22 @@ textarea   { resize: vertical; min-height: 80px; }
   background: var(--bg); padding: 4px 10px; border-radius: 999px; white-space: nowrap;
 }
 
+/* Envio automatico de lembrete de ferias por e-mail */
+.lembrete-ferias-modal { max-width: 520px; }
+.lembrete-ferias-preview {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+}
+
 /* Grade de campos de detalhe (usada em Usuarios > Detalhes e Minha Conta) */
 .user-detail-section-title {
   margin-bottom: 11px;

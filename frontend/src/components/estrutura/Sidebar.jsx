@@ -17,6 +17,7 @@ const Icon = {
   account: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>,
   stats: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18"/><path d="M7 16l4-5 3 3 5-7"/><circle cx="19" cy="7" r="1.5" fill="currentColor" stroke="none"/></svg>,
   settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 8.97 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3v-4h.08A1.7 1.7 0 0 0 4.6 8.94a1.7 1.7 0 0 0-.34-1.88L4.2 7l2.83-2.83.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 10 3.01V3h4v.08a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 7l-.06.06a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.96 10H21v4h-.08A1.7 1.7 0 0 0 19.4 15z"/></svg>,
+  mail: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>,
 }
 
 function LinkItem({ to, end, icon, children, badge, badgeLabel = 'pendente(s)' }) {
@@ -69,6 +70,7 @@ export default function Sidebar({ user, pendingApprovals, avisosNaoVistos }) {
             <LinkItem to="/estatisticas-colaboradores" icon={Icon.stats}>Estatísticas dos Colaboradores</LinkItem>
             <LinkItem to="/patrimonios" icon={Icon.patrimony}>Patrimônios</LinkItem>
             <LinkItem to="/bloqueios" icon={Icon.lock}>Bloqueio de Datas</LinkItem>
+            <LinkItem to="/lembretes-ferias" icon={Icon.mail}>Lembretes de Férias</LinkItem>
             <LinkItem to="/credenciais" icon={Icon.key}>Acessos / Senhas</LinkItem>
             <LinkItem to="/relatorios" icon={Icon.chart}>Relatórios</LinkItem>
             <LinkItem to="/logs" icon={Icon.log}>Logs</LinkItem>

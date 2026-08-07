@@ -31,6 +31,36 @@ class AlertasServiceTests(unittest.TestCase):
         self.assertEqual(response["cargo_usuario"], "Analista")
         self.assertEqual(response["retorno_trabalho"], date(2026, 7, 21))
 
+    def test_gerar_texto_email_com_todos_os_dados(self):
+        alerta = {
+            "cargo_usuario": "Analista",
+            "ciclo_inicio": date(2026, 1, 1),
+            "ciclo_fim": date(2026, 12, 31),
+            "ferias_data_inicio": date(2026, 9, 14),
+            "retorno_trabalho": date(2026, 9, 25),
+            "ferias_dias_usados": 10,
+            "ferias_usuario": "Gabriel",
+        }
+
+        texto = alertas_service.gerar_texto_email(alerta)
+
+        self.assertIn("colaborador **Gabriel**", texto)
+        self.assertIn("Cargo: Analista", texto)
+        self.assertIn("Período Aquisitivo: 01/01/2026 a 31/12/2026", texto)
+        self.assertIn("Início do gozo: 14/09/2026", texto)
+        self.assertIn("Retorno ao trabalho: 25/09/2026", texto)
+        self.assertIn("Dias de gozo solicitados: 10", texto)
+
+    def test_gerar_texto_email_usa_placeholders_quando_campos_ausentes(self):
+        texto = alertas_service.gerar_texto_email({})
+
+        self.assertIn("[Nome do Colaborador]", texto)
+        self.assertIn("[Cargo]", texto)
+        self.assertIn("[Data Inicial]", texto)
+        self.assertIn("[Data Final]", texto)
+        self.assertIn("[Data]", texto)
+        self.assertIn("[Quantidade de dias]", texto)
+
     def test_gerar_alertas_ferias_5dias_cria_quando_nao_existe(self):
         ferias = SimpleNamespace(
             id=1,

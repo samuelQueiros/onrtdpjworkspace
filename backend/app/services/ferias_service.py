@@ -4,6 +4,7 @@ import holidays as holidays_lib
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from app.core.timezone import hoje_sao_paulo
 from app.models.ferias import Ferias
@@ -86,6 +87,19 @@ def verificar_regras_data(data_inicio: date, data_fim: date) -> None:
 
 def calcular_dias(data_inicio: date, data_fim: date) -> int:
     return (data_fim - data_inicio).days + 1
+
+
+def calcular_dias_uteis(data_base: date, dias: int) -> date:
+    """Retorna a data `dias` dias úteis estritamente após `data_base` (não conta a
+    própria `data_base`), pulando finais de semana e feriados nacionais brasileiros."""
+    feriados = feriados_br({data_base.year, data_base.year + 1})
+    atual = data_base
+    restantes = dias
+    while restantes > 0:
+        atual += timedelta(days=1)
+        if atual.weekday() < 5 and atual not in feriados:
+            restantes -= 1
+    return atual
 
 
 def get_ciclo_atual(data_admissao) -> tuple:
@@ -654,4 +668,11 @@ def cancelar_ferias(db: Session, ferias_id: int, current_user: User) -> None:
     owner = ferias_repository.obter_user_por_id(db, ferias.user_id)
     detalhes = f"Férias #{ferias_id} de {owner.nome if owner else '?'} ({ferias.data_inicio} a {ferias.data_fim}) canceladas"
     log = log_service.construir_log(current_user, acao="FERIAS_CANCELADA", detalhes=detalhes)
-    ferias_repository.excluir_ferias_com_log(db, ferias, log)
+    try:
+        ferias_repository.excluir_ferias_com_log(db, ferias, log)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Não é possível cancelar: já existe um lembrete de e-mail enviado para estas férias.",
+        )

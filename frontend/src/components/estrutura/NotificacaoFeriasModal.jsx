@@ -1,15 +1,18 @@
+import { useState } from 'react'
 import { formatDate } from '../../utils/formatters'
 import { copiarModeloEmailFerias } from '../../utils/emailTemplates'
 import { useModalFocusTrap } from '../../utils/useModalFocusTrap'
+import EnviarLembreteFeriasModal from './EnviarLembreteFeriasModal'
 
 const KICKER_POR_TIPO = {
   ferias_5dias: 'Aviso de férias em 5 dias',
   ferias_4dias: 'Lembrete urgente — férias próximas',
 }
 
-export default function NotificacaoFeriasModal({ alerta, total, onCopiar, onFechar }) {
+export default function NotificacaoFeriasModal({ alerta, total, onCopiar, onFechar, onEnviado }) {
   const kicker = KICKER_POR_TIPO[alerta.tipo] || 'Aviso de férias'
   const modalRef = useModalFocusTrap(onFechar)
+  const [enviarAberto, setEnviarAberto] = useState(false)
 
   const copiar = async () => {
     try {
@@ -18,6 +21,19 @@ export default function NotificacaoFeriasModal({ alerta, total, onCopiar, onFech
     } catch {
       onCopiar(false)
     }
+  }
+
+  if (enviarAberto) {
+    return (
+      <EnviarLembreteFeriasModal
+        alerta={alerta}
+        onClose={() => setEnviarAberto(false)}
+        onEnviado={() => {
+          setEnviarAberto(false)
+          onEnviado?.()
+        }}
+      />
+    )
   }
 
   return (
@@ -49,7 +65,8 @@ export default function NotificacaoFeriasModal({ alerta, total, onCopiar, onFech
         </div>
         <div className="modal-footer">
           <button data-autofocus className="btn btn-outline" type="button" onClick={onFechar}>Fechar aviso</button>
-          <button className="btn btn-primary" type="button" onClick={copiar}>Copiar modelo de e-mail</button>
+          <button className="btn btn-outline" type="button" onClick={copiar}>Copiar modelo de e-mail</button>
+          <button className="btn btn-primary" type="button" onClick={() => setEnviarAberto(true)}>Enviar automaticamente</button>
         </div>
       </section>
     </div>

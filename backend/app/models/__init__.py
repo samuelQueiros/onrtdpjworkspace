@@ -22,3 +22,5 @@ from .patrimonio import (
     SolicitacaoEquipamentoEvento,
     TermoEquipamentoVersao,
 )
+from .configuracao import Configuracao
+from .envio import Envio, EnvioEvento

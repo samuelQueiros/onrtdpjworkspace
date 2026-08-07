@@ -12,6 +12,8 @@ import { relatoriosService } from './dominios/relatoriosService'
 import { usersService } from './dominios/usersService'
 import { patrimoniosService } from './dominios/patrimoniosService'
 import { autorizacoesEquipamentosService } from './dominios/autorizacoesEquipamentosService'
+import { envioService } from './dominios/envioService'
+import { configuracaoService } from './dominios/configuracaoService'
 
 export const api = {
   ...authService,
@@ -28,4 +30,6 @@ export const api = {
   ...cargosService,
   ...patrimoniosService,
   ...autorizacoesEquipamentosService,
+  ...envioService,
+  ...configuracaoService,
 }

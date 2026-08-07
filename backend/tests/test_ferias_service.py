@@ -19,6 +19,30 @@ class FeriasServiceTests(unittest.TestCase):
     def test_calcular_dias_inclui_inicio_e_fim(self):
         self.assertEqual(ferias_service.calcular_dias(date(2026, 7, 6), date(2026, 7, 10)), 5)
 
+    def test_calcular_dias_uteis_pula_fim_de_semana(self):
+        segunda = _proxima_segunda()
+        sexta = segunda + timedelta(days=4)
+        with patch("app.services.ferias_service.feriados_br", return_value=set()):
+            resultado = ferias_service.calcular_dias_uteis(sexta, 1)
+        self.assertEqual(resultado, segunda + timedelta(days=7))
+
+    def test_calcular_dias_uteis_pula_feriado_no_meio(self):
+        segunda = _proxima_segunda()
+        feriado = segunda + timedelta(days=2)  # quarta-feira
+        with patch("app.services.ferias_service.feriados_br", return_value={feriado}):
+            resultado = ferias_service.calcular_dias_uteis(segunda, 2)
+        self.assertEqual(resultado, segunda + timedelta(days=3))  # terca (conta) + quarta (pula) + quinta (conta)
+
+    def test_calcular_dias_uteis_considera_feriados_do_ano_seguinte(self):
+        base = date(2026, 12, 30)  # quarta-feira
+        feriado_ano_novo = date(2027, 1, 1)  # sexta-feira
+        with patch("app.services.ferias_service.feriados_br") as mock_feriados:
+            mock_feriados.return_value = {feriado_ano_novo}
+            resultado = ferias_service.calcular_dias_uteis(base, 2)
+        mock_feriados.assert_called_once_with({2026, 2027})
+        # 31/dez (conta) -> 01/jan (feriado, pula) -> 02-03/jan (fim de semana, pula) -> 04/jan (conta)
+        self.assertEqual(resultado, date(2027, 1, 4))
+
     def test_verificar_regras_data_bloqueia_quinta_e_sexta(self):
         segunda = _proxima_segunda()
         with patch("app.services.ferias_service.feriados_br", return_value=set()):
