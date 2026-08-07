@@ -5,7 +5,7 @@ sqlalchemy==2.0.51
 alembic==1.18.5
 psycopg2-binary==2.9.12
 PyJWT==2.13.0
-cryptography==48.0.1
+cryptography>=49.0.0
 bcrypt==5.0.0
 python-dotenv==1.2.2
 pydantic[email]==2.13.4
