@@ -3,10 +3,10 @@ from sqlalchemy.orm import Session
 
 from app.core.timezone import hoje_sao_paulo
 from app.models.aviso import Aviso
-from app.models.log import Log
 from app.models.user import User
 from app.repositories import avisos_repository
 from app.schemas.aviso import AvisoCreate, AvisoUpdate
+from app.services import log_service
 
 
 def formatar_aviso(aviso: Aviso) -> dict:
@@ -44,8 +44,8 @@ def criar_aviso(db: Session, payload: AvisoCreate, current_user: User) -> dict:
         data_expiracao=payload.data_expiracao,
         criado_por_id=current_user.id,
     )
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="AVISO_CRIADO",
         detalhes=f"Aviso '{aviso.titulo}' publicado",
     )
@@ -65,8 +65,8 @@ def editar_aviso(db: Session, aviso_id: int, payload: AvisoUpdate, current_user:
     if payload.data_expiracao is not None:
         aviso.data_expiracao = payload.data_expiracao
 
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="AVISO_EDITADO",
         detalhes=f"Aviso #{aviso_id} atualizado",
     )
@@ -76,9 +76,9 @@ def editar_aviso(db: Session, aviso_id: int, payload: AvisoUpdate, current_user:
 
 def excluir_aviso(db: Session, aviso_id: int, current_user: User) -> None:
     aviso = buscar_aviso(db, aviso_id)
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="AVISO_EXCLUIDO",
-        detalhes=f"Aviso '{aviso.titulo}' excluido",
+        detalhes=f"Aviso '{aviso.titulo}' excluído",
     )
     avisos_repository.excluir_aviso_com_log(db, aviso, log)

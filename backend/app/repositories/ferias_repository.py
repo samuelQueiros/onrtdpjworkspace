@@ -160,23 +160,26 @@ def obter_ferias_por_id_para_atualizar(db: Session, ferias_id: int) -> Ferias | 
     return db.query(Ferias).filter(Ferias.id == ferias_id).with_for_update().first()
 
 
-def salvar_ferias_com_log(db: Session, ferias: Ferias, log: Log) -> Ferias:
+def salvar_ferias_com_log(db: Session, ferias: Ferias, log: Log | None) -> Ferias:
     db.add(ferias)
     db.flush()
-    db.add(log)
+    if log is not None:
+        db.add(log)
     db.commit()
     db.refresh(ferias)
     return ferias
 
 
-def atualizar_ferias_com_log(db: Session, ferias: Ferias, log: Log) -> Ferias:
-    db.add(log)
+def atualizar_ferias_com_log(db: Session, ferias: Ferias, log: Log | None) -> Ferias:
+    if log is not None:
+        db.add(log)
     db.commit()
     db.refresh(ferias)
     return ferias
 
 
-def excluir_ferias_com_log(db: Session, ferias: Ferias, log: Log) -> None:
+def excluir_ferias_com_log(db: Session, ferias: Ferias, log: Log | None) -> None:
     db.delete(ferias)
-    db.add(log)
+    if log is not None:
+        db.add(log)
     db.commit()

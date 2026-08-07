@@ -17,8 +17,8 @@ export const blankUserForm = {
   data_aniversario: '',
   cor: '',
   telefone: '',
-  telefone_emergencia: '',
-  telefone_emergencia_2: '',
+  contato_emergencia_1: { telefone: '', nome: '', grau_parentesco: '' },
+  contato_emergencia_2: { telefone: '', nome: '', grau_parentesco: '' },
   endereco: { logradouro: '', numero: '', bairro: '', cidade: '', cep: '' },
   dados_bancarios: {
     banco: '', agencia: '', conta: '', cpf_titular: '', nome_titular: '', chave_pix: '',
@@ -54,6 +54,12 @@ export default function UserForm({
   const updateAddress = changes => updateForm({
     endereco: { ...form.endereco, ...changes },
   })
+  const updateContato1 = changes => updateForm({
+    contato_emergencia_1: { ...form.contato_emergencia_1, ...changes },
+  })
+  const updateContato2 = changes => updateForm({
+    contato_emergencia_2: { ...form.contato_emergencia_2, ...changes },
+  })
 
   const handleSubmit = event => {
     event.preventDefault()
@@ -66,8 +72,12 @@ export default function UserForm({
       ['Departamento', form.departamento_id, 'user-departamento'],
       ['Cargo', form.cargo, 'user-cargo'],
       ['Telefone', form.telefone, 'user-telefone'],
-      ['Telefone de emergência', form.telefone_emergencia, 'user-telefone-emergencia'],
-      ['Telefone de emergência 2', form.telefone_emergencia_2, 'user-telefone-emergencia-2'],
+      ['Telefone do contato de emergência 1', form.contato_emergencia_1.telefone, 'user-contato1-telefone'],
+      ['Nome do contato de emergência 1', form.contato_emergencia_1.nome, 'user-contato1-nome'],
+      ['Grau de parentesco do contato de emergência 1', form.contato_emergencia_1.grau_parentesco, 'user-contato1-parentesco'],
+      ['Telefone do contato de emergência 2', form.contato_emergencia_2.telefone, 'user-contato2-telefone'],
+      ['Nome do contato de emergência 2', form.contato_emergencia_2.nome, 'user-contato2-nome'],
+      ['Grau de parentesco do contato de emergência 2', form.contato_emergencia_2.grau_parentesco, 'user-contato2-parentesco'],
       ['Rua/Avenida', form.endereco.logradouro, 'user-logradouro', 'address'],
       ['Número', form.endereco.numero, 'user-numero', 'address'],
       ['Bairro', form.endereco.bairro, 'user-bairro', 'address'],
@@ -200,51 +210,102 @@ export default function UserForm({
           </select>
         </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="user-telefone">Telefone</label>
-            <input
-              id="user-telefone"
-              name="telefone"
-              autoComplete="tel"
-              type="tel"
-              inputMode="numeric"
-              maxLength="15"
-              value={maskPhone(form.telefone)}
-              onChange={event => updateForm({ telefone: maskPhone(event.target.value) })}
-              placeholder="(00) 00000-0000"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="user-telefone-emergencia">Telefone de emergência</label>
-            <input
-              id="user-telefone-emergencia"
-              name="telefone_emergencia"
-              type="tel"
-              inputMode="numeric"
-              maxLength="15"
-              value={maskPhone(form.telefone_emergencia)}
-              onChange={event => updateForm({ telefone_emergencia: maskPhone(event.target.value) })}
-              placeholder="(00) 00000-0000"
-              required
-            />
-          </div>
-        </div>
-
         <div className="form-group">
-          <label htmlFor="user-telefone-emergencia-2">Telefone de emergência 2</label>
+          <label htmlFor="user-telefone">Telefone</label>
           <input
-            id="user-telefone-emergencia-2"
-            name="telefone_emergencia_2"
+            id="user-telefone"
+            name="telefone"
+            autoComplete="tel"
             type="tel"
             inputMode="numeric"
             maxLength="15"
-            value={maskPhone(form.telefone_emergencia_2)}
-            onChange={event => updateForm({ telefone_emergencia_2: maskPhone(event.target.value) })}
+            value={maskPhone(form.telefone)}
+            onChange={event => updateForm({ telefone: maskPhone(event.target.value) })}
             placeholder="(00) 00000-0000"
             required
           />
+        </div>
+
+        <div className="form-stack">
+          <span className="section-label">Contato de emergência 1</span>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="user-contato1-telefone">Telefone</label>
+              <input
+                id="user-contato1-telefone"
+                type="tel"
+                inputMode="numeric"
+                maxLength="15"
+                value={maskPhone(form.contato_emergencia_1.telefone)}
+                onChange={event => updateContato1({ telefone: maskPhone(event.target.value) })}
+                placeholder="(00) 00000-0000"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="user-contato1-nome">Nome</label>
+              <input
+                id="user-contato1-nome"
+                type="text"
+                value={form.contato_emergencia_1.nome}
+                onChange={event => updateContato1({ nome: event.target.value })}
+                placeholder="Nome completo"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="user-contato1-parentesco">Grau de parentesco</label>
+              <input
+                id="user-contato1-parentesco"
+                type="text"
+                value={form.contato_emergencia_1.grau_parentesco}
+                onChange={event => updateContato1({ grau_parentesco: event.target.value })}
+                placeholder="Mãe, pai, cônjuge..."
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="form-stack">
+          <span className="section-label">Contato de emergência 2</span>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="user-contato2-telefone">Telefone</label>
+              <input
+                id="user-contato2-telefone"
+                type="tel"
+                inputMode="numeric"
+                maxLength="15"
+                value={maskPhone(form.contato_emergencia_2.telefone)}
+                onChange={event => updateContato2({ telefone: maskPhone(event.target.value) })}
+                placeholder="(00) 00000-0000"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="user-contato2-nome">Nome</label>
+              <input
+                id="user-contato2-nome"
+                type="text"
+                value={form.contato_emergencia_2.nome}
+                onChange={event => updateContato2({ nome: event.target.value })}
+                placeholder="Nome completo"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="user-contato2-parentesco">Grau de parentesco</label>
+              <input
+                id="user-contato2-parentesco"
+                type="text"
+                value={form.contato_emergencia_2.grau_parentesco}
+                onChange={event => updateContato2({ grau_parentesco: event.target.value })}
+                placeholder="Mãe, pai, cônjuge..."
+                required
+              />
+            </div>
+          </div>
         </div>
 
         <div className="disclosure-field">

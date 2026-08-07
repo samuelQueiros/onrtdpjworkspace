@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.security import hash_senha, verificar_senha
-from app.models.log import Log
 from app.models.user import User
 from app.repositories import bootstrap_repository, users_repository
 from app.storage.documentos_storage import inicializar_diretorios_upload
@@ -52,12 +51,8 @@ def garantir_admin_inicial(db: Session) -> str:
             must_change_password=False,
             is_sistema=True,
         )
-        log = Log(
-            user_id=None,
-            acao="USUARIO_CRIADO",
-            detalhes="Administrador inicial criado automaticamente.",
-        )
-        bootstrap_repository.salvar_admin_com_log(db, admin, log, commit=False)
+        # O admin de sistema nunca gera log de auditoria, nem sobre si mesmo.
+        bootstrap_repository.salvar_admin_com_log(db, admin, None, commit=False)
 
         from app.services.ferias_service import registrar_saldo_inicial
 
@@ -82,12 +77,7 @@ def garantir_admin_inicial(db: Session) -> str:
     usuario_existente.must_change_password = False
     usuario_existente.is_sistema = True
     usuario_existente.token_version += 1  # revoga sessoes emitidas com a senha antiga
-    log = Log(
-        user_id=usuario_existente.id,
-        acao="ADMIN_SENHA_SINCRONIZADA_VIA_ENV",
-        detalhes="Senha do administrador sincronizada a partir de ADMIN_PASSWORD no startup.",
-    )
-    bootstrap_repository.salvar_admin_com_log(db, usuario_existente, log, commit=False)
+    bootstrap_repository.salvar_admin_com_log(db, usuario_existente, None, commit=False)
     db.commit()
     db.refresh(usuario_existente)
     return "admin_senha_sincronizada"

@@ -23,8 +23,8 @@ from app.repositories import (
     importacao_repository,
     users_repository,
 )
-from app.schemas.user import DadosBancarios, Endereco, UserCreate
-from app.services import ferias_service, users_service
+from app.schemas.user import ContatoEmergencia, DadosBancarios, Endereco, UserCreate
+from app.services import ferias_service, log_service, users_service
 
 MAX_IMPORT_SIZE = 5 * 1024 * 1024
 MAX_IMPORT_UNCOMPRESSED_SIZE = 50 * 1024 * 1024
@@ -43,8 +43,12 @@ CABECALHOS_COLABORADORES = [
     "Cargo",
     "Departamento",
     "Telefone",
-    "Contato de emergência 1",
-    "Contato de emergência 2",
+    "Contato de emergência 1 - Telefone",
+    "Contato de emergência 1 - Nome",
+    "Contato de emergência 1 - Grau de parentesco",
+    "Contato de emergência 2 - Telefone",
+    "Contato de emergência 2 - Nome",
+    "Contato de emergência 2 - Grau de parentesco",
     "Perfil",
     "Status",
     "Data de admissão",
@@ -134,7 +138,9 @@ def gerar_modelo_colaboradores_xlsx(db: Session | None = None) -> bytes:
     planilha.append(CABECALHOS_COLABORADORES)
     planilha.append([
         "Nome de Exemplo", "nome@empresa.com.br", "529.982.247-25", "Analista",
-        "Tecnologia", "(61) 99999-9999", "(61) 98888-8888", "(61) 97777-7777",
+        "Tecnologia", "(61) 99999-9999",
+        "(61) 98888-8888", "Maria Exemplo", "Mãe",
+        "(61) 97777-7777", "João Exemplo", "Pai",
         "Usuário", "Ativo", date(2024, 1, 10), date(1995, 5, 20), 30, 0,
         date(2027, 1, 10), "Rua Exemplo", "100", "Centro", "Brasília", "70000-000",
         "Banco Exemplo", "0001", "12345-6", "529.982.247-25", "Nome de Exemplo",
@@ -146,7 +152,7 @@ def gerar_modelo_colaboradores_xlsx(db: Session | None = None) -> bytes:
         celula.fill = preenchimento
         celula.font = Font(color="FFFFFF", bold=True)
         celula.alignment = Alignment(horizontal="center", wrap_text=True)
-    for coluna in ("K", "L", "O"):
+    for coluna in ("O", "P", "S"):
         planilha[f"{coluna}2"].number_format = "dd/mm/yyyy"
     for indice in range(1, len(CABECALHOS_COLABORADORES) + 1):
         planilha.column_dimensions[planilha.cell(1, indice).column_letter].width = 22
@@ -159,8 +165,8 @@ def gerar_modelo_colaboradores_xlsx(db: Session | None = None) -> bytes:
     status = DataValidation(type="list", formula1='"Ativo,Inativo"')
     planilha.add_data_validation(perfil)
     planilha.add_data_validation(status)
-    perfil.add("I2:I1000")
-    status.add("J2:J1000")
+    perfil.add("M2:M1000")
+    status.add("N2:N1000")
 
     if db is not None:
         listas = workbook.create_sheet("Cadastros disponíveis")
@@ -307,7 +313,10 @@ def importar_colaboradores(
     }
     obrigatorios = {
         "nome", "e_mail", "cpf", "cargo", "departamento", "telefone",
-        "contato_de_emergencia_1", "contato_de_emergencia_2", "perfil",
+        "contato_de_emergencia_1_telefone", "contato_de_emergencia_1_nome",
+        "contato_de_emergencia_1_grau_de_parentesco",
+        "contato_de_emergencia_2_telefone", "contato_de_emergencia_2_nome",
+        "contato_de_emergencia_2_grau_de_parentesco", "perfil",
         "data_de_admissao", "data_de_aniversario", "saldo_de_ferias",
         "endereco_logradouro", "endereco_numero", "endereco_bairro",
         "endereco_cidade", "endereco_cep", "banco", "agencia", "conta",
@@ -385,8 +394,16 @@ def importar_colaboradores(
                 data_aniversario=data_aniversario,
                 cor=_cor_automatica(len(preparados), cores_em_uso),
                 telefone=_texto(valor(row, "telefone")),
-                telefone_emergencia=_texto(valor(row, "contato_de_emergencia_1")),
-                telefone_emergencia_2=_texto(valor(row, "contato_de_emergencia_2")),
+                contato_emergencia_1=ContatoEmergencia(
+                    telefone=_texto(valor(row, "contato_de_emergencia_1_telefone")),
+                    nome=_texto(valor(row, "contato_de_emergencia_1_nome")),
+                    grau_parentesco=_texto(valor(row, "contato_de_emergencia_1_grau_de_parentesco")),
+                ),
+                contato_emergencia_2=ContatoEmergencia(
+                    telefone=_texto(valor(row, "contato_de_emergencia_2_telefone")),
+                    nome=_texto(valor(row, "contato_de_emergencia_2_nome")),
+                    grau_parentesco=_texto(valor(row, "contato_de_emergencia_2_grau_de_parentesco")),
+                ),
                 endereco=Endereco(
                     logradouro=valor(row, "endereco_logradouro"),
                     numero=valor(row, "endereco_numero"),
@@ -438,14 +455,16 @@ def importar_colaboradores(
                 usuario = users_repository.obter_usuario_por_email(db, payload.email)
                 usuario.ativo = False
             inseridos += 1
-        db.add(Log(
-            user_id=current_user.id,
+        log = log_service.construir_log(
+            current_user,
             acao="COLABORADORES_IMPORTADOS",
             detalhes=(
                 f"{inseridos} colaborador(es) importado(s) via planilha. "
                 "Cores geradas automaticamente e troca de senha obrigatória ativada."
             ),
-        ))
+        )
+        if log is not None:
+            db.add(log)
         db.commit()
     except (HTTPException, IntegrityError) as exc:
         db.rollback()
@@ -541,14 +560,13 @@ def importar_ferias(db: Session, filename: str | None, conteudo: bytes, current_
                 ferias_acordo=ferias_acordo,
             ),
         )
-        importacao_repository.adicionar_log(
-            db,
-            Log(
-                user_id=current_user.id,
-                acao="FERIAS_IMPORTADA",
-                detalhes=f"Período de {data_inicio} a {data_fim} importado para usuário #{user.id}",
-            ),
+        log = log_service.construir_log(
+            current_user,
+            acao="FERIAS_IMPORTADA",
+            detalhes=f"Período de {data_inicio} a {data_fim} importado para usuário #{user.id}",
         )
+        if log is not None:
+            importacao_repository.adicionar_log(db, log)
         # Cada linha usa sua propria transacao para liberar advisory locks e
         # impedir deadlocks entre lotes processados em ordens diferentes.
         try:
@@ -586,6 +604,8 @@ def importar_logs(db: Session, filename: str | None, conteudo: bytes, current_us
             if not user:
                 erros.append(f"Linha {i}: usuário '{email_val}' não encontrado")
                 continue
+            if user.is_sistema:
+                continue
             user_id = user.id
 
         criado_em = parse_datetime(data_val)
@@ -611,18 +631,17 @@ def importar_logs(db: Session, filename: str | None, conteudo: bytes, current_us
         inseridos += 1
 
     if inseridos:
-        importacao_repository.adicionar_log(
-            db,
-            Log(
-                user_id=current_user.id,
-                acao="LOTE_LOGS_IMPORTADO",
-                detalhes=(
-                    f"Lote com {inseridos} log(s) histórico(s) importado. "
-                    f"{len(erros)} linha(s) rejeitada(s)."
-                ),
-                criado_em=datetime.now(UTC).replace(tzinfo=None),
+        log = log_service.construir_log(
+            current_user,
+            acao="LOTE_LOGS_IMPORTADO",
+            detalhes=(
+                f"Lote com {inseridos} log(s) histórico(s) importado. "
+                f"{len(erros)} linha(s) rejeitada(s)."
             ),
+            criado_em=datetime.now(UTC).replace(tzinfo=None),
         )
+        if log is not None:
+            importacao_repository.adicionar_log(db, log)
         importacao_repository.commit(db)
 
     return {

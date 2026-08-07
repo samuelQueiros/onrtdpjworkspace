@@ -126,6 +126,24 @@ class UsersRepositoryTests(unittest.TestCase):
         self.assertEqual(db.deleted, [])
         self.assertTrue(db.committed)
 
+    def test_salvar_usuario_com_log_none_nao_adiciona_log(self):
+        user = SimpleNamespace(id=10)
+        db = FakeDb()
+
+        users_repository.salvar_usuario_com_log(db, user, None)
+
+        self.assertEqual(db.added, [user])
+        self.assertTrue(db.committed)
+
+    def test_atualizar_usuario_com_log_none_nao_adiciona_log(self):
+        user = SimpleNamespace(id=1)
+        db = FakeDb()
+
+        users_repository.atualizar_usuario_com_log(db, user, None)
+
+        self.assertEqual(db.added, [])
+        self.assertTrue(db.committed)
+
 
 if __name__ == "__main__":
     unittest.main()

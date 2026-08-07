@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from openpyxl import load_workbook
 
 from app.models.historico_colaborador import HistoricoColaborador
-from app.schemas.user import DadosBancarios, UserConfigUpdate, UserCreate, UserUpdate
+from app.schemas.user import ContatoEmergencia, DadosBancarios, UserConfigUpdate, UserCreate, UserUpdate
 from app.services import users_service
 
 
@@ -95,8 +95,8 @@ class UsersServiceTests(unittest.TestCase):
     def test_consulta_sensivel_expoe_cpf_formatado_e_registra_auditoria(self):
         user = SimpleNamespace(
             cpf_criptografado="cpf-criptografado",
-            telefone_emergencia="(61) 99999-9999",
-            telefone_emergencia_2="(61) 98888-8888",
+            contato_emergencia_1=None,
+            contato_emergencia_2=None,
             endereco=None,
             dados_bancarios=None,
         )
@@ -164,6 +164,27 @@ class UsersServiceTests(unittest.TestCase):
                 users_service.validar_email_disponivel(SimpleNamespace(), "admin@sistema.com")
 
         self.assertEqual(exc.exception.status_code, 400)
+
+    def test_buscar_usuario_trata_admin_de_sistema_como_inexistente(self):
+        admin_sistema = SimpleNamespace(id=99, is_sistema=True)
+        with patch(
+            "app.services.users_service.users_repository.obter_usuario_por_id",
+            return_value=admin_sistema,
+        ):
+            with self.assertRaises(HTTPException) as exc:
+                users_service.buscar_usuario(SimpleNamespace(), 99)
+
+        self.assertEqual(exc.exception.status_code, 404)
+
+    def test_buscar_usuario_retorna_usuario_comum(self):
+        usuario = SimpleNamespace(id=5, is_sistema=False)
+        with patch(
+            "app.services.users_service.users_repository.obter_usuario_por_id",
+            return_value=usuario,
+        ):
+            resultado = users_service.buscar_usuario(SimpleNamespace(), 5)
+
+        self.assertIs(resultado, usuario)
 
     def test_validar_departamento_rejeita_departamento_inexistente(self):
         with patch("app.services.users_service.users_repository.obter_departamento_por_id", return_value=None):
@@ -306,8 +327,8 @@ class UsersServiceTests(unittest.TestCase):
         usuario_model = SimpleNamespace(
             id=7,
             cpf_criptografado="cpf-criptografado",
-            telefone_emergencia="(61) 98888-8888",
-            telefone_emergencia_2="(61) 97777-7777",
+            contato_emergencia_1="contato-1-criptografado",
+            contato_emergencia_2="contato-2-criptografado",
             endereco="endereco-criptografado",
             dados_bancarios="banco-criptografado",
         )
@@ -326,8 +347,12 @@ class UsersServiceTests(unittest.TestCase):
         db = FakeDb()
         dados_sensiveis = {
             "cpf": "529.982.247-25",
-            "telefone_emergencia": "(61) 98888-8888",
-            "telefone_emergencia_2": "(61) 97777-7777",
+            "contato_emergencia_1": {
+                "telefone": "(61) 98888-8888", "nome": "Maria Exemplo", "grau_parentesco": "Mãe",
+            },
+            "contato_emergencia_2": {
+                "telefone": "(61) 97777-7777", "nome": "João Exemplo", "grau_parentesco": "Pai",
+            },
             "endereco": {
                 "logradouro": "Rua Exemplo",
                 "numero": "10",
@@ -356,11 +381,15 @@ class UsersServiceTests(unittest.TestCase):
         self.assertEqual(planilha["C2"].value, "529.982.247-25")
         self.assertEqual(planilha["E2"].value, "Tecnologia")
         self.assertEqual(planilha["G2"].value, "(61) 98888-8888")
-        self.assertEqual(planilha["M2"].value, 15)
-        self.assertEqual(planilha["O2"].value.date(), date(2027, 1, 1))
-        self.assertEqual(planilha["P2"].value, "Rua Exemplo")
-        self.assertEqual(planilha["U2"].value, "Banco Teste")
-        self.assertEqual(planilha["Z2"].value, "gabriel@sistema.com")
+        self.assertEqual(planilha["H2"].value, "Maria Exemplo")
+        self.assertEqual(planilha["I2"].value, "Mãe")
+        self.assertEqual(planilha["J2"].value, "(61) 97777-7777")
+        self.assertEqual(planilha["Q2"].value, 15)
+        self.assertEqual(planilha["O2"].value.date(), date(2024, 1, 1))
+        self.assertEqual(planilha["S2"].value.date(), date(2027, 1, 1))
+        self.assertEqual(planilha["T2"].value, "Rua Exemplo")
+        self.assertEqual(planilha["Y2"].value, "Banco Teste")
+        self.assertEqual(planilha["AD2"].value, "gabriel@sistema.com")
         self.assertEqual(planilha.freeze_panes, "A2")
         self.assertTrue(db.committed)
         self.assertEqual(db.added[0].acao, "DADOS_SENSIVEIS_USUARIOS_EXPORTADOS")
@@ -429,13 +458,17 @@ class UsersServiceTests(unittest.TestCase):
             nome="Gabriel",
             email="gabriel@sistema.com",
             telefone=None,
-            telefone_emergencia=None,
-            telefone_emergencia_2=None,
+            contato_emergencia_1=None,
+            contato_emergencia_2=None,
         )
         payload = UserConfigUpdate(
             telefone="(61) 99999-0000",
-            telefone_emergencia="(61) 98888-0000",
-            telefone_emergencia_2="(61) 97777-0000",
+            contato_emergencia_1=ContatoEmergencia(
+                telefone="(61) 98888-0000", nome="Maria", grau_parentesco="Mãe",
+            ),
+            contato_emergencia_2=ContatoEmergencia(
+                telefone="(61) 97777-0000", nome="João", grau_parentesco="Pai",
+            ),
         )
 
         with (
@@ -449,8 +482,12 @@ class UsersServiceTests(unittest.TestCase):
             users_service.atualizar_configuracoes(MagicMock(), payload, current_user)
 
         self.assertEqual(current_user.telefone, "(61) 99999-0000")
-        self.assertEqual(current_user.telefone_emergencia, "enc:(61) 98888-0000")
-        self.assertEqual(current_user.telefone_emergencia_2, "enc:(61) 97777-0000")
+        self.assertTrue(current_user.contato_emergencia_1.startswith("enc:"))
+        self.assertIn("(61) 98888-0000", current_user.contato_emergencia_1)
+        self.assertIn("Maria", current_user.contato_emergencia_1)
+        self.assertTrue(current_user.contato_emergencia_2.startswith("enc:"))
+        self.assertIn("(61) 97777-0000", current_user.contato_emergencia_2)
+        self.assertIn("João", current_user.contato_emergencia_2)
 
     def test_meu_perfil_combina_dados_basicos_e_sensiveis(self):
         user = SimpleNamespace(
@@ -465,8 +502,8 @@ class UsersServiceTests(unittest.TestCase):
             data_aniversario=None,
             cor="#123456",
             telefone="(61) 99999-9999",
-            telefone_emergencia="(61) 98888-8888",
-            telefone_emergencia_2=None,
+            contato_emergencia_1="contato-1-criptografado",
+            contato_emergencia_2=None,
             endereco=None,
             dados_bancarios=None,
             cpf_criptografado="cpf-criptografado",
@@ -482,7 +519,7 @@ class UsersServiceTests(unittest.TestCase):
                 "app.services.users_service.descriptografar_dado_sensivel",
                 side_effect=lambda valor: {
                     "cpf-criptografado": "52998224725",
-                    "(61) 98888-8888": "(61) 98888-8888",
+                    "contato-1-criptografado": "(61) 98888-8888",
                     None: None,
                 }[valor],
             ),
@@ -491,7 +528,7 @@ class UsersServiceTests(unittest.TestCase):
 
         self.assertEqual(resultado["cpf"], "529.982.247-25")
         self.assertEqual(resultado["telefone"], "(61) 99999-9999")
-        self.assertEqual(resultado["telefone_emergencia"], "(61) 98888-8888")
+        self.assertEqual(resultado["contato_emergencia_1"]["telefone"], "(61) 98888-8888")
         self.assertNotIn("cpf_mascarado", resultado)
 
     def test_editar_usuario_grava_historico_no_cadastro_inicial_de_cargo(self):
@@ -604,8 +641,12 @@ class UsersServiceTests(unittest.TestCase):
             data_aniversario=date(1990, 5, 20),
             cor="#3b82f6",
             telefone="(11) 99999-9999",
-            telefone_emergencia="(11) 98888-8888",
-            telefone_emergencia_2="(11) 97777-7777",
+            contato_emergencia_1=ContatoEmergencia(
+                telefone="(11) 98888-8888", nome="Maria", grau_parentesco="Mãe",
+            ),
+            contato_emergencia_2=ContatoEmergencia(
+                telefone="(11) 97777-7777", nome="João", grau_parentesco="Pai",
+            ),
             endereco={
                 "logradouro": "Rua Exemplo", "numero": "10", "bairro": "Centro",
                 "cidade": "São Paulo", "cep": "01000-000",

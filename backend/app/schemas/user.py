@@ -44,6 +44,25 @@ class DadosBancarios(BaseModel):
         return formatar_cpf(validar_cpf(valor)) if valor else None
 
 
+class ContatoEmergencia(BaseModel):
+    telefone: str = Field(min_length=1, max_length=30)
+    nome: str = Field(min_length=1, max_length=150)
+    grau_parentesco: str = Field(min_length=1, max_length=60)
+
+    @field_validator("telefone", "nome", "grau_parentesco", mode="before")
+    @classmethod
+    def normalizar_campos(cls, valor):
+        if valor is None:
+            return None
+        texto = " ".join(str(valor).split())
+        return texto or None
+
+    @field_validator("telefone")
+    @classmethod
+    def validar_telefone_contato(cls, valor: str) -> str:
+        return _validar_telefone(valor)
+
+
 class Endereco(BaseModel):
     logradouro: Optional[str] = Field(default=None, max_length=200)
     numero: Optional[str] = Field(default=None, max_length=20)
@@ -80,8 +99,8 @@ class UserCreate(BaseModel):
     data_aniversario: date
     cor: str = Field(min_length=4, max_length=20)
     telefone: str = Field(min_length=1, max_length=30)
-    telefone_emergencia: str = Field(min_length=1, max_length=30)
-    telefone_emergencia_2: str = Field(min_length=1, max_length=30)
+    contato_emergencia_1: ContatoEmergencia
+    contato_emergencia_2: ContatoEmergencia
     endereco: Endereco
     dados_bancarios: DadosBancarios
     cargo: str = Field(min_length=1, max_length=100)
@@ -92,7 +111,7 @@ class UserCreate(BaseModel):
     def normalizar_email(cls, valor):
         return str(valor).strip().lower() if valor is not None else valor
 
-    @field_validator("nome", "telefone", "telefone_emergencia", "telefone_emergencia_2", "cargo", "cor", mode="before")
+    @field_validator("nome", "telefone", "cargo", "cor", mode="before")
     @classmethod
     def normalizar_textos(cls, valor):
         if valor is None:
@@ -100,7 +119,7 @@ class UserCreate(BaseModel):
         texto = " ".join(str(valor).split())
         return texto or None
 
-    @field_validator("telefone", "telefone_emergencia", "telefone_emergencia_2")
+    @field_validator("telefone")
     @classmethod
     def validar_telefones(cls, valor):
         return _validar_telefone(valor)
@@ -136,8 +155,8 @@ class UserUpdate(BaseModel):
     senha: Optional[str] = Field(default=None, min_length=8, max_length=128)
     cor: Optional[str] = None
     telefone: Optional[str] = Field(default=None, max_length=30)
-    telefone_emergencia: Optional[str] = Field(default=None, max_length=30)
-    telefone_emergencia_2: Optional[str] = Field(default=None, max_length=30)
+    contato_emergencia_1: Optional[ContatoEmergencia] = None
+    contato_emergencia_2: Optional[ContatoEmergencia] = None
     endereco: Optional[Endereco] = None
     dados_bancarios: Optional[DadosBancarios] = None
     cargo: Optional[str] = Field(default=None, max_length=100)
@@ -154,7 +173,7 @@ class UserUpdate(BaseModel):
         return str(valor).strip().lower() if valor is not None else valor
 
     @field_validator(
-        "nome", "telefone", "telefone_emergencia", "telefone_emergencia_2", "cargo",
+        "nome", "telefone", "cargo",
         "motivo_alteracao_funcional",
         mode="before",
     )
@@ -165,7 +184,7 @@ class UserUpdate(BaseModel):
         texto = " ".join(str(valor).split())
         return texto or None
 
-    @field_validator("telefone", "telefone_emergencia", "telefone_emergencia_2")
+    @field_validator("telefone")
     @classmethod
     def validar_telefones(cls, valor):
         return _validar_telefone(valor)
@@ -195,15 +214,15 @@ class UserConfigUpdate(BaseModel):
     senha_atual: Optional[str] = None
     nova_senha: Optional[str] = Field(default=None, min_length=8, max_length=128)
     telefone: Optional[str] = Field(default=None, max_length=30)
-    telefone_emergencia: Optional[str] = Field(default=None, max_length=30)
-    telefone_emergencia_2: Optional[str] = Field(default=None, max_length=30)
+    contato_emergencia_1: Optional[ContatoEmergencia] = None
+    contato_emergencia_2: Optional[ContatoEmergencia] = None
 
     @field_validator("email", mode="before")
     @classmethod
     def normalizar_email(cls, valor):
         return str(valor).strip().lower() if valor is not None else valor
 
-    @field_validator("telefone", "telefone_emergencia", "telefone_emergencia_2", mode="before")
+    @field_validator("telefone", mode="before")
     @classmethod
     def normalizar_telefones(cls, valor):
         if valor is None:
@@ -247,8 +266,8 @@ class UserResponse(BaseModel):
 
 class UserSensitiveResponse(BaseModel):
     cpf: Optional[str] = None
-    telefone_emergencia: Optional[str] = None
-    telefone_emergencia_2: Optional[str] = None
+    contato_emergencia_1: Optional[ContatoEmergencia] = None
+    contato_emergencia_2: Optional[ContatoEmergencia] = None
     endereco: Optional[Endereco] = None
     dados_bancarios: Optional[DadosBancarios] = None
 
@@ -265,8 +284,8 @@ class MeuPerfilOut(BaseModel):
     data_aniversario: Optional[date] = None
     cpf: Optional[str] = None
     telefone: Optional[str] = None
-    telefone_emergencia: Optional[str] = None
-    telefone_emergencia_2: Optional[str] = None
+    contato_emergencia_1: Optional[ContatoEmergencia] = None
+    contato_emergencia_2: Optional[ContatoEmergencia] = None
     endereco: Optional[Endereco] = None
     dados_bancarios: Optional[DadosBancarios] = None
 

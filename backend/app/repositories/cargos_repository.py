@@ -26,24 +26,27 @@ def contar_usuarios(db: Session, cargo_id: int) -> int:
     return db.query(User).filter(User.cargo_id == cargo_id).count()
 
 
-def salvar_com_log(db: Session, cargo: Cargo, log: Log) -> Cargo:
+def salvar_com_log(db: Session, cargo: Cargo, log: Log | None) -> Cargo:
     db.add(cargo)
     db.flush()
-    db.add(log)
+    if log is not None:
+        db.add(log)
     db.commit()
     db.refresh(cargo)
     return cargo
 
 
-def atualizar_com_log(db: Session, cargo: Cargo, log: Log) -> Cargo:
-    db.add(log)
+def atualizar_com_log(db: Session, cargo: Cargo, log: Log | None) -> Cargo:
+    if log is not None:
+        db.add(log)
     db.commit()
     db.refresh(cargo)
     return cargo
 
 
-def excluir_com_log(db: Session, cargo: Cargo, log: Log) -> None:
+def excluir_com_log(db: Session, cargo: Cargo, log: Log | None) -> None:
     db.query(User).filter(User.cargo_id == cargo.id).update({"cargo_id": None})
-    db.add(log)
+    if log is not None:
+        db.add(log)
     db.delete(cargo)
     db.commit()

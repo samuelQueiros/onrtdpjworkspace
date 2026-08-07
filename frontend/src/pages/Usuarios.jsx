@@ -85,8 +85,14 @@ export default function Usuarios() {
         data_aniversario: form.data_aniversario || null,
         cor: form.cor || null,
         telefone: maskPhone(form.telefone) || null,
-        telefone_emergencia: maskPhone(form.telefone_emergencia) || null,
-        telefone_emergencia_2: maskPhone(form.telefone_emergencia_2) || null,
+        contato_emergencia_1: {
+          ...form.contato_emergencia_1,
+          telefone: maskPhone(form.contato_emergencia_1.telefone),
+        },
+        contato_emergencia_2: {
+          ...form.contato_emergencia_2,
+          telefone: maskPhone(form.contato_emergencia_2.telefone),
+        },
         endereco: Object.values(form.endereco).some(value => value.trim()) ? form.endereco : null,
         dados_bancarios: Object.values(form.dados_bancarios).some(value => value.trim())
           ? { ...form.dados_bancarios, cpf_titular: maskCpf(form.dados_bancarios.cpf_titular) }
@@ -133,8 +139,16 @@ export default function Usuarios() {
       data_aniversario: user.data_aniversario || '',
       cor: user.cor || '',
       telefone: maskPhone(user.telefone),
-      telefone_emergencia: maskPhone(sensitive.telefone_emergencia),
-      telefone_emergencia_2: maskPhone(sensitive.telefone_emergencia_2),
+      contato_emergencia_1: {
+        ...blankUserForm.contato_emergencia_1,
+        ...(sensitive.contato_emergencia_1 || {}),
+        telefone: maskPhone(sensitive.contato_emergencia_1?.telefone),
+      },
+      contato_emergencia_2: {
+        ...blankUserForm.contato_emergencia_2,
+        ...(sensitive.contato_emergencia_2 || {}),
+        telefone: maskPhone(sensitive.contato_emergencia_2?.telefone),
+      },
       endereco: {
         ...blankUserForm.endereco,
         ...(sensitive.endereco || {}),

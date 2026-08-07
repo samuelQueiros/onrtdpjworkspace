@@ -28,24 +28,27 @@ def obter_departamento_por_nome_exceto_id(db: Session, nome: str, departamento_i
     ).first()
 
 
-def salvar_departamento_com_log(db: Session, departamento: Departamento, log: Log) -> Departamento:
+def salvar_departamento_com_log(db: Session, departamento: Departamento, log: Log | None) -> Departamento:
     db.add(departamento)
     db.flush()
-    db.add(log)
+    if log is not None:
+        db.add(log)
     db.commit()
     db.refresh(departamento)
     return departamento
 
 
-def atualizar_departamento_com_log(db: Session, departamento: Departamento, log: Log) -> Departamento:
-    db.add(log)
+def atualizar_departamento_com_log(db: Session, departamento: Departamento, log: Log | None) -> Departamento:
+    if log is not None:
+        db.add(log)
     db.commit()
     db.refresh(departamento)
     return departamento
 
 
-def excluir_departamento_com_log(db: Session, departamento: Departamento, log: Log) -> None:
+def excluir_departamento_com_log(db: Session, departamento: Departamento, log: Log | None) -> None:
     db.query(User).filter(User.departamento_id == departamento.id).update({"departamento_id": None})
-    db.add(log)
+    if log is not None:
+        db.add(log)
     db.delete(departamento)
     db.commit()

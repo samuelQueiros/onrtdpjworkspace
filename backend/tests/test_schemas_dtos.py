@@ -9,7 +9,7 @@ from app.schemas.documento import DocumentoOut, DocumentosPageOut
 from app.schemas.ferias import DisponibilidadeOut, FeriasOut, MinhasFeriasOut
 from app.schemas.importacao import ImportacaoOut
 from app.schemas.relatorio import DashboardOut, LogDetalhadoOut, RelatorioColaboradoresOut
-from app.schemas.user import AniversarianteOut, UserCreate, UserResponse
+from app.schemas.user import AniversarianteOut, ContatoEmergencia, UserCreate, UserResponse
 from app.schemas.cargo import CargoCreate
 
 
@@ -33,8 +33,12 @@ class SchemasDtoTests(unittest.TestCase):
             data_aniversario=date(1990, 5, 20),
             cor="#3b82f6",
             telefone="(11) 99999-9999",
-            telefone_emergencia="(11) 98888-8888",
-            telefone_emergencia_2="(11) 97777-7777",
+            contato_emergencia_1=ContatoEmergencia(
+                telefone="(11) 98888-8888", nome="Maria", grau_parentesco="Mãe",
+            ),
+            contato_emergencia_2=ContatoEmergencia(
+                telefone="(11) 97777-7777", nome="João", grau_parentesco="Pai",
+            ),
             endereco={
                 "logradouro": "Rua Exemplo",
                 "numero": "10",
@@ -55,7 +59,7 @@ class SchemasDtoTests(unittest.TestCase):
         )
 
         self.assertEqual(user.cargo, "Desenvolvedor")
-        self.assertEqual(user.telefone_emergencia_2, "(11) 97777-7777")
+        self.assertEqual(user.contato_emergencia_2.telefone, "(11) 97777-7777")
         self.assertEqual(user.endereco.numero, "10")
         self.assertEqual(user.dados_bancarios.agencia, "1234")
         self.assertEqual(user.cpf, "529.982.247-25")
@@ -77,8 +81,8 @@ class SchemasDtoTests(unittest.TestCase):
             "data_aniversario": date(1990, 5, 20),
             "cor": "#3b82f6",
             "telefone": "(11) 99999-9999",
-            "telefone_emergencia": "(11) 98888-8888",
-            "telefone_emergencia_2": "(11) 97777-7777",
+            "contato_emergencia_1": {"telefone": "(11) 98888-8888", "nome": "Maria", "grau_parentesco": "Mãe"},
+            "contato_emergencia_2": {"telefone": "(11) 97777-7777", "nome": "João", "grau_parentesco": "Pai"},
             "endereco": {"logradouro": "Rua A", "numero": "1", "bairro": "Centro", "cidade": "SP", "cep": "01000-000"},
             "dados_bancarios": {"banco": "Banco", "agencia": "1", "conta": "2", "cpf_titular": "111.111.111-11", "nome_titular": "Gabriel", "chave_pix": "pix"},
             "cargo": "Desenvolvedor",
@@ -99,8 +103,8 @@ class SchemasDtoTests(unittest.TestCase):
             "data_aniversario": date(1990, 5, 20),
             "cor": "#3b82f6",
             "telefone": "(11) 99999-9999",
-            "telefone_emergencia": "(11) 98888-8888",
-            "telefone_emergencia_2": "(11) 97777-7777",
+            "contato_emergencia_1": {"telefone": "(11) 98888-8888", "nome": "Maria", "grau_parentesco": "Mãe"},
+            "contato_emergencia_2": {"telefone": "(11) 97777-7777", "nome": "João", "grau_parentesco": "Pai"},
             "endereco": {
                 "logradouro": "Rua Exemplo",
                 "numero": "10",

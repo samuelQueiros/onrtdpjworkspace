@@ -4,6 +4,7 @@ import json
 from fastapi import HTTPException
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
@@ -18,8 +19,8 @@ from app.core.crypto import (
 from app.models.log import Log
 from app.models.user import User
 from app.repositories import users_repository
-from app.schemas.user import DadosBancarios, Endereco, UserConfigUpdate, UserCreate, UserUpdate
-from app.services import cargos_service, historico_colaborador_service
+from app.schemas.user import ContatoEmergencia, DadosBancarios, Endereco, UserConfigUpdate, UserCreate, UserUpdate
+from app.services import cargos_service, historico_colaborador_service, log_service
 
 
 def calcular_dias_restantes(user: User, db: Session) -> int:
@@ -72,8 +73,8 @@ def formatar_usuario(
 def formatar_dados_sensiveis(user: User) -> dict:
     return {
         "cpf": formatar_cpf(descriptografar_dado_sensivel(user.cpf_criptografado)) if user.cpf_criptografado else None,
-        "telefone_emergencia": descriptografar_dado_sensivel(user.telefone_emergencia),
-        "telefone_emergencia_2": descriptografar_dado_sensivel(user.telefone_emergencia_2),
+        "contato_emergencia_1": _desserializar_contato_emergencia(user.contato_emergencia_1),
+        "contato_emergencia_2": _desserializar_contato_emergencia(user.contato_emergencia_2),
         "endereco": _desserializar_endereco(user.endereco),
         "dados_bancarios": _desserializar_dados_bancarios(user.dados_bancarios),
     }
@@ -94,8 +95,12 @@ def exportar_usuarios_xlsx(db: Session, current_user: User) -> bytes:
         "Cargo",
         "Departamento",
         "Telefone",
-        "Contato de emergência 1",
-        "Contato de emergência 2",
+        "Contato de emergência 1 - Telefone",
+        "Contato de emergência 1 - Nome",
+        "Contato de emergência 1 - Grau de parentesco",
+        "Contato de emergência 2 - Telefone",
+        "Contato de emergência 2 - Nome",
+        "Contato de emergência 2 - Grau de parentesco",
         "Perfil",
         "Status",
         "Data de admissão",
@@ -121,6 +126,8 @@ def exportar_usuarios_xlsx(db: Session, current_user: User) -> bytes:
         dados_sensiveis = formatar_dados_sensiveis(usuarios_model[usuario["id"]])
         endereco = dados_sensiveis["endereco"] or {}
         dados_bancarios = dados_sensiveis["dados_bancarios"] or {}
+        contato_1 = dados_sensiveis["contato_emergencia_1"] or {}
+        contato_2 = dados_sensiveis["contato_emergencia_2"] or {}
         planilha.append([
             usuario["nome"],
             usuario["email"],
@@ -128,8 +135,12 @@ def exportar_usuarios_xlsx(db: Session, current_user: User) -> bytes:
             usuario["cargo"] or "",
             (usuario["departamento"] or {}).get("nome", ""),
             usuario["telefone"] or "",
-            dados_sensiveis["telefone_emergencia"] or "",
-            dados_sensiveis["telefone_emergencia_2"] or "",
+            contato_1.get("telefone", ""),
+            contato_1.get("nome", ""),
+            contato_1.get("grau_parentesco", ""),
+            contato_2.get("telefone", ""),
+            contato_2.get("nome", ""),
+            contato_2.get("grau_parentesco", ""),
             "Administrador" if usuario["role"] == "admin" else "Usuário",
             "Ativo" if usuario["ativo"] else "Inativo",
             usuario["data_admissao"],
@@ -156,17 +167,17 @@ def exportar_usuarios_xlsx(db: Session, current_user: User) -> bytes:
         celula.font = Font(color="FFFFFF", bold=True)
         celula.alignment = Alignment(horizontal="center")
 
-    for coluna in ("K", "L", "O"):
+    for coluna in ("O", "P", "S"):
         for celula in planilha[coluna][1:]:
             if celula.value:
                 celula.number_format = "dd/mm/yyyy"
 
     larguras = [
-        30, 32, 18, 22, 24, 18, 22, 22, 16, 12, 18, 20, 18,
+        30, 32, 18, 22, 24, 18, 18, 22, 20, 18, 22, 20, 16, 12, 18, 20, 18,
         14, 18, 32, 12, 22, 22, 14, 20, 14, 16, 18, 28, 30,
     ]
     for indice, largura in enumerate(larguras, start=1):
-        planilha.column_dimensions[chr(64 + indice)].width = largura
+        planilha.column_dimensions[get_column_letter(indice)].width = largura
 
     planilha.freeze_panes = "A2"
     planilha.auto_filter.ref = planilha.dimensions
@@ -174,11 +185,13 @@ def exportar_usuarios_xlsx(db: Session, current_user: User) -> bytes:
     arquivo = BytesIO()
     workbook.save(arquivo)
 
-    db.add(Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="DADOS_SENSIVEIS_USUARIOS_EXPORTADOS",
         detalhes=f"Planilha confidencial com dados de {len(usuarios)} usuário(s) exportada por administrador",
-    ))
+    )
+    if log is not None:
+        db.add(log)
     db.commit()
     return arquivo.getvalue()
 
@@ -205,6 +218,28 @@ def _desserializar_endereco(valor: str | None) -> dict | None:
         return Endereco(logradouro=valor[:200]).model_dump()
 
 
+def _serializar_contato_emergencia(contato: ContatoEmergencia | None) -> str | None:
+    if not contato:
+        return None
+    valores = contato.model_dump(exclude_none=True)
+    if not valores:
+        return None
+    conteudo = json.dumps(valores, ensure_ascii=False, separators=(",", ":"))
+    return criptografar_dado_sensivel(conteudo)
+
+
+def _desserializar_contato_emergencia(valor: str | None) -> dict | None:
+    if not valor:
+        return None
+    valor = descriptografar_dado_sensivel(valor)
+    try:
+        dados = json.loads(valor)
+        return ContatoEmergencia.model_validate(dados).model_dump()
+    except (json.JSONDecodeError, TypeError, ValueError):
+        # Compatibilidade com registros legados: apenas o telefone, sem nome/parentesco.
+        return {"telefone": valor, "nome": "", "grau_parentesco": ""}
+
+
 def _serializar_dados_bancarios(dados: DadosBancarios | None) -> str | None:
     if not dados:
         return None
@@ -229,19 +264,23 @@ def _desserializar_dados_bancarios(valor_criptografado: str | None) -> dict | No
 
 def consultar_dados_sensiveis(db: Session, user_id: int, current_user: User) -> dict:
     user = buscar_usuario(db, user_id)
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="CPF_COMPLETO_E_DADOS_SENSIVEIS_CONSULTADOS",
         detalhes=f"CPF completo e dados sensíveis do usuário #{user_id} consultados por administrador",
     )
-    db.add(log)
+    if log is not None:
+        db.add(log)
     db.commit()
     return formatar_dados_sensiveis(user)
 
 
 def buscar_usuario(db: Session, user_id: int) -> User:
     user = users_repository.obter_usuario_por_id(db, user_id)
-    if not user:
+    # O admin de sistema e tratado como inexistente para qualquer busca por
+    # ID feita por outro usuario, fechando o acesso direto que contornaria a
+    # ocultacao das listagens.
+    if not user or user.is_sistema:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     return user
 
@@ -314,8 +353,8 @@ def criar_usuario(
         data_aniversario=payload.data_aniversario,
         cor=payload.cor,
         telefone=payload.telefone,
-        telefone_emergencia=criptografar_dado_sensivel(payload.telefone_emergencia),
-        telefone_emergencia_2=criptografar_dado_sensivel(payload.telefone_emergencia_2),
+        contato_emergencia_1=_serializar_contato_emergencia(payload.contato_emergencia_1),
+        contato_emergencia_2=_serializar_contato_emergencia(payload.contato_emergencia_2),
         endereco=_serializar_endereco(payload.endereco),
         dados_bancarios=_serializar_dados_bancarios(payload.dados_bancarios),
         cargo_id=cargo.id if cargo else None,
@@ -324,10 +363,14 @@ def criar_usuario(
         must_change_password=True,
     )
 
-    log = Log(
-        user_id=novo_user.id,
-        acao="USUARIO_CRIADO",
-        detalhes=f"Usuário {novo_user.nome} ({novo_user.email}) criado por {current_user.nome}",
+    log = (
+        Log(
+            user_id=novo_user.id,
+            acao="USUARIO_CRIADO",
+            detalhes=f"Usuário {novo_user.nome} ({novo_user.email}) criado por {current_user.nome}",
+        )
+        if not getattr(current_user, "is_sistema", False)
+        else None
     )
     try:
         users_repository.salvar_usuario_com_log(db, novo_user, log, commit=False)
@@ -387,11 +430,11 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
     # em todo submit, mesmo quando o admin não mexeu neles.
     cpf_armazenado = getattr(user, "cpf_criptografado", None)
     cpf_anterior = descriptografar_dado_sensivel(cpf_armazenado) if cpf_armazenado else None
-    telefone_emergencia_anterior = descriptografar_dado_sensivel(
-        getattr(user, "telefone_emergencia", None)
+    contato_emergencia_1_anterior = _desserializar_contato_emergencia(
+        getattr(user, "contato_emergencia_1", None)
     )
-    telefone_emergencia_2_anterior = descriptografar_dado_sensivel(
-        getattr(user, "telefone_emergencia_2", None)
+    contato_emergencia_2_anterior = _desserializar_contato_emergencia(
+        getattr(user, "contato_emergencia_2", None)
     )
     endereco_anterior = _desserializar_endereco(getattr(user, "endereco", None))
     dados_bancarios_anterior = _desserializar_dados_bancarios(
@@ -428,18 +471,10 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
         user.cor = payload.cor if payload.cor.strip() else None
     if "telefone" in payload.model_fields_set:
         user.telefone = payload.telefone.strip() if payload.telefone and payload.telefone.strip() else None
-    if "telefone_emergencia" in payload.model_fields_set:
-        user.telefone_emergencia = (
-            criptografar_dado_sensivel(payload.telefone_emergencia.strip())
-            if payload.telefone_emergencia and payload.telefone_emergencia.strip()
-            else None
-        )
-    if "telefone_emergencia_2" in payload.model_fields_set:
-        user.telefone_emergencia_2 = (
-            criptografar_dado_sensivel(payload.telefone_emergencia_2.strip())
-            if payload.telefone_emergencia_2 and payload.telefone_emergencia_2.strip()
-            else None
-        )
+    if "contato_emergencia_1" in payload.model_fields_set:
+        user.contato_emergencia_1 = _serializar_contato_emergencia(payload.contato_emergencia_1)
+    if "contato_emergencia_2" in payload.model_fields_set:
+        user.contato_emergencia_2 = _serializar_contato_emergencia(payload.contato_emergencia_2)
     if "endereco" in payload.model_fields_set:
         user.endereco = _serializar_endereco(payload.endereco)
     if "dados_bancarios" in payload.model_fields_set:
@@ -495,25 +530,25 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
 
     cpf_armazenado_novo = getattr(user, "cpf_criptografado", None)
     cpf_novo = descriptografar_dado_sensivel(cpf_armazenado_novo) if cpf_armazenado_novo else None
-    telefone_emergencia_novo = descriptografar_dado_sensivel(
-        getattr(user, "telefone_emergencia", None)
+    contato_emergencia_1_novo = _desserializar_contato_emergencia(
+        getattr(user, "contato_emergencia_1", None)
     )
-    telefone_emergencia_2_novo = descriptografar_dado_sensivel(
-        getattr(user, "telefone_emergencia_2", None)
+    contato_emergencia_2_novo = _desserializar_contato_emergencia(
+        getattr(user, "contato_emergencia_2", None)
     )
     endereco_novo = _desserializar_endereco(getattr(user, "endereco", None))
     dados_bancarios_novo = _desserializar_dados_bancarios(
         getattr(user, "dados_bancarios", None)
     )
 
-    # Valores de campos sensiveis/criptografados (senha, telefones de
+    # Valores de campos sensiveis/criptografados (senha, contatos de
     # emergencia, endereco, dados bancarios, CPF) nao aparecem no log — só o
     # nome do campo — para nao expor em texto plano dados que sao
     # armazenados criptografados justamente por serem sensiveis.
-    if telefone_emergencia_novo != telefone_emergencia_anterior:
-        alteracoes.append("telefone de emergência alterado")
-    if telefone_emergencia_2_novo != telefone_emergencia_2_anterior:
-        alteracoes.append("telefone de emergência 2 alterado")
+    if contato_emergencia_1_novo != contato_emergencia_1_anterior:
+        alteracoes.append("contato de emergência 1 alterado")
+    if contato_emergencia_2_novo != contato_emergencia_2_anterior:
+        alteracoes.append("contato de emergência 2 alterado")
     if endereco_novo != endereco_anterior:
         alteracoes.append("endereço alterado")
     if dados_bancarios_novo != dados_bancarios_anterior:
@@ -522,8 +557,8 @@ def editar_usuario(db: Session, user_id: int, payload: UserUpdate, current_user:
         alteracoes.append("CPF alterado")
     resumo = "; ".join(alteracoes) if alteracoes else "nenhum campo alterado"
 
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="USUARIO_EDITADO",
         detalhes=f"Usuário {user.nome} ({user.email}) editado por {current_user.nome}: {resumo}",
     )
@@ -569,8 +604,8 @@ def desativar_usuario(db: Session, user_id: int, current_user: User) -> None:
             ),
         )
     user.ativo = False
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="USUARIO_DESATIVADO",
         detalhes=f"Usuário {user.nome} ({user.email}) desativado por {current_user.nome}",
     )
@@ -586,8 +621,8 @@ def reativar_usuario(db: Session, user_id: int, current_user: User) -> dict:
     if user.ativo:
         return formatar_usuario(user, db)
     user.ativo = True
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="USUARIO_REATIVADO",
         detalhes=f"Usuário {user.nome} ({user.email}) reativado por {current_user.nome}",
     )
@@ -610,18 +645,10 @@ def atualizar_configuracoes(db: Session, payload: UserConfigUpdate, current_user
         current_user.email = payload.email
     if "telefone" in payload.model_fields_set:
         current_user.telefone = payload.telefone
-    if "telefone_emergencia" in payload.model_fields_set:
-        current_user.telefone_emergencia = (
-            criptografar_dado_sensivel(payload.telefone_emergencia)
-            if payload.telefone_emergencia
-            else None
-        )
-    if "telefone_emergencia_2" in payload.model_fields_set:
-        current_user.telefone_emergencia_2 = (
-            criptografar_dado_sensivel(payload.telefone_emergencia_2)
-            if payload.telefone_emergencia_2
-            else None
-        )
+    if "contato_emergencia_1" in payload.model_fields_set:
+        current_user.contato_emergencia_1 = _serializar_contato_emergencia(payload.contato_emergencia_1)
+    if "contato_emergencia_2" in payload.model_fields_set:
+        current_user.contato_emergencia_2 = _serializar_contato_emergencia(payload.contato_emergencia_2)
 
     if senha_alterada:
         if not payload.senha_atual:
@@ -644,11 +671,9 @@ def atualizar_configuracoes(db: Session, payload: UserConfigUpdate, current_user
         acao = "PERFIL_ATUALIZADO"
         detalhes = "Dados do perfil atualizados"
 
-    db.add(Log(
-        user_id=current_user.id,
-        acao=acao,
-        detalhes=detalhes,
-    ))
+    log = log_service.construir_log(current_user, acao=acao, detalhes=detalhes)
+    if log is not None:
+        db.add(log)
     try:
         users_repository.salvar_usuario(db, current_user)
     except IntegrityError as exc:
@@ -672,8 +697,8 @@ def meu_perfil(db: Session, current_user: User) -> dict:
         "data_aniversario": base["data_aniversario"],
         "telefone": base["telefone"],
         "cpf": dados_sensiveis["cpf"],
-        "telefone_emergencia": dados_sensiveis["telefone_emergencia"],
-        "telefone_emergencia_2": dados_sensiveis["telefone_emergencia_2"],
+        "contato_emergencia_1": dados_sensiveis["contato_emergencia_1"],
+        "contato_emergencia_2": dados_sensiveis["contato_emergencia_2"],
         "endereco": dados_sensiveis["endereco"],
         "dados_bancarios": dados_sensiveis["dados_bancarios"],
     }

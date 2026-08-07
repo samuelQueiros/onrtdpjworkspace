@@ -5,9 +5,9 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.models.documento import Documento
-from app.models.log import Log
 from app.models.user import User
 from app.repositories import documentos_repository
+from app.services import log_service
 from app.storage.documentos_storage import (
     MAX_SIZE,
     TIPOS_PERMITIDOS,
@@ -216,8 +216,8 @@ async def criar_documento_upload(
 
     try:
         destinatario_nome = target_user.nome if destino_tipo == "usuario" else "Administração"
-        log = Log(
-            user_id=current_user.id,
+        log = log_service.construir_log(
+            current_user,
             acao="DOCUMENTO_ENVIADO",
             detalhes=f"{tipo.title()} '{file.filename}' enviado para {destinatario_nome}",
         )
@@ -254,11 +254,13 @@ def registrar_acesso_documento(
     modo: str,
 ) -> None:
     acao = "DOCUMENTO_BAIXADO" if modo == "download" else "DOCUMENTO_VISUALIZADO"
-    db.add(Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao=acao,
         detalhes=f"Documento #{doc.id} ('{doc.nome_arquivo}') acessado",
-    ))
+    )
+    if log is not None:
+        db.add(log)
     db.commit()
 
 
@@ -271,8 +273,8 @@ def excluir_documento_admin(db: Session, doc_id: int, current_user: User) -> Non
         )
     caminhos = caminhos_para_excluir(doc)
 
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="DOCUMENTO_EXCLUIDO",
         detalhes=f"Documento '{doc.nome_arquivo}' excluído",
     )

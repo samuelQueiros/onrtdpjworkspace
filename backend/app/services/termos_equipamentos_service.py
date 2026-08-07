@@ -13,10 +13,10 @@ from sqlalchemy.orm import Session
 from app.core.cpf import formatar_cpf, validar_cpf
 from app.core.crypto import criptografar_dado_sensivel, descriptografar_dado_sensivel
 from app.models.documento import Documento
-from app.models.log import Log
 from app.models.patrimonio import SolicitacaoEquipamento, TermoEquipamentoVersao
 from app.models.user import User
 from app.repositories import patrimonios_repository
+from app.services import log_service
 from app.storage.documentos_storage import caminho_documento
 from app.storage.termos_storage import (
     confirmar_termo_pdf,
@@ -442,13 +442,13 @@ def _registrar_falha_geracao(
         solicitacao.documento_erro = (
             "Falha técnica ao gerar o termo. A operação pode ser repetida por um administrador."
         )
-        db.add(
-            Log(
-                user_id=current_user.id,
-                acao="TERMO_EQUIPAMENTOS_FALHA",
-                detalhes=f"Falha técnica na geração do termo da solicitação #{solicitacao_id}",
-            )
+        log = log_service.construir_log(
+            current_user,
+            acao="TERMO_EQUIPAMENTOS_FALHA",
+            detalhes=f"Falha técnica na geração do termo da solicitação #{solicitacao_id}",
         )
+        if log is not None:
+            db.add(log)
         db.commit()
     except Exception:
         db.rollback()
@@ -545,16 +545,16 @@ def gerar_termo_definitivo(
         solicitacao.status = "entregue"
 
         acao = "TERMO_EQUIPAMENTOS_REGENERADO" if regenerar else "TERMO_EQUIPAMENTOS_GERADO"
-        db.add(
-            Log(
-                user_id=current_user.id,
-                acao=acao,
-                detalhes=(
-                    f"Termo {termo.versao_codigo} da solicitação #{solicitacao.id} "
-                    f"associado ao documento #{documento.id}"
-                ),
-            )
+        log = log_service.construir_log(
+            current_user,
+            acao=acao,
+            detalhes=(
+                f"Termo {termo.versao_codigo} da solicitação #{solicitacao.id} "
+                f"associado ao documento #{documento.id}"
+            ),
         )
+        if log is not None:
+            db.add(log)
         db.commit()
         commit_concluido = True
         confirmar_termo_pdf(arquivo)

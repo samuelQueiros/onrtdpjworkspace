@@ -52,7 +52,7 @@ class BootstrapServiceTests(unittest.TestCase):
         self.assertEqual(response, "admin_criado")
         self.assertEqual(admin.email, "admin@sistema.com")
         self.assertEqual(admin.senha_hash, "hash")
-        self.assertEqual(log.acao, "USUARIO_CRIADO")
+        self.assertIsNone(log)
 
     def test_garantir_admin_inicial_nao_altera_quando_senha_ja_bate(self):
         os.environ["ENVIRONMENT"] = "development"
@@ -129,7 +129,7 @@ class BootstrapServiceTests(unittest.TestCase):
         self.assertFalse(admin_existente.must_change_password)
         self.assertTrue(admin_existente.is_sistema)
         log = salvar.call_args.args[2]
-        self.assertEqual(log.acao, "ADMIN_SENHA_SINCRONIZADA_VIA_ENV")
+        self.assertIsNone(log)
 
     def test_garantir_admin_inicial_nao_promove_usuario_nao_admin(self):
         os.environ["ENVIRONMENT"] = "development"

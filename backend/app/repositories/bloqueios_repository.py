@@ -12,23 +12,26 @@ def obter_bloqueio_por_id(db: Session, bloqueio_id: int) -> BloqueioData | None:
     return db.query(BloqueioData).filter(BloqueioData.id == bloqueio_id).first()
 
 
-def salvar_bloqueio_com_log(db: Session, bloqueio: BloqueioData, log: Log) -> BloqueioData:
+def salvar_bloqueio_com_log(db: Session, bloqueio: BloqueioData, log: Log | None) -> BloqueioData:
     db.add(bloqueio)
     db.flush()
-    db.add(log)
+    if log is not None:
+        db.add(log)
     db.commit()
     db.refresh(bloqueio)
     return bloqueio
 
 
-def atualizar_bloqueio_com_log(db: Session, bloqueio: BloqueioData, log: Log) -> BloqueioData:
-    db.add(log)
+def atualizar_bloqueio_com_log(db: Session, bloqueio: BloqueioData, log: Log | None) -> BloqueioData:
+    if log is not None:
+        db.add(log)
     db.commit()
     db.refresh(bloqueio)
     return bloqueio
 
 
-def excluir_bloqueio_com_log(db: Session, bloqueio: BloqueioData, log: Log) -> None:
-    db.add(log)
+def excluir_bloqueio_com_log(db: Session, bloqueio: BloqueioData, log: Log | None) -> None:
+    if log is not None:
+        db.add(log)
     db.delete(bloqueio)
     db.commit()

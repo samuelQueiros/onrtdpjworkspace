@@ -100,20 +100,22 @@ def contar_administradores_ativos(db: Session) -> int:
     return db.query(User).filter(User.role == "admin", User.ativo.is_(True)).count()
 
 
-def salvar_usuario_com_log(db: Session, user: User, log: Log, commit: bool = True) -> User:
+def salvar_usuario_com_log(db: Session, user: User, log: Log | None, commit: bool = True) -> User:
     db.add(user)
     db.flush()
-    if log.user_id is None:
-        log.user_id = user.id
-    db.add(log)
+    if log is not None:
+        if log.user_id is None:
+            log.user_id = user.id
+        db.add(log)
     if commit:
         db.commit()
         db.refresh(user)
     return user
 
 
-def atualizar_usuario_com_log(db: Session, user: User, log: Log, commit: bool = True) -> User:
-    db.add(log)
+def atualizar_usuario_com_log(db: Session, user: User, log: Log | None, commit: bool = True) -> User:
+    if log is not None:
+        db.add(log)
     if commit:
         db.commit()
         db.refresh(user)

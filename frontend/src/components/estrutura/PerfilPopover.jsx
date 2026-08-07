@@ -19,8 +19,8 @@ const BANCARIOS_LABELS = {
 const blankForm = {
   email: '',
   telefone: '',
-  telefone_emergencia: '',
-  telefone_emergencia_2: '',
+  contato_emergencia_1: { telefone: '', nome: '', grau_parentesco: '' },
+  contato_emergencia_2: { telefone: '', nome: '', grau_parentesco: '' },
   senha_atual: '',
   nova_senha: '',
   confirmar_senha: '',
@@ -45,8 +45,8 @@ export default function PerfilPopover({ onClose }) {
       setForm({
         email: dados.email || '',
         telefone: dados.telefone || '',
-        telefone_emergencia: dados.telefone_emergencia || '',
-        telefone_emergencia_2: dados.telefone_emergencia_2 || '',
+        contato_emergencia_1: { ...blankForm.contato_emergencia_1, ...(dados.contato_emergencia_1 || {}) },
+        contato_emergencia_2: { ...blankForm.contato_emergencia_2, ...(dados.contato_emergencia_2 || {}) },
         senha_atual: '',
         nova_senha: '',
         confirmar_senha: '',
@@ -58,6 +58,12 @@ export default function PerfilPopover({ onClose }) {
   useEffect(() => { carregar() }, [carregar])
 
   const update = changes => setForm(prev => ({ ...prev, ...changes }))
+  const updateContato1 = changes => setForm(prev => ({
+    ...prev, contato_emergencia_1: { ...prev.contato_emergencia_1, ...changes },
+  }))
+  const updateContato2 = changes => setForm(prev => ({
+    ...prev, contato_emergencia_2: { ...prev.contato_emergencia_2, ...changes },
+  }))
 
   const submit = async event => {
     event.preventDefault()
@@ -76,8 +82,8 @@ export default function PerfilPopover({ onClose }) {
     const payload = {
       email: form.email,
       telefone: form.telefone,
-      telefone_emergencia: form.telefone_emergencia,
-      telefone_emergencia_2: form.telefone_emergencia_2,
+      contato_emergencia_1: form.contato_emergencia_1,
+      contato_emergencia_2: form.contato_emergencia_2,
     }
     if (form.nova_senha) {
       payload.senha_atual = form.senha_atual
@@ -212,32 +218,80 @@ export default function PerfilPopover({ onClose }) {
                 />
               </div>
 
-              <div className="form-group">
-                <label htmlFor="perfil-telefone-emergencia">Telefone de emergência</label>
-                <input
-                  id="perfil-telefone-emergencia"
-                  name="telefone_emergencia"
-                  type="tel"
-                  inputMode="numeric"
-                  maxLength="15"
-                  value={maskPhone(form.telefone_emergencia)}
-                  onChange={event => update({ telefone_emergencia: maskPhone(event.target.value) })}
-                  placeholder="(00) 00000-0000"
-                />
+              <div className="form-stack">
+                <span className="section-label">Contato de emergência 1</span>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="perfil-contato1-telefone">Telefone</label>
+                    <input
+                      id="perfil-contato1-telefone"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength="15"
+                      value={maskPhone(form.contato_emergencia_1.telefone)}
+                      onChange={event => updateContato1({ telefone: maskPhone(event.target.value) })}
+                      placeholder="(00) 00000-0000"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="perfil-contato1-nome">Nome</label>
+                    <input
+                      id="perfil-contato1-nome"
+                      type="text"
+                      value={form.contato_emergencia_1.nome}
+                      onChange={event => updateContato1({ nome: event.target.value })}
+                      placeholder="Nome completo"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="perfil-contato1-parentesco">Grau de parentesco</label>
+                    <input
+                      id="perfil-contato1-parentesco"
+                      type="text"
+                      value={form.contato_emergencia_1.grau_parentesco}
+                      onChange={event => updateContato1({ grau_parentesco: event.target.value })}
+                      placeholder="Mãe, pai, cônjuge..."
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="perfil-telefone-emergencia-2">Telefone de emergência 2</label>
-                <input
-                  id="perfil-telefone-emergencia-2"
-                  name="telefone_emergencia_2"
-                  type="tel"
-                  inputMode="numeric"
-                  maxLength="15"
-                  value={maskPhone(form.telefone_emergencia_2)}
-                  onChange={event => update({ telefone_emergencia_2: maskPhone(event.target.value) })}
-                  placeholder="(00) 00000-0000"
-                />
+              <div className="form-stack">
+                <span className="section-label">Contato de emergência 2</span>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="perfil-contato2-telefone">Telefone</label>
+                    <input
+                      id="perfil-contato2-telefone"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength="15"
+                      value={maskPhone(form.contato_emergencia_2.telefone)}
+                      onChange={event => updateContato2({ telefone: maskPhone(event.target.value) })}
+                      placeholder="(00) 00000-0000"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="perfil-contato2-nome">Nome</label>
+                    <input
+                      id="perfil-contato2-nome"
+                      type="text"
+                      value={form.contato_emergencia_2.nome}
+                      onChange={event => updateContato2({ nome: event.target.value })}
+                      placeholder="Nome completo"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="perfil-contato2-parentesco">Grau de parentesco</label>
+                    <input
+                      id="perfil-contato2-parentesco"
+                      type="text"
+                      value={form.contato_emergencia_2.grau_parentesco}
+                      onChange={event => updateContato2({ grau_parentesco: event.target.value })}
+                      placeholder="Mãe, pai, cônjuge..."
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="perfil-divider" />

@@ -4,7 +4,6 @@ from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.log import Log
 from app.models.patrimonio import (
     STATUS_EQUIPAMENTO,
     TIPOS_EQUIPAMENTO,
@@ -23,6 +22,7 @@ from app.schemas.patrimonio import (
     ManutencaoCreate,
     VinculoCreate,
 )
+from app.services import log_service
 
 MAQUINAS_PRINCIPAIS = {"notebook", "desktop"}
 
@@ -170,8 +170,8 @@ def criar_equipamento(db: Session, payload: EquipamentoCreate, current_user: Use
         estado_conservacao=payload.estado_conservacao,
         criado_por_id=current_user.id,
     )
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="EQUIPAMENTO_CRIADO",
         detalhes=f"Equipamento {_texto_identificacao(equipamento)} cadastrado",
     )
@@ -237,8 +237,8 @@ def editar_equipamento(
         observacoes=f"Campos alterados: {', '.join(alterados)}",
         criado_por_id=current_user.id,
     )
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="EQUIPAMENTO_EDITADO",
         detalhes=f"Equipamento {_texto_identificacao(equipamento)} editado ({', '.join(alterados)})",
     )
@@ -296,8 +296,8 @@ def vincular_equipamento(
         observacoes=f"Vinculado ao colaborador #{usuario.id}",
         criado_por_id=current_user.id,
     )
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="EQUIPAMENTO_VINCULADO",
         detalhes=f"Equipamento {_texto_identificacao(equipamento)} vinculado ao usuário #{usuario.id}",
     )
@@ -339,8 +339,8 @@ def desvincular_equipamento(
         observacoes=f"Desvinculado do colaborador #{vinculo.user_id}",
         criado_por_id=current_user.id,
     )
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="EQUIPAMENTO_DESVINCULADO",
         detalhes=f"Equipamento {_texto_identificacao(equipamento)} desvinculado do usuário #{vinculo.user_id}",
     )
@@ -371,8 +371,8 @@ def _alterar_status_operacional(
         observacoes=observacoes,
         criado_por_id=current_user.id,
     )
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao=f"EQUIPAMENTO_{tipo_evento.upper()}",
         detalhes=f"Equipamento {_texto_identificacao(equipamento)}: {anterior} -> {status_novo}",
     )

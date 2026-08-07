@@ -70,10 +70,14 @@ export default function MinhaContaDetalhes({ perfil, ficha, ferias }) {
       <DetailSection title="Contato">
         <DetailField label="Telefone">{perfil.telefone ? maskPhone(perfil.telefone) : null}</DetailField>
         <DetailField label="Contato de emergência 1">
-          {perfil.telefone_emergencia ? maskPhone(perfil.telefone_emergencia) : null}
+          {perfil.contato_emergencia_1?.telefone
+            ? `${maskPhone(perfil.contato_emergencia_1.telefone)}${perfil.contato_emergencia_1.nome ? ` — ${perfil.contato_emergencia_1.nome}` : ''}${perfil.contato_emergencia_1.grau_parentesco ? ` (${perfil.contato_emergencia_1.grau_parentesco})` : ''}`
+            : null}
         </DetailField>
         <DetailField label="Contato de emergência 2">
-          {perfil.telefone_emergencia_2 ? maskPhone(perfil.telefone_emergencia_2) : null}
+          {perfil.contato_emergencia_2?.telefone
+            ? `${maskPhone(perfil.contato_emergencia_2.telefone)}${perfil.contato_emergencia_2.nome ? ` — ${perfil.contato_emergencia_2.nome}` : ''}${perfil.contato_emergencia_2.grau_parentesco ? ` (${perfil.contato_emergencia_2.grau_parentesco})` : ''}`
+            : null}
         </DetailField>
         <DetailField label="Telefone alternativo">
           {ficha?.telefone_alternativo ? maskPhone(ficha.telefone_alternativo) : null}

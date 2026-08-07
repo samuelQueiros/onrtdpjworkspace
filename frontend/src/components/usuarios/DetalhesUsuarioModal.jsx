@@ -563,10 +563,14 @@ export default function DetalhesUsuarioModal({
               {ficha?.email_alternativo}
             </EditableField>
             <DetailField label="Contato de emergência 1">
-              {sensitive?.telefone_emergencia ? maskPhone(sensitive.telefone_emergencia) : null}
+              {sensitive?.contato_emergencia_1?.telefone
+                ? `${maskPhone(sensitive.contato_emergencia_1.telefone)}${sensitive.contato_emergencia_1.nome ? ` — ${sensitive.contato_emergencia_1.nome}` : ''}${sensitive.contato_emergencia_1.grau_parentesco ? ` (${sensitive.contato_emergencia_1.grau_parentesco})` : ''}`
+                : null}
             </DetailField>
             <DetailField label="Contato de emergência 2">
-              {sensitive?.telefone_emergencia_2 ? maskPhone(sensitive.telefone_emergencia_2) : null}
+              {sensitive?.contato_emergencia_2?.telefone
+                ? `${maskPhone(sensitive.contato_emergencia_2.telefone)}${sensitive.contato_emergencia_2.nome ? ` — ${sensitive.contato_emergencia_2.nome}` : ''}${sensitive.contato_emergencia_2.grau_parentesco ? ` (${sensitive.contato_emergencia_2.grau_parentesco})` : ''}`
+                : null}
             </DetailField>
           </DetailSection>
 

@@ -308,7 +308,8 @@ def obter_versao_termo_por_codigo(db: Session, codigo: str) -> TermoEquipamentoV
 
 def salvar(db: Session, *objetos) -> None:
     for objeto in objetos:
-        db.add(objeto)
+        if objeto is not None:
+            db.add(objeto)
 
 
 def commit(db: Session) -> None:

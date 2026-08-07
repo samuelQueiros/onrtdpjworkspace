@@ -88,7 +88,7 @@ class ImportacaoServiceTests(unittest.TestCase):
         self.assertEqual(workbook.sheetnames, ["Instruções", "Colaboradores"])
         planilha = workbook["Colaboradores"]
         self.assertEqual(planilha["A1"].value, "Nome")
-        self.assertEqual(planilha["AA1"].value, "Dias de férias por período")
+        self.assertEqual(planilha["AE1"].value, "Dias de férias por período")
         self.assertEqual(planilha.freeze_panes, "A2")
 
     def test_importar_colaboradores_valida_tudo_antes_de_inserir(self):
@@ -96,7 +96,9 @@ class ImportacaoServiceTests(unittest.TestCase):
             tuple(importacao_service.CABECALHOS_COLABORADORES),
             (
                 "Pessoa A", "pessoa@empresa.com", "529.982.247-25", "Analista",
-                "Tecnologia", "61999999999", "61988888888", "61977777777",
+                "Tecnologia", "61999999999",
+                "61988888888", "Maria Exemplo", "Mãe",
+                "61977777777", "João Exemplo", "Pai",
                 "Usuário", "Ativo", "10/01/2024", "20/05/1995", 30, 0,
                 "10/01/2027", "Rua A", "10", "Centro", "Brasília", "70000-000",
                 "Banco", "0001", "123-4", "529.982.247-25", "Pessoa A",

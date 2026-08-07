@@ -94,6 +94,25 @@ class AvisosRepositoryTests(unittest.TestCase):
         self.assertEqual(db.deleted, [aviso])
         self.assertTrue(db.committed)
 
+    def test_salvar_aviso_com_log_none_nao_adiciona_log(self):
+        aviso = SimpleNamespace(id=1)
+        db = FakeDb()
+
+        avisos_repository.salvar_aviso_com_log(db, aviso, None)
+
+        self.assertEqual(db.added, [aviso])
+        self.assertTrue(db.committed)
+
+    def test_excluir_aviso_com_log_none_nao_adiciona_log(self):
+        aviso = SimpleNamespace(id=1)
+        db = FakeDb()
+
+        avisos_repository.excluir_aviso_com_log(db, aviso, None)
+
+        self.assertEqual(db.added, [])
+        self.assertEqual(db.deleted, [aviso])
+        self.assertTrue(db.committed)
+
 
 if __name__ == "__main__":
     unittest.main()

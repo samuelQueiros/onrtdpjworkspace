@@ -2,10 +2,10 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.bloqueio import BloqueioData
-from app.models.log import Log
 from app.models.user import User
 from app.repositories import bloqueios_repository
 from app.schemas.bloqueio import BloqueioCreate, BloqueioUpdate
+from app.services import log_service
 
 TIPOS_BLOQUEIO = ("bloqueio", "recesso")
 
@@ -55,8 +55,8 @@ def criar_bloqueio(db: Session, payload: BloqueioCreate, current_user: User) -> 
         criado_por_id=current_user.id,
     )
     tipo_label = "Recesso" if payload.tipo == "recesso" else "Bloqueio"
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="BLOQUEIO_CRIADO",
         detalhes=f"{tipo_label} criado: {payload.data_inicio} a {payload.data_fim} - {payload.motivo}",
     )
@@ -79,8 +79,8 @@ def editar_bloqueio(db: Session, bloqueio_id: int, payload: BloqueioUpdate, curr
 
     validar_periodo(bloqueio.data_inicio, bloqueio.data_fim)
 
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="BLOQUEIO_EDITADO",
         detalhes=f"Bloqueio #{bloqueio_id} atualizado: {bloqueio.data_inicio} a {bloqueio.data_fim}",
     )
@@ -90,9 +90,9 @@ def editar_bloqueio(db: Session, bloqueio_id: int, payload: BloqueioUpdate, curr
 
 def excluir_bloqueio(db: Session, bloqueio_id: int, current_user: User) -> None:
     bloqueio = buscar_bloqueio(db, bloqueio_id)
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="BLOQUEIO_EXCLUIDO",
-        detalhes=f"Bloqueio #{bloqueio_id} ({bloqueio.data_inicio} a {bloqueio.data_fim}) excluido",
+        detalhes=f"Bloqueio #{bloqueio_id} ({bloqueio.data_inicio} a {bloqueio.data_fim}) excluído",
     )
     bloqueios_repository.excluir_bloqueio_com_log(db, bloqueio, log)

@@ -13,11 +13,10 @@ from app.core.crypto import criptografar_dado_sensivel, descriptografar_dado_sen
 from app.core.timezone import hoje_sao_paulo
 from app.models.ficha_admissional import FichaAdmissional
 from app.models.historico_salarial import HistoricoSalarial
-from app.models.log import Log
 from app.models.user import User
 from app.repositories import fichas_admissionais_repository, historico_salarial_repository
 from app.schemas.ficha_admissional import FichaAdmissionalUpdate
-from app.services import historico_colaborador_service, importacao_service, users_service
+from app.services import historico_colaborador_service, importacao_service, log_service, users_service
 
 
 CAMPOS_CRIPTOGRAFADOS = {
@@ -125,11 +124,13 @@ def formatar_ficha(ficha: FichaAdmissional) -> dict:
 def consultar_ficha(db: Session, user_id: int, current_user: User) -> dict | None:
     user = users_service.buscar_usuario(db, user_id)
     ficha = fichas_admissionais_repository.obter_por_usuario(db, user_id)
-    db.add(Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="FICHA_ADMISSIONAL_CONSULTADA",
         detalhes=f"Ficha admissional de {user.nome} consultada por administrador",
-    ))
+    )
+    if log is not None:
+        db.add(log)
     db.commit()
     return formatar_ficha(ficha) if ficha else None
 
@@ -200,11 +201,13 @@ def atualizar_ficha(
             alteracoes.append(f"{rotulo}: {anterior if anterior is not None else '—'} -> {novo if novo is not None else '—'}")
     resumo = "; ".join(alteracoes) if alteracoes else "nenhum campo alterado"
 
-    db.add(Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao=acao,
         detalhes=f"Ficha admissional de {user.nome} atualizada por administrador: {resumo}",
-    ))
+    )
+    if log is not None:
+        db.add(log)
 
     if "salario" in payload.model_fields_set and payload.salario is not None and payload.salario != salario_anterior:
         eh_edicao_de_salario_existente = salario_anterior is not None and not origem_importacao
@@ -315,11 +318,13 @@ def gerar_modelo_xlsx(db: Session, user_id: int, current_user: User) -> bytes:
         planilha.add_data_validation(validacao)
         validacao.add(planilha.cell(linha_por_campo[campo], 2))
 
-    db.add(Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="MODELO_FICHA_ADMISSIONAL_EXPORTADO",
-        detalhes=f"Modelo preenchivel da ficha admissional de {user.nome} exportado",
-    ))
+        detalhes=f"Modelo preenchível da ficha admissional de {user.nome} exportado",
+    )
+    if log is not None:
+        db.add(log)
     db.commit()
     arquivo = BytesIO()
     workbook.save(arquivo)
@@ -458,11 +463,13 @@ def importar_xlsx(
 def historico_salarial(db: Session, user_id: int, current_user: User) -> list[dict]:
     user = users_service.buscar_usuario(db, user_id)
     movimentos = historico_salarial_repository.listar_por_usuario(db, user_id)
-    db.add(Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="HISTORICO_SALARIAL_CONSULTADO",
-        detalhes=f"Historico salarial de {user.nome} consultado por administrador",
-    ))
+        detalhes=f"Histórico salarial de {user.nome} consultado por administrador",
+    )
+    if log is not None:
+        db.add(log)
     db.commit()
     return [
         {
@@ -479,10 +486,12 @@ def historico_salarial(db: Session, user_id: int, current_user: User) -> list[di
 def historico_funcional(db: Session, user_id: int, current_user: User) -> list[dict]:
     user = users_service.buscar_usuario(db, user_id)
     resultado = historico_colaborador_service.listar_historico(db, user_id)
-    db.add(Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="HISTORICO_FUNCIONAL_CONSULTADO",
-        detalhes=f"Historico funcional (cargo/departamento/beneficios) de {user.nome} consultado por administrador",
-    ))
+        detalhes=f"Histórico funcional (cargo/departamento/benefícios) de {user.nome} consultado por administrador",
+    )
+    if log is not None:
+        db.add(log)
     db.commit()
     return resultado

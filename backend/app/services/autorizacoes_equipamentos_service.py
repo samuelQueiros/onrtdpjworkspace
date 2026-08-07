@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from app.core.cpf import mascarar_cpf
 from app.core.crypto import descriptografar_dado_sensivel
 from app.core.security import obter_ip_cliente
-from app.models.log import Log
 from app.models.patrimonio import (
     STATUS_SOLICITACAO,
     Equipamento,
@@ -31,6 +30,7 @@ from app.schemas.patrimonio import (
     RejeicaoSolicitacaoCreate,
     SolicitacaoEquipamentoCreate,
 )
+from app.services import log_service
 
 MAQUINAS_PRINCIPAIS = {"notebook", "desktop"}
 
@@ -57,9 +57,11 @@ def _evento(
     )
 
 
-def _log(usuario_id: int, acao: str, solicitacao_id: int | None, detalhe: str = "") -> Log:
+def _log(current_user: User, acao: str, solicitacao_id: int | None, detalhe: str = ""):
     identificador = f"Solicitação de equipamento #{solicitacao_id}" if solicitacao_id else "Solicitação de equipamento"
-    return Log(user_id=usuario_id, acao=acao, detalhes=f"{identificador}{': ' + detalhe if detalhe else ''}")
+    return log_service.construir_log(
+        current_user, acao=acao, detalhes=f"{identificador}{': ' + detalhe if detalhe else ''}",
+    )
 
 
 def _snapshot_item(equipamento: Equipamento, observacoes: str | None = None) -> dict:
@@ -251,7 +253,7 @@ def criar_solicitacao(
     _evento(solicitacao, "criacao", current_user.id, None, "pendente", {"equipamentos": ids})
     patrimonios_repository.salvar(db, solicitacao)
     patrimonios_repository.flush(db)
-    patrimonios_repository.salvar(db, _log(current_user.id, "AUTORIZACAO_EQUIPAMENTO_CRIADA", solicitacao.id))
+    patrimonios_repository.salvar(db, _log(current_user, "AUTORIZACAO_EQUIPAMENTO_CRIADA", solicitacao.id))
     try:
         patrimonios_repository.commit(db)
     except IntegrityError as exc:
@@ -339,7 +341,7 @@ def cancelar_solicitacao(
     patrimonios_repository.salvar(
         db,
         _evento(solicitacao, "cancelamento", current_user.id, anterior, "cancelada", payload.motivo),
-        _log(current_user.id, "AUTORIZACAO_EQUIPAMENTO_CANCELADA", solicitacao.id),
+        _log(current_user, "AUTORIZACAO_EQUIPAMENTO_CANCELADA", solicitacao.id),
     )
     patrimonios_repository.commit(db)
     return formatar_solicitacao(buscar_solicitacao(db, solicitacao.id, current_user), current_user)
@@ -428,7 +430,7 @@ def aprovar_solicitacao(
     patrimonios_repository.salvar(
         db,
         _evento(solicitacao, "aprovacao", current_user.id, anterior, solicitacao.status, detalhes),
-        _log(current_user.id, acao, solicitacao.id, f"{len(aprovados)} item(ns) aprovado(s)"),
+        _log(current_user, acao, solicitacao.id, f"{len(aprovados)} item(ns) aprovado(s)"),
     )
     try:
         patrimonios_repository.commit(db)
@@ -455,7 +457,7 @@ def rejeitar_solicitacao(
     patrimonios_repository.salvar(
         db,
         _evento(solicitacao, "rejeicao", current_user.id, anterior, "rejeitada", payload.motivo_rejeicao),
-        _log(current_user.id, "AUTORIZACAO_EQUIPAMENTO_REJEITADA", solicitacao.id),
+        _log(current_user, "AUTORIZACAO_EQUIPAMENTO_REJEITADA", solicitacao.id),
     )
     patrimonios_repository.commit(db)
     return formatar_solicitacao(buscar_solicitacao(db, solicitacao.id, current_user), current_user)
@@ -557,7 +559,7 @@ def registrar_entrega(
                 "justificativa_excecao": payload.justificativa_excecao,
             },
         ),
-        _log(current_user.id, "AUTORIZACAO_EQUIPAMENTO_ENTREGA_REGISTRADA", solicitacao.id),
+        _log(current_user, "AUTORIZACAO_EQUIPAMENTO_ENTREGA_REGISTRADA", solicitacao.id),
     )
     try:
         patrimonios_repository.commit(db)
@@ -599,7 +601,7 @@ def registrar_aceite(
     patrimonios_repository.salvar(
         db,
         _evento(solicitacao, "aceite", current_user.id, anterior, solicitacao.status, {"local": payload.local_aceite}),
-        _log(current_user.id, "AUTORIZACAO_EQUIPAMENTO_ACEITE_REGISTRADO", solicitacao.id),
+        _log(current_user, "AUTORIZACAO_EQUIPAMENTO_ACEITE_REGISTRADO", solicitacao.id),
     )
     patrimonios_repository.commit(db)
 
@@ -713,7 +715,7 @@ def registrar_devolucao(
             "devolvida",
             {"ausentes": ausentes, "itens": sorted(payload_por_id)},
         ),
-        _log(current_user.id, "AUTORIZACAO_EQUIPAMENTO_DEVOLUCAO_REGISTRADA", solicitacao.id),
+        _log(current_user, "AUTORIZACAO_EQUIPAMENTO_DEVOLUCAO_REGISTRADA", solicitacao.id),
     )
     patrimonios_repository.commit(db)
     return formatar_solicitacao(buscar_solicitacao(db, solicitacao.id, current_user), current_user)

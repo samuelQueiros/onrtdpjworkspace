@@ -86,16 +86,18 @@ def contar_historico(
     return _consulta_historico(db, caixa, usuario_id, filtro_usuario_id).count()
 
 
-def salvar_documento_com_log(db: Session, doc: Documento, log: Log) -> Documento:
+def salvar_documento_com_log(db: Session, doc: Documento, log: Log | None) -> Documento:
     db.add(doc)
     db.flush()
-    db.add(log)
+    if log is not None:
+        db.add(log)
     db.commit()
     db.refresh(doc)
     return doc
 
 
-def excluir_documento_com_log(db: Session, doc: Documento, log: Log) -> None:
-    db.add(log)
+def excluir_documento_com_log(db: Session, doc: Documento, log: Log | None) -> None:
+    if log is not None:
+        db.add(log)
     db.delete(doc)
     db.commit()

@@ -12,6 +12,7 @@ from app.models.saldo_ferias import SaldoFeriasMovimento
 from app.models.user import User
 from app.repositories import ferias_repository
 from app.schemas.ferias import FeriasAprovar, FeriasCreate, FeriasUpdate
+from app.services import log_service
 
 LIMITE_SIMULTANEO_GLOBAL = 2
 NOMES_DIA = ["segunda-feira", "terca-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sabado", "domingo"]
@@ -218,11 +219,12 @@ def sincronizar_creditos_anuais(
                 criado_por_id=None,
                 chave_idempotencia=chave,
             ))
-            db.add(Log(
-                user_id=user.id,
-                acao="SALDO_FERIAS_CREDITADO",
-                detalhes=f"Crédito automático de {user.dias_totais} dia(s) em {referencia.strftime('%d/%m/%Y')}.",
-            ))
+            if not getattr(user, "is_sistema", False):
+                db.add(Log(
+                    user_id=user.id,
+                    acao="SALDO_FERIAS_CREDITADO",
+                    detalhes=f"Crédito automático de {user.dias_totais} dia(s) em {referencia.strftime('%d/%m/%Y')}.",
+                ))
             criados += 1
         user.proxima_concessao_ferias = _somar_anos(referencia, 1)
         avancou = True
@@ -275,14 +277,16 @@ def ajustar_saldo(
         criado_por_id=current_user.id,
         chave_idempotencia=f"ajuste:{user.id}:{datetime.utcnow().isoformat()}",
     ))
-    db.add(Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="SALDO_FERIAS_AJUSTADO",
         detalhes=(
             f"Saldo de {user.nome} ajustado de {saldo_atual} para {novo_saldo} dia(s). "
             f"Motivo: {motivo}"
         ),
-    ))
+    )
+    if log is not None:
+        db.add(log)
     if commit:
         db.commit()
     else:
@@ -514,7 +518,7 @@ def registrar_ferias(db: Session, payload: FeriasCreate, current_user: User) -> 
         ferias_acordo=payload.ferias_acordo,
     )
     acao = "FERIAS_REGISTRADA" if novo_status == "aprovada" else "FERIAS_SOLICITADA"
-    log = Log(user_id=current_user.id, acao=acao, detalhes=f"Período: {payload.data_inicio} a {payload.data_fim} ({dias_solicitados} dias) - status: {novo_status}")
+    log = log_service.construir_log(current_user, acao=acao, detalhes=f"Período: {payload.data_inicio} a {payload.data_fim} ({dias_solicitados} dias) - status: {novo_status}")
     ferias_repository.salvar_ferias_com_log(db, nova_ferias, log)
     return formatar_ferias(nova_ferias)
 
@@ -566,7 +570,7 @@ def aprovar_ferias(db: Session, ferias_id: int, current_user: User) -> dict:
     ferias.rejeitado_por_id = None
     ferias.rejeitado_em = None
 
-    log = Log(user_id=current_user.id, acao="FERIAS_APROVADA", detalhes=f"Férias #{ferias_id} de {owner.nome} aprovadas ({ferias.data_inicio} a {ferias.data_fim})")
+    log = log_service.construir_log(current_user, acao="FERIAS_APROVADA", detalhes=f"Férias #{ferias_id} de {owner.nome} aprovadas ({ferias.data_inicio} a {ferias.data_fim})")
     ferias_repository.atualizar_ferias_com_log(db, ferias, log)
     return formatar_ferias(ferias)
 
@@ -584,7 +588,7 @@ def rejeitar_ferias(db: Session, ferias_id: int, payload: FeriasAprovar, current
     ferias.aprovado_por_id = None
     ferias.aprovado_em = None
 
-    log = Log(user_id=current_user.id, acao="FERIAS_REJEITADA", detalhes=f"Férias #{ferias_id} de {owner.nome} rejeitadas. Motivo: {payload.motivo_rejeicao or 'não informado'}")
+    log = log_service.construir_log(current_user, acao="FERIAS_REJEITADA", detalhes=f"Férias #{ferias_id} de {owner.nome} rejeitadas. Motivo: {payload.motivo_rejeicao or 'não informado'}")
     ferias_repository.atualizar_ferias_com_log(db, ferias, log)
     return formatar_ferias(ferias)
 
@@ -637,7 +641,7 @@ def editar_ferias(db: Session, ferias_id: int, payload: FeriasUpdate, current_us
     ferias.dias_usados = dias_solicitados
     ferias.ferias_acordo = novo_acordo
 
-    log = Log(user_id=current_user.id, acao="FERIAS_EDITADA", detalhes=f"Férias #{ferias_id} de {owner.nome} alteradas para {nova_inicio} a {nova_fim} ({dias_solicitados} dias)")
+    log = log_service.construir_log(current_user, acao="FERIAS_EDITADA", detalhes=f"Férias #{ferias_id} de {owner.nome} alteradas para {nova_inicio} a {nova_fim} ({dias_solicitados} dias)")
     ferias_repository.atualizar_ferias_com_log(db, ferias, log)
     return formatar_ferias(ferias)
 
@@ -649,5 +653,5 @@ def cancelar_ferias(db: Session, ferias_id: int, current_user: User) -> None:
 
     owner = ferias_repository.obter_user_por_id(db, ferias.user_id)
     detalhes = f"Férias #{ferias_id} de {owner.nome if owner else '?'} ({ferias.data_inicio} a {ferias.data_fim}) canceladas"
-    log = Log(user_id=current_user.id, acao="FERIAS_CANCELADA", detalhes=detalhes)
+    log = log_service.construir_log(current_user, acao="FERIAS_CANCELADA", detalhes=detalhes)
     ferias_repository.excluir_ferias_com_log(db, ferias, log)

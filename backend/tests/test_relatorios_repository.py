@@ -16,6 +16,12 @@ class FakeQuery:
         self.filter_args.extend(args)
         return self
 
+    def join(self, *_args):
+        return self
+
+    def outerjoin(self, *_args):
+        return self
+
     def order_by(self, *_args):
         self.ordered = True
         return self
@@ -78,6 +84,29 @@ class RelatoriosRepositoryTests(unittest.TestCase):
 
         self.assertEqual(relatorios_repository.listar_logs(db), logs)
         self.assertTrue(db.last_query.ordered)
+
+    def test_listar_logs_exclui_admin_de_sistema(self):
+        logs = [SimpleNamespace(id=1)]
+        db = FakeDb(query_result=logs)
+
+        relatorios_repository.listar_logs(db)
+
+        self.assertTrue(any("is_sistema" in str(arg) for arg in db.last_query.filter_args))
+
+    def test_contar_ferias_por_status_exclui_admin_de_sistema(self):
+        db = FakeDb(query_result=5)
+
+        relatorios_repository.contar_ferias_por_status(db, "aprovada")
+
+        self.assertTrue(any("is_sistema" in str(arg) for arg in db.last_query.filter_args))
+
+    def test_listar_proximas_ferias_exclui_admin_de_sistema(self):
+        ferias = [SimpleNamespace(id=1)]
+        db = FakeDb(query_result=ferias)
+
+        relatorios_repository.listar_proximas_ferias(db, SimpleNamespace(), SimpleNamespace())
+
+        self.assertTrue(any("is_sistema" in str(arg) for arg in db.last_query.filter_args))
 
 
 if __name__ == "__main__":

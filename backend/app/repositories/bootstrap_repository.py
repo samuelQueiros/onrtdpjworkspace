@@ -11,14 +11,15 @@ def obter_admin(db: Session) -> User | None:
 def salvar_admin_com_log(
     db: Session,
     admin: User,
-    log: Log,
+    log: Log | None,
     commit: bool = True,
 ) -> User:
     db.add(admin)
     db.flush()
-    if log.user_id is None:
-        log.user_id = admin.id
-    db.add(log)
+    if log is not None:
+        if log.user_id is None:
+            log.user_id = admin.id
+        db.add(log)
     if commit:
         db.commit()
         db.refresh(admin)

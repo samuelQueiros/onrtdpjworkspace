@@ -11,10 +11,10 @@ from app.core.security import (
     verificar_senha,
 )
 from app.models.credencial import Credencial
-from app.models.log import Log
 from app.models.user import User
 from app.repositories import credenciais_repository
 from app.schemas.credencial import CredencialCreate, CredencialUpdate
+from app.services import log_service
 
 
 def formatar_credencial(credencial: Credencial, incluir_senha: bool = False) -> dict:
@@ -71,11 +71,13 @@ def revelar_credencial(
     limpar_falhas_login(chave_limite)
 
     senha = descriptografar_credencial(credencial.senha)
-    db.add(Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="CREDENCIAL_REVELADA",
-        detalhes=f"Credencial #{credencial_id} revelada pelo usuario",
-    ))
+        detalhes=f"Credencial #{credencial_id} revelada pelo usuário",
+    )
+    if log is not None:
+        db.add(log)
     db.commit()
     return {"id": credencial.id, "senha": senha}
 
@@ -96,11 +98,13 @@ def criar_credencial(
         senha=criptografar_credencial(payload.senha),
     )
     if current_user is not None:
-        db.add(Log(
-            user_id=current_user.id,
+        log = log_service.construir_log(
+            current_user,
             acao="CREDENCIAL_CRIADA",
             detalhes=f"Credencial '{payload.descricao}' criada",
-        ))
+        )
+        if log is not None:
+            db.add(log)
     credenciais_repository.salvar_credencial(db, credencial)
     return formatar_credencial(credencial)
 
@@ -122,11 +126,13 @@ def editar_credencial(
 
     credencial.atualizado_em = datetime.utcnow()
     if current_user is not None:
-        db.add(Log(
-            user_id=current_user.id,
+        log = log_service.construir_log(
+            current_user,
             acao="CREDENCIAL_EDITADA",
             detalhes=f"Credencial #{credencial_id} editada",
-        ))
+        )
+        if log is not None:
+            db.add(log)
     credenciais_repository.salvar_credencial(db, credencial)
     return formatar_credencial(credencial)
 
@@ -138,11 +144,13 @@ def excluir_credencial(
 ) -> None:
     credencial = buscar_credencial(db, credencial_id)
     if current_user is not None:
-        db.add(Log(
-            user_id=current_user.id,
+        log = log_service.construir_log(
+            current_user,
             acao="CREDENCIAL_EXCLUIDA",
-            detalhes=f"Credencial #{credencial_id} ('{credencial.descricao}') excluida",
-        ))
+            detalhes=f"Credencial #{credencial_id} ('{credencial.descricao}') excluída",
+        )
+        if log is not None:
+            db.add(log)
     credenciais_repository.excluir_credencial(db, credencial)
 
 
@@ -181,12 +189,14 @@ def salvar_permissoes(
             detail=f"Usuários inválidos ou inativos: {', '.join(map(str, invalidos))}",
         )
     if current_user is not None:
-        db.add(Log(
-            user_id=current_user.id,
+        log = log_service.construir_log(
+            current_user,
             acao="CREDENCIAL_PERMISSOES_ATUALIZADAS",
             detalhes=(
                 f"Permissões da credencial #{credencial_id} atualizadas "
-                f"para {len(ids_unicos)} usuario(s)"
+                f"para {len(ids_unicos)} usuário(s)"
             ),
-        ))
+        )
+        if log is not None:
+            db.add(log)
     credenciais_repository.substituir_permissoes(db, credencial_id, ids_unicos)

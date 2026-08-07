@@ -2,10 +2,10 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.departamento import Departamento
-from app.models.log import Log
 from app.models.user import User
 from app.repositories import departamentos_repository
 from app.schemas.departamento import DepartamentoCreate, DepartamentoUpdate
+from app.services import log_service
 
 
 def formatar_departamento(db: Session, departamento: Departamento, incluir_total: bool = False) -> dict:
@@ -53,8 +53,8 @@ def criar_departamento(db: Session, payload: DepartamentoCreate, current_user: U
         nome=payload.nome,
         limite_simultaneo=payload.limite_simultaneo,
     )
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="DEPARTAMENTO_CRIADO",
         detalhes=f"Departamento '{departamento.nome}' criado (limite: {departamento.limite_simultaneo})",
     )
@@ -72,8 +72,8 @@ def editar_departamento(db: Session, departamento_id: int, payload: Departamento
     if payload.limite_simultaneo is not None:
         departamento.limite_simultaneo = payload.limite_simultaneo
 
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="DEPARTAMENTO_EDITADO",
         detalhes=f"Departamento #{departamento_id} atualizado",
     )
@@ -83,9 +83,9 @@ def editar_departamento(db: Session, departamento_id: int, payload: Departamento
 
 def excluir_departamento(db: Session, departamento_id: int, current_user: User) -> None:
     departamento = buscar_departamento(db, departamento_id)
-    log = Log(
-        user_id=current_user.id,
+    log = log_service.construir_log(
+        current_user,
         acao="DEPARTAMENTO_EXCLUIDO",
-        detalhes=f"Departamento '{departamento.nome}' excluido",
+        detalhes=f"Departamento '{departamento.nome}' excluído",
     )
     departamentos_repository.excluir_departamento_com_log(db, departamento, log)

@@ -1,5 +1,6 @@
 from datetime import date
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.departamento import Departamento
@@ -47,7 +48,12 @@ def contar_colaboradores(db: Session) -> int:
 
 
 def contar_ferias_por_status(db: Session, status: str) -> int:
-    return db.query(Ferias).filter(Ferias.status == status).count()
+    return (
+        db.query(Ferias)
+        .join(User, Ferias.user_id == User.id)
+        .filter(Ferias.status == status, User.is_sistema.is_(False))
+        .count()
+    )
 
 
 def contar_autorizacoes_equipamentos_por_status(db: Session, status: str) -> int:
@@ -61,10 +67,12 @@ def contar_departamentos(db: Session) -> int:
 def listar_ferias_em_andamento(db: Session, hoje: date) -> list[Ferias]:
     return (
         db.query(Ferias)
+        .join(User, Ferias.user_id == User.id)
         .filter(
             Ferias.status == "aprovada",
             Ferias.data_inicio <= hoje,
             Ferias.data_fim >= hoje,
+            User.is_sistema.is_(False),
         )
         .all()
     )
@@ -73,10 +81,12 @@ def listar_ferias_em_andamento(db: Session, hoje: date) -> list[Ferias]:
 def listar_proximas_ferias(db: Session, hoje: date, limite: date) -> list[Ferias]:
     return (
         db.query(Ferias)
+        .join(User, Ferias.user_id == User.id)
         .filter(
             Ferias.status == "aprovada",
             Ferias.data_inicio > hoje,
             Ferias.data_inicio <= limite,
+            User.is_sistema.is_(False),
         )
         .order_by(Ferias.data_inicio)
         .all()
@@ -86,22 +96,32 @@ def listar_proximas_ferias(db: Session, hoje: date, limite: date) -> list[Ferias
 def listar_alertas_contabilidade(db: Session, hoje: date, limite: date) -> list[Ferias]:
     return (
         db.query(Ferias)
+        .join(User, Ferias.user_id == User.id)
         .filter(
             Ferias.status == "aprovada",
             Ferias.data_inicio >= hoje,
             Ferias.data_inicio <= limite,
+            User.is_sistema.is_(False),
         )
         .all()
     )
 
 
+def _logs_visiveis(db: Session):
+    return (
+        db.query(Log)
+        .outerjoin(User, Log.user_id == User.id)
+        .filter(or_(User.id.is_(None), User.is_sistema.is_(False)))
+    )
+
+
 def listar_logs(db: Session, offset: int = 0, limit: int = 50) -> list[Log]:
-    return db.query(Log).order_by(Log.criado_em.desc()).offset(offset).limit(limit).all()
+    return _logs_visiveis(db).order_by(Log.criado_em.desc()).offset(offset).limit(limit).all()
 
 
 def listar_todos_logs(db: Session) -> list[Log]:
-    return db.query(Log).order_by(Log.criado_em.desc()).all()
+    return _logs_visiveis(db).order_by(Log.criado_em.desc()).all()
 
 
 def contar_logs(db: Session) -> int:
-    return db.query(Log).count()
+    return _logs_visiveis(db).count()

@@ -25,23 +25,26 @@ def obter_aviso_por_id(db: Session, aviso_id: int) -> Aviso | None:
     return db.query(Aviso).filter(Aviso.id == aviso_id).first()
 
 
-def salvar_aviso_com_log(db: Session, aviso: Aviso, log: Log) -> Aviso:
+def salvar_aviso_com_log(db: Session, aviso: Aviso, log: Log | None) -> Aviso:
     db.add(aviso)
     db.flush()
-    db.add(log)
+    if log is not None:
+        db.add(log)
     db.commit()
     db.refresh(aviso)
     return aviso
 
 
-def atualizar_aviso_com_log(db: Session, aviso: Aviso, log: Log) -> Aviso:
-    db.add(log)
+def atualizar_aviso_com_log(db: Session, aviso: Aviso, log: Log | None) -> Aviso:
+    if log is not None:
+        db.add(log)
     db.commit()
     db.refresh(aviso)
     return aviso
 
 
-def excluir_aviso_com_log(db: Session, aviso: Aviso, log: Log) -> None:
-    db.add(log)
+def excluir_aviso_com_log(db: Session, aviso: Aviso, log: Log | None) -> None:
+    if log is not None:
+        db.add(log)
     db.delete(aviso)
     db.commit()
