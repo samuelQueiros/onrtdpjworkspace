@@ -63,6 +63,21 @@ class ContatoEmergencia(BaseModel):
         return _validar_telefone(valor)
 
 
+class ContatoEmergenciaOut(BaseModel):
+    """Formato tolerante para exibição: cadastros antigos podem ter nome/grau
+    de parentesco em branco (preenchidos automaticamente na migração), e isso
+    não pode quebrar a leitura — só a criação/edição exige os três campos."""
+
+    telefone: str = ""
+    nome: str = ""
+    grau_parentesco: str = ""
+
+    @field_validator("telefone", "nome", "grau_parentesco", mode="before")
+    @classmethod
+    def normalizar_campos(cls, valor):
+        return valor if isinstance(valor, str) else ""
+
+
 class Endereco(BaseModel):
     logradouro: Optional[str] = Field(default=None, max_length=200)
     numero: Optional[str] = Field(default=None, max_length=20)
@@ -266,8 +281,8 @@ class UserResponse(BaseModel):
 
 class UserSensitiveResponse(BaseModel):
     cpf: Optional[str] = None
-    contato_emergencia_1: Optional[ContatoEmergencia] = None
-    contato_emergencia_2: Optional[ContatoEmergencia] = None
+    contato_emergencia_1: Optional[ContatoEmergenciaOut] = None
+    contato_emergencia_2: Optional[ContatoEmergenciaOut] = None
     endereco: Optional[Endereco] = None
     dados_bancarios: Optional[DadosBancarios] = None
 
@@ -284,8 +299,8 @@ class MeuPerfilOut(BaseModel):
     data_aniversario: Optional[date] = None
     cpf: Optional[str] = None
     telefone: Optional[str] = None
-    contato_emergencia_1: Optional[ContatoEmergencia] = None
-    contato_emergencia_2: Optional[ContatoEmergencia] = None
+    contato_emergencia_1: Optional[ContatoEmergenciaOut] = None
+    contato_emergencia_2: Optional[ContatoEmergenciaOut] = None
     endereco: Optional[Endereco] = None
     dados_bancarios: Optional[DadosBancarios] = None
 

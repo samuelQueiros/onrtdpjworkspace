@@ -19,7 +19,15 @@ from app.core.crypto import (
 from app.models.log import Log
 from app.models.user import User
 from app.repositories import users_repository
-from app.schemas.user import ContatoEmergencia, DadosBancarios, Endereco, UserConfigUpdate, UserCreate, UserUpdate
+from app.schemas.user import (
+    ContatoEmergencia,
+    ContatoEmergenciaOut,
+    DadosBancarios,
+    Endereco,
+    UserConfigUpdate,
+    UserCreate,
+    UserUpdate,
+)
 from app.services import cargos_service, historico_colaborador_service, log_service
 
 
@@ -234,7 +242,10 @@ def _desserializar_contato_emergencia(valor: str | None) -> dict | None:
     valor = descriptografar_dado_sensivel(valor)
     try:
         dados = json.loads(valor)
-        return ContatoEmergencia.model_validate(dados).model_dump()
+        # Usa o formato tolerante para ler: cadastros migrados podem ter
+        # nome/grau de parentesco em branco, e isso nao pode quebrar a leitura
+        # (a obrigatoriedade dos 3 campos vale só para criar/editar).
+        return ContatoEmergenciaOut.model_validate(dados).model_dump()
     except (json.JSONDecodeError, TypeError, ValueError):
         # Compatibilidade com registros legados: apenas o telefone, sem nome/parentesco.
         return {"telefone": valor, "nome": "", "grau_parentesco": ""}

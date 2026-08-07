@@ -1,3 +1,4 @@
+import json
 import unittest
 from datetime import date
 from io import BytesIO
@@ -137,6 +138,40 @@ class UsersServiceTests(unittest.TestCase):
         self.assertEqual(restaurado["cidade"], "São Paulo")
         self.assertEqual(restaurado["cep"], "01000-000")
         self.assertEqual(legado["logradouro"], "Rua Antiga, 25")
+
+    def test_contato_emergencia_estruturado_e_formato_antigo(self):
+        contato = users_service.ContatoEmergencia(
+            telefone="(61) 98888-8888", nome="Maria Exemplo", grau_parentesco="Mãe",
+        )
+        valor = users_service._serializar_contato_emergencia(contato)
+        restaurado = users_service._desserializar_contato_emergencia(valor)
+        legado = users_service._desserializar_contato_emergencia(
+            users_service.criptografar_dado_sensivel("(61) 97777-7777")
+        )
+
+        self.assertTrue(valor.startswith("sensitive:"))
+        self.assertEqual(restaurado["telefone"], "(61) 98888-8888")
+        self.assertEqual(restaurado["nome"], "Maria Exemplo")
+        self.assertEqual(legado["telefone"], "(61) 97777-7777")
+        self.assertEqual(legado["nome"], "")
+
+    def test_contato_emergencia_migrado_com_nome_em_branco_nao_quebra_leitura(self):
+        # Reproduz o formato gravado pela migration 20260731_0023: telefone
+        # preenchido, nome/grau_parentesco em branco (nao "None").
+        conteudo = json.dumps({"telefone": "(61) 98621-1855", "nome": "", "grau_parentesco": ""})
+        valor = users_service.criptografar_dado_sensivel(conteudo)
+
+        restaurado = users_service._desserializar_contato_emergencia(valor)
+
+        self.assertEqual(restaurado["telefone"], "(61) 98621-1855")
+        self.assertEqual(restaurado["nome"], "")
+        self.assertEqual(restaurado["grau_parentesco"], "")
+
+        # E o resultado precisa ser aceito pelo schema de resposta usado em
+        # /users/{id}/dados-sensiveis e /users/me/perfil, sem 500.
+        from app.schemas.user import UserSensitiveResponse
+        resposta = UserSensitiveResponse(contato_emergencia_1=restaurado)
+        self.assertEqual(resposta.contato_emergencia_1.telefone, "(61) 98621-1855")
 
     def test_dados_bancarios_estruturados_preservam_criptografia(self):
         dados = DadosBancarios(banco="Banco Exemplo", agencia="1234", chave_pix="pix@example.com")
